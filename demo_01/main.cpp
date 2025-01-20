@@ -9,6 +9,8 @@
 #include <motor/controls/types/ascii_keyboard.hpp>
 #include <motor/controls/types/three_mouse.hpp>
 
+#include <motor/graphics/object/framebuffer_object.h>
+
 #include <motor/gfx/primitive/primitive_render_3d.h>
 #include <motor/gfx/camera/generic_camera.h>
 
@@ -46,6 +48,14 @@ namespace this_file
         motor::tool::timeline_t tl = motor::tool::timeline_t("my timeline") ;
 
         size_t cur_time = 0 ;
+
+    
+    private: // post processing
+
+        motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
+        motor::graphics::framebuffer_object_t fb_obj ;
+
+    private:
 
         //******************************************************************************************************
         virtual void_t on_init( void_t ) noexcept
@@ -93,6 +103,9 @@ namespace this_file
                 camera[i].perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
                 camera[i].look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
                     motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
+
+                camera[ i ].set_sensor_dims( float_t(fb_dims.z()), float_t(fb_dims.w()) ) ;
+                camera[ i ].perspective_fov() ;
             }
 
             {
@@ -113,13 +126,21 @@ namespace this_file
                     rss.clear_s.ss.do_activate = true ;
                     rss.clear_s.ss.do_color_clear = true ;
                     rss.clear_s.ss.do_depth_clear = true ;
-                    rss.view_s.do_change = false ;
-                    rss.view_s.ss.do_activate = false ;
-                    rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 ) ;
+                    rss.view_s.do_change = true ;
+                    rss.view_s.ss.do_activate = true ;
+                    rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, fb_dims.z(), fb_dims.w() ) ;
                     so.add_render_state_set( rss ) ;
                 }
 
                 rs = std::move( so ) ;
+            }
+
+            // framebuffer
+            {
+                fb_obj = motor::graphics::framebuffer_object_t( "the_scene" ) ;
+                fb_obj.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
+                    .set_target( motor::graphics::depth_stencil_target_type::depth32 )
+                    .resize( size_t(fb_dims.z()), size_t( fb_dims.w() ) ) ;
             }
         }
 
@@ -141,11 +162,13 @@ namespace this_file
                 float_t const w = float_t( sv.resize_msg.w ) ;
                 float_t const h = float_t( sv.resize_msg.h ) ;
 
+                #if 0
                 for ( size_t i = 0; i < 2; ++i )
                 {
                     camera[i].set_sensor_dims( w, h ) ;
                     camera[i].perspective_fov() ;
                 }
+                #endif
             }
         }
 
@@ -190,12 +213,6 @@ namespace this_file
                 // change camera translation
                 {
                     camera[ 0 ].translate_by( helper::camera_controls::create_translation( gd.sec_dt, _cc ) ) ;
-                }
-
-                // change camera rotation
-                {
-                    
-
                     camera[ 0 ].transform_by( helper::camera_controls::create_rotation( gd.sec_dt, _cc ) ) ;
                 }
             }
@@ -444,27 +461,36 @@ namespace this_file
         virtual void_t on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
             motor::application::app::render_data_in_t rd ) noexcept
         {
-            if( wid == 0 ) return  ;
+            //if( wid == 0 ) return  ;
 
             if ( rd.first_frame )
             {
+                fe->configure<motor::graphics::framebuffer_object_t>( &fb_obj ) ;
                 fe->configure< motor::graphics::state_object_t>( &rs ) ;
                 pr.configure( fe ) ;
             }
 
             // render text layer 0 to screen
+            fe->use( &fb_obj ) ;
             {
                 pr.prepare_for_rendering( fe ) ;
                 fe->push( &rs ) ;
                 pr.render( fe ) ;
                 fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
             }
+            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
         }
 
         //******************************************************************************************************
         virtual bool_t on_tool( this_t::window_id_t const wid, motor::application::app::tool_data_ref_t td ) noexcept 
         { 
             if( wid != 0 ) return false ;
+
+            if ( ImGui::Begin( "LookiLooki" ) )
+            {
+                ImGui::Image( td.imgui->texture( "the_scene.0" ), ImGui::GetWindowSize() ) ;
+            }
+            ImGui::End() ;
 
             if ( ImGui::Begin( "Camera Window" ) )
             {
