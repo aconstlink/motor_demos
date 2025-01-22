@@ -18,7 +18,7 @@ motor_emacs_default_directory( "${CMAKE_CURRENT_LIST_DIR}/motor" )
 
 set( CMAKE_DEBUG_POSTFIX d )
 
-add_subdirectory( "demo_01" )
+add_subdirectory( "00_demo" )
 
 
 install( EXPORT suites-targets DESTINATION "cmake" )

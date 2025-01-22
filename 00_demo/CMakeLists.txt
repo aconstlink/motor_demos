@@ -1,9 +1,13 @@
 
-set( app_name demo_01 )
+set( app_name 00_demo )
 
 set( sources
+    "main.h"
     "main.cpp"
     "app_camera.h"
+    "on_graphics.cpp"
+    "on_render.cpp"
+    "on_tool.cpp"
     )
 
 add_executable( ${app_name} ${sources} ) 
