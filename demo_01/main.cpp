@@ -49,6 +49,10 @@ namespace this_file
 
         size_t cur_time = 0 ;
 
+
+    private: // render window
+
+        size_t _rwid = size_t(-1) ;
     
     private: // post processing
 
@@ -79,7 +83,7 @@ namespace this_file
             #if 1
             {
                 motor::application::window_info_t wi ;
-                wi.x = 400 ;
+                wi.x = 900 ;
                 wi.y = 100 ;
                 wi.w = 800 ;
                 wi.h = 600 ;
@@ -150,12 +154,26 @@ namespace this_file
         {
             if ( sv.create_changed )
             {
-                motor::log::global_t::status( "[my_app] : window created" ) ;
+                if( _rwid == wid ) 
+                    motor::log::global_t::status( "[my_app] : render window created" ) ;
+                else 
+                    motor::log::global_t::status( "[my_app] : window created" ) ;
+                
+                
             }
             if ( sv.close_changed )
             {
                 motor::log::global_t::status( "[my_app] : window closed" ) ;
-                this->close() ;
+
+                if( _rwid == wid ) 
+                {
+                    _rwid = size_t(-1) ;
+
+                }
+                else
+                {
+                    this->close() ;
+                }
             }
             if ( sv.resize_changed )
             {
@@ -198,8 +216,55 @@ namespace this_file
                 {
                     cam_idx = ++cam_idx % 2 ;
                 }
+
+                if ( keyboard.get_state( key_t::f3 ) ==
+                    motor::controls::components::key_state::released )
+                {
+                    if( _rwid == size_t(-1) )
+                    {
+                        motor::application::window_info_t wi ;
+                        wi.x = 900 ;
+                        wi.y = 500 ;
+                        wi.w = 800 ;
+                        wi.h = 600 ;
+                        wi.gen = motor::application::graphics_generation::gen4_auto ;
+
+                        _rwid = this_t::create_window( wi );
+
+                        this_t::send_window_message( _rwid, [&] ( motor::application::app::window_view & wnd )
+                        {
+                            wnd.send_message( motor::application::show_message( { true } ) ) ;
+                            wnd.send_message( motor::application::cursor_message_t( { false } ) ) ;
+                            wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
+                        } ) ;
+                    }
+                    else
+                    {
+                        this_t::send_window_message( _rwid, [&] ( motor::application::app::window_view & wnd )
+                        {
+                            wnd.send_message( motor::application::close_message( { true } ) ) ;
+                        } ) ;
+                    }
+                }
+                else if ( keyboard.get_state( key_t::f4 ) == motor::controls::components::key_state::released &&
+                    _rwid != size_t( -1 ) )
+                {
+                    this_t::send_window_message( _rwid, [&] ( motor::application::app::window_view & wnd )
+                    {
+                        wnd.send_message( motor::application::fullscreen_message(
+                            {
+                                motor::application::three_state::toggle,
+                                motor::application::three_state::toggle
+                            } ) ) ;
+                    } );
+                }
             }
         }
+
+        //******************************************************************************************************
+        virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept 
+        {
+        } 
 
         //******************************************************************************************************
         virtual void_t on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept
@@ -461,6 +526,15 @@ namespace this_file
         virtual void_t on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
             motor::application::app::render_data_in_t rd ) noexcept
         {
+            if( wid == _rwid ) 
+            {
+                if( rd.first_frame )
+                {
+
+                }
+                
+            }
+
             //if( wid == 0 ) return  ;
 
             if ( rd.first_frame )
