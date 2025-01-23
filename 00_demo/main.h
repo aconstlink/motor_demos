@@ -35,11 +35,14 @@ namespace demos
     {
         motor_this_typedefs( the_app ) ;
 
-        
-
         // debug renderer
         motor::gfx::primitive_render_3d_t pr ;
         motor::graphics::state_object_t _pr_rs ;
+
+    private: // file
+
+        motor::io::monitor_mtr_t _mon = motor::memory::create_ptr( motor::io::monitor_t() ) ;
+        motor::io::database _db = motor::io::database( motor::io::path_t( DATAPATH ), "./working", "data" ) ;
 
     private: // camera 
 
@@ -48,8 +51,11 @@ namespace demos
         motor::gfx::generic_camera_t camera[ 2 ] ;
         size_t cam_idx = 0 ;
 
-        helper::camera_controls::control_vector _cc ;
+        // this is only for controlling the 
+        // camera for final rendering
+        size_t _final_cam_idx = 1 ;
 
+        helper::camera_controls::control_vector _cc ;
 
     private: // tool ui
 
@@ -63,12 +69,23 @@ namespace demos
         bool_t _proceed_time = false ;
         size_t cur_time = 0 ;
 
+    private: // debug window
+
+        motor::graphics::state_object_t _debug_rs ;
+        motor::graphics::msl_object_mtr_t _dummy_debug_msl ;
+
     private: // render window
 
         size_t _rwid = size_t( -1 ) ;
         motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
         motor::graphics::framebuffer_object_t pp_fb ;
-        motor::graphics::state_object_t rs ;
+        motor::graphics::state_object_t _scene_final_rs ;
+        motor::graphics::msl_object_mtr_t _post_msl ;
+        motor::graphics::geometry_object_mtr_t _post_quad ;
+
+        motor::graphics::state_object_t _post_process_rs ;
+        motor::graphics::msl_object_mtr_t _dummy_render_msl ;
+        motor::graphics::geometry_object_mtr_t _dummy_geo ;
 
     private: // debug window
         
@@ -85,5 +102,6 @@ namespace demos
         virtual void_t on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
             motor::application::app::render_data_in_t rd ) noexcept ;
         virtual bool_t on_tool( this_t::window_id_t const wid, motor::application::app::tool_data_ref_t td ) noexcept ;
+        virtual void_t on_shutdown( void_t ) noexcept ;
     } ;
 }

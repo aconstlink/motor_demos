@@ -1,0 +1,29 @@
+config color_to_screen
+{
+    vertex_shader
+    {
+        in vec2_t pos : position ;
+
+        out vec2_t tx : texcoord0 ;
+        out vec4_t pos : position ;
+
+        void main()
+        {
+            out.tx = sign( in.pos.xy ) *0.5 + 0.5 ;
+            out.pos = vec4_t( sign( in.pos.xy ), 0.0, 1.0 ) ; 
+        }
+    }
+
+    pixel_shader
+    {
+        in vec2_t tx : texcoord0 ;
+        out vec4_t color : color ;
+
+        tex2d_t tx_map ;
+
+        void main()
+        {
+            out.color = rt_texture( tx_map, in.tx ) ;
+        }
+    }
+}

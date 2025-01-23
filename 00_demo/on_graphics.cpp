@@ -43,7 +43,12 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         kf2.insert( keyframe_sequencef_t::keyframe_t( 6500, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
 
         motor::math::vec3f_t const up = motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ).normalized() ;
+        
+        #if 1
+        camera[ 1 ].look_at( kf2( time ), up , motor::math::vec3f_t() ) ;
+        #else
         camera[ 1 ].look_at( kf2( time ), up , kf(time) ) ;
+        #endif
 
         // draw keyframe sequance as path
         if( cam_idx == 0 )
@@ -170,93 +175,37 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         }
     }
 
-    // 
-    {
-        typedef motor::math::cubic_hermit_spline< motor::math::vec3f_t > spline_t ;
-        typedef motor::math::keyframe_sequence< spline_t > keyframe_sequence_t ;
-
-        keyframe_sequence_t kf ;
-
-        kf.insert( keyframe_sequence_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 1000, motor::math::vec3f_t( 1.0f, 0.0f, 0.0f ) ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 4000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 1.0f ) ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 3000, motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ) ) ) ;
-
-        size_t ltime = time % kf.back().get_time() ;
-
-        motor::math::vec4f_t color = motor::math::vec4f_t( kf( ltime ), 1.0f ) ;
-
-        {
-            motor::math::vec3f_t const start( -1000.0f, 0.0f, 0.0f ) ;
-            size_t const ne = 100 ;
-            float_t const step = 1.0f / ne ;
-            for ( size_t i = 0; i < ne; ++i )
-            {
-                float_t const i_f = float_t( i ) / ne ;
-                motor::math::vec3f_t pos = start + motor::math::vec3f_t( float_t( i ), 1.0f, 1.0f ) * motor::math::vec3f_t( 50.0f, 1.0f, 1.0f ) ;
-                pr.draw_circle( motor::math::mat3f_t::make_identity(), pos, 30.0f, color, color, 20 ) ;
-            }
-        }
-
-        {
-            motor::math::vec3f_t const start( -300.0f, -100.0f, -100.0f ) ;
-            size_t const ne = 100 ;
-            float_t const step = 1.0f / ne ;
-            for ( size_t i = 0; i < ne; ++i )
-            {
-                float_t const i_f = float_t( i ) * step ; 
-                float_t const sin_y = motor::math::fn<float_t>::sin( i_f * 2.0f * motor::math::constants<float_t>::pi() ) ;
-                motor::math::vec3f_t const off( 0.0f, 200.0f * sin_y, 0.0f ) ;
-                motor::math::vec3f_t pos = start + off + motor::math::vec3f_t( float_t( i ), 1.0f, 1.0f ) * motor::math::vec3f_t( 10.0f, 1.0f, 1.0f ) ;
-                pr.draw_circle( motor::math::mat3f_t::make_identity(), pos, 10.0f,
-                    motor::math::vec4f_t( ( motor::math::vec4f_t( 1.0f ) - color ).xyz(), 1.0f ), color, 20 ) ;
-            }
-        }
-    }
-
-    // 
-    {
-        motor::math::vec3f_t const df( 100.0f ) ;
-
-        typedef motor::math::cubic_hermit_spline< motor::math::vec3f_t > spline_t ;
-        typedef motor::math::keyframe_sequence< spline_t > keyframe_sequence_t ;
-
-        typedef motor::math::linear_bezier_spline< float_t > splinef_t ;
-        typedef motor::math::keyframe_sequence< splinef_t > keyframe_sequencef_t ;
-
-        keyframe_sequence_t kf ;
-
-        motor::math::vec3f_t const p0 = motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) + df * motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) ;
-        motor::math::vec3f_t const p1 = motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) + df * motor::math::vec3f_t( -1.0f, 1.0f, -1.0f ) ;
-        motor::math::vec3f_t const p2 = motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) + df * motor::math::vec3f_t( 1.0f, 1.0f, 1.0f ) ;
-        motor::math::vec3f_t const p3 = motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) + df * motor::math::vec3f_t( 1.0f, -1.0f, -1.0f ) ;
-
-        kf.insert( keyframe_sequence_t::keyframe_t( 0, p0 ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 1000, p1 ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 2000, p2 ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 3000, p3 ) ) ;
-        kf.insert( keyframe_sequence_t::keyframe_t( 4000, p0 ) ) ;
-
-
-        keyframe_sequencef_t kf2 ;
-        kf2.insert( keyframe_sequencef_t::keyframe_t( 0, 30.0f ) ) ;
-        kf2.insert( keyframe_sequencef_t::keyframe_t( 1000, 50.0f ) ) ;
-        kf2.insert( keyframe_sequencef_t::keyframe_t( 2000, 20.0f ) ) ;
-        kf2.insert( keyframe_sequencef_t::keyframe_t( 3000, 60.0f ) ) ;
-        kf2.insert( keyframe_sequencef_t::keyframe_t( 10000, 10.0f ) ) ;
-        kf2.insert( keyframe_sequencef_t::keyframe_t( 11000, 30.0f ) ) ;
-
-
-        size_t const ltime = time % kf.back().get_time() ;
-        size_t const ltime2 = time % kf2.back().get_time() ;
-
-        motor::math::vec4f_t color = motor::math::vec4f_t( 1.0f ) ;
-
-        pr.draw_circle(
-            ( camera[cam_idx].get_transformation() ).get_rotation_matrix(), kf( ltime ), kf2( ltime2 ), color, color, 10 ) ;
-    }
-
     pr.set_view_proj( camera[cam_idx].mat_view(), camera[cam_idx].mat_proj() ) ;
     pr.prepare_for_rendering() ;
+
+
+    {
+        _dummy_render_msl->for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vs ) 
+        {
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
+                var->set( camera[_final_cam_idx].mat_view() ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
+                var->set( camera[ _final_cam_idx ].mat_proj() ) ;
+            }
+        } ) ;
+    }
+
+    {
+        _dummy_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+        {
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
+                var->set( camera[ cam_idx ].mat_view() ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
+                var->set( camera[ cam_idx ].mat_proj() ) ;
+            }
+        } ) ;
+    }
 }
