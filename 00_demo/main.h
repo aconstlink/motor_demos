@@ -35,10 +35,11 @@ namespace demos
     {
         motor_this_typedefs( the_app ) ;
 
-        motor::graphics::state_object_t rs ;
+        
 
         // debug renderer
         motor::gfx::primitive_render_3d_t pr ;
+        motor::graphics::state_object_t _pr_rs ;
 
     private: // camera 
 
@@ -67,6 +68,7 @@ namespace demos
         size_t _rwid = size_t( -1 ) ;
         motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
         motor::graphics::framebuffer_object_t pp_fb ;
+        motor::graphics::state_object_t rs ;
 
     private: // debug window
         

@@ -15,8 +15,8 @@ void_t the_app::on_init( void_t ) noexcept
         wi.h = 600 ;
         wi.gen = motor::application::graphics_generation::gen4_auto ;
 
-        _dwid = this_t::create_window( wi ) ;
-        this_t::send_window_message( _dwid, [&] ( motor::application::app::window_view & wnd )
+        _twid = this_t::create_window( wi ) ;
+        this_t::send_window_message( _twid, [&] ( motor::application::app::window_view & wnd )
         {
             wnd.send_message( motor::application::show_message( { true } ) ) ;
             wnd.send_message( motor::application::cursor_message_t( { true } ) ) ;
@@ -33,8 +33,8 @@ void_t the_app::on_init( void_t ) noexcept
         wi.h = 600 ;
         wi.gen = motor::application::graphics_generation::gen4_gl4 ;
 
-        _twid = this_t::create_window( wi ) ;
-        this_t::send_window_message( _twid, [&] ( motor::application::app::window_view & wnd )
+        _dwid = this_t::create_window( wi ) ;
+        this_t::send_window_message( _dwid, [&] ( motor::application::app::window_view & wnd )
         {
             wnd.send_message( motor::application::show_message( { true } ) ) ;
             wnd.send_message( motor::application::cursor_message_t( { true } ) ) ;
@@ -84,6 +84,32 @@ void_t the_app::on_init( void_t ) noexcept
         rs = std::move( so ) ;
     }
 
+    {
+        motor::graphics::state_object_t so = motor::graphics::state_object_t(
+            "debug render state" ) ;
+
+        {
+            motor::graphics::render_state_sets_t rss ;
+            rss.depth_s.do_change = true ;
+            rss.depth_s.ss.do_activate = true ;
+            rss.depth_s.ss.do_depth_write = true ;
+            rss.polygon_s.do_change = true ;
+            rss.polygon_s.ss.do_activate = true ;
+            rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise ;
+            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
+            rss.clear_s.do_change = true ;
+            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f ) ;
+            rss.clear_s.ss.do_activate = true ;
+            rss.clear_s.ss.do_color_clear = true ;
+            rss.clear_s.ss.do_depth_clear = true ;
+            
+
+            so.add_render_state_set( rss ) ;
+        }
+
+        _pr_rs = std::move( so ) ;
+    }
+
     // framebuffer
     {
         pp_fb = motor::graphics::framebuffer_object_t( "the_scene" ) ;
@@ -113,7 +139,6 @@ void_t the_app::on_event( window_id_t const wid,
         if ( _rwid == wid )
         {
             _rwid = size_t( -1 ) ;
-
         }
         else
         {
@@ -211,6 +236,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ) noexcept
 {
 }
 
+//******************************************************************************************************
 int main( int argc, char ** argv )
 {
     using namespace motor::core::types ;

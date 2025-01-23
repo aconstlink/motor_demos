@@ -15,6 +15,7 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         if( wid == _dwid )
         {
             pr.configure( fe ) ;
+            fe->configure< motor::graphics::state_object_t>( &_pr_rs ) ;
         }
 
         // init render window rendering objects
@@ -31,10 +32,11 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
     {
         // do the primitive renderer
         {
+            
             pr.prepare_for_rendering( fe ) ;
-            //fe->push( &rs ) ;
+            fe->push( &_pr_rs ) ;
             pr.render( fe ) ;
-            //fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
         }
     }
     else if ( wid == _rwid )
