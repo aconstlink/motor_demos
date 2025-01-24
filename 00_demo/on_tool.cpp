@@ -101,5 +101,57 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
         ImGui::End() ;
     }
 
+    // audio stuff
+    {
+        if ( ImGui::Begin( "Capture Audio" ) )
+        {
+
+            // print wave form
+            {
+                auto const mm = _co.minmax() ;
+                ImGui::PlotLines( "Samples", _aanl.captured_samples.data(), (int) _aanl.captured_samples.size(), 0, 0, mm.x(), mm.y(), 
+                    ImVec2( ImGui::GetWindowWidth(), 100.0f ) );
+            }
+
+            // print frequencies captured
+            {
+                ImGui::PlotHistogram( "Frequencies Captured", _aanl.captured_frequencies.data(),
+                    (int) _aanl.captured_frequencies.size() >> 2, 0, 0, 0.0f, 1.0f, ImVec2( ImGui::GetWindowWidth(), 100.0f ) ) ;
+            }
+
+            #if 0
+            // print frequencies captured 4th - quater size
+            {
+                ImGui::PlotHistogram( "Frequencies Captured 4", captured_frequencies.data(),
+                    (int) ( captured_frequencies.size() >> 2 ), 0, 0, 0.0f, 1.0f, ImVec2( ImGui::GetWindowWidth(), 100.0f ) ) ;
+            }
+
+            // print frequencies average
+            {
+                ImGui::PlotHistogram( "Frequencies Average", captured_frequencies_avg.data(),
+                    (int) captured_frequencies_avg.size(), 0, 0, 0.0f, 1.0f, ImVec2( ImGui::GetWindowWidth(), 100.0f ) ) ;
+            }
+
+            // print frequencies variance
+            {
+                ImGui::PlotHistogram( "Frequencies Variance", captured_frequencies_var.data(),
+                    (int) captured_frequencies_var.size(), 0, 0, 0.0f, 1.0f, ImVec2( ImGui::GetWindowWidth(), 100.0f ) ) ;
+            }
+
+            #endif
+            {
+                ImGui::Checkbox( "Kick", &_aanl.asys.is_kick ) ; ImGui::SameLine() ;
+                ImGui::Checkbox( "Mid", &_aanl.asys.is_lowm ) ; ImGui::SameLine() ;
+            }
+
+            {
+                ImGui::VSliderFloat( "Kick Value", ImVec2( 18, 160 ), &( _aanl.asys.kick ), 0.0f, 1.0f ) ; ImGui::SameLine() ;
+                ImGui::VSliderFloat( "Midl Value", ImVec2( 18, 160 ), &( _aanl.asys.midl ), 0.0f, 1.0f ) ;
+            }
+
+        }
+        ImGui::End() ;
+    }
+
     return true ; 
 }

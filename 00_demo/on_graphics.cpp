@@ -167,6 +167,11 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
                 var->set( _camera[ _final_cam_idx ].cam.mat_proj() ) ;
             }
+
+            {
+                auto * var = vs->data_variable<float_t>( "kick" ) ;
+                var->set( _aanl.asys.kick ) ;
+            }
         } ) ;
     }
 

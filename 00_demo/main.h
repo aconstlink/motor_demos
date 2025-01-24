@@ -14,6 +14,8 @@
 #include <motor/gfx/primitive/primitive_render_3d.h>
 #include <motor/gfx/camera/generic_camera.h>
 
+#include "../common/audio_analysis.h"
+
 #include <motor/math/utility/fn.hpp>
 #include <motor/math/utility/angle.hpp>
 #include <motor/math/animation/keyframe_sequence.hpp>
@@ -62,6 +64,9 @@ namespace demos
         // debug renderer
         motor::gfx::primitive_render_3d_t pr ;
         motor::graphics::state_object_t _pr_rs ;
+
+        motor::audio::capture_object_t _co ;
+        demos::audio_analysis _aanl ;
 
     private: // file
 
@@ -131,6 +136,7 @@ namespace demos
             motor::application::window_message_listener::state_vector_cref_t sv ) noexcept ;
         virtual void_t on_device( device_data_in_t dd ) noexcept ;
         virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept ;
+        virtual void_t the_app::on_audio( motor::audio::frontend_ptr_t fptr, audio_data_in_t ad ) noexcept ;
         virtual void_t on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept ;
         virtual void_t on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
             motor::application::app::render_data_in_t rd ) noexcept ;

@@ -16,7 +16,7 @@ void_t the_app::on_init( void_t ) noexcept
         wi.x = 100 ;
         wi.y = 100 ;
         wi.w = 800 ;
-        wi.h = 600 ;
+        wi.h = 1200 ;
         wi.gen = motor::application::graphics_generation::gen4_auto ;
 
         _twid = this_t::create_window( wi ) ;
@@ -517,7 +517,7 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
             {
                 motor::application::window_info_t wi ;
                 wi.x = 900 ;
-                wi.y = 500 ;
+                wi.y = 720 ;
                 wi.w = 800 ;
                 wi.h = 600 ;
                 wi.gen = motor::application::graphics_generation::gen4_auto ;
