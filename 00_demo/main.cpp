@@ -49,16 +49,103 @@ void_t the_app::on_init( void_t ) noexcept
 
     pr.init( "my_prim_render" ) ;
 
-
-    for( size_t i=0; i<2; ++i )
+    // init scenes
     {
-        camera[i].set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
-        camera[i].perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
-        camera[i].look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
-            motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
+        // init manager
+        {
+            {
+                using kfs_t = demos::scene_manager::keyframe_sequence_t ;
+                kfs_t kf ;
 
-        camera[ i ].set_sensor_dims( float_t(fb_dims.z()), float_t(fb_dims.w()) ) ;
-        camera[ i ].perspective_fov() ;
+                kf.insert( kfs_t::keyframe_t( 0, size_t(0) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 6500, size_t(1) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 12000, size_t(1) ) ) ;
+
+                _scene_mgr.scene_selector = std::move( kf ) ;
+            }
+        }
+
+        {
+            _scenes[ 0 ].cam_idx = 1 ;
+        }
+
+        {
+            _scenes[ 1 ].cam_idx = 2 ;
+        }
+    }
+
+    // init cameras
+    {
+        for ( size_t i = 0; i < this_t::get_num_cams(); ++i )
+        {
+            _camera[ i ].cam.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
+            _camera[ i ].cam.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
+            _camera[ i ].cam.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
+                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
+
+            _camera[ i ].cam.set_sensor_dims( float_t( fb_dims.z() ), float_t( fb_dims.w() ) ) ;
+            _camera[ i ].cam.perspective_fov() ;
+        }
+
+        // camera 1
+        {
+            auto & cam_data = _camera[ 1 ] ;
+
+            cam_data.cam.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
+                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
+
+            {
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+                kfs_t kf_pos ;
+                kf_pos.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 1000.0f, 0.0f, -1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( 3000, motor::math::vec3f_t( 0.0f, 500.0f, -1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( 5000, motor::math::vec3f_t( -1000.0f, -100.0f, -1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( 6500, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
+                cam_data.kf_pos = std::move( kf_pos ) ;
+            }
+
+            {
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+
+                kfs_t kf( motor::math::time_remap_funk_type::cycle ) ;
+                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                cam_data.kf_lookat = std::move( kf ) ;
+            }
+        }
+
+        // camera 2
+        {
+            auto & cam_data = _camera[ 2 ] ;
+            cam_data.cam.look_at( motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ),
+                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
+
+            {
+                auto const start = motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ) ;
+                size_t const start_milli = 6500 ;
+
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+                kfs_t kf_pos ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli, start ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 1000, start + motor::math::vec3f_t( 100.0f, 100.0f, -100.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 2000, start + motor::math::vec3f_t( -400.0f, -500.0f, 1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 3000, start + motor::math::vec3f_t( 0.0f, -100.0f, 0.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 4000, start ) ) ;
+                cam_data.kf_pos = std::move( kf_pos ) ;
+            }
+
+            {
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+
+                kfs_t kf( motor::math::time_remap_funk_type::cycle ) ;
+                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                cam_data.kf_lookat = std::move( kf ) ;
+            }
+        }
     }
 
 
@@ -410,17 +497,17 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
         if ( keyboard.get_state( key_t::k_1 ) ==
             motor::controls::components::key_state::released )
         {
-            cam_idx = 0 ;
+            _cam_idx = 0 ;
         }
         else if ( keyboard.get_state( key_t::k_2 ) ==
             motor::controls::components::key_state::released )
         {
-            cam_idx = 1 ;
+            _cam_idx = 1 ;
         }
         else if ( keyboard.get_state( key_t::k_3 ) ==
             motor::controls::components::key_state::released )
         {
-            cam_idx = ++cam_idx % 2 ;
+            _cam_idx = ++_cam_idx % 2 ;
         }
 
         if ( keyboard.get_state( key_t::f3 ) ==
@@ -468,8 +555,11 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
 }
 
 //******************************************************************************************************
-void_t the_app::on_update( motor::application::app::update_data_in_t ) noexcept
+void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept
 {
+    if ( _proceed_time ) cur_time += ud.milli_dt ;
+
+    _final_cam_idx = _scenes[ _scene_mgr.scene_selector( cur_time ) ].cam_idx ;
 }
 
 //******************************************************************************************************

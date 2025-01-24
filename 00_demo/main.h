@@ -30,6 +30,30 @@
 namespace demos
 {
     using namespace motor::core::types ;
+    struct camera_data
+    {
+        typedef motor::math::linear_bezier_spline< motor::math::vec3f_t > linearf_t ;
+        typedef motor::math::cubic_hermit_spline< motor::math::vec3f_t > splinef_t ;
+
+        typedef motor::math::keyframe_sequence< splinef_t > keyframe_sequencef_t ;
+
+        motor::gfx::generic_camera_t cam  ;
+        keyframe_sequencef_t kf_pos ;
+        keyframe_sequencef_t kf_lookat ;
+    };
+
+    struct scene_data
+    {
+        size_t cam_idx ;
+    };
+
+    struct scene_manager
+    {
+        typedef motor::math::linear_bezier_spline< size_t > linear_t ;
+        typedef motor::math::keyframe_sequence< linear_t > keyframe_sequence_t ;
+
+        keyframe_sequence_t scene_selector ;
+    };
 
     class the_app : public motor::application::app
     {
@@ -46,10 +70,19 @@ namespace demos
 
     private: // camera 
 
+        size_t get_num_cams( void_t ) const noexcept
+        {
+            return sizeof( _camera ) / sizeof( _camera[ 0 ] ) ;
+        }
+
         // 0 : free camera
-        // 1 : spline camera
-        motor::gfx::generic_camera_t camera[ 2 ] ;
-        size_t cam_idx = 0 ;
+        // 1 : camera 1 : scene where thing A happens
+        // 2 : camera 2 : scene where thing B happens
+        demos::camera_data _camera[ 3 ] ;
+        size_t _cam_idx = 0 ;
+
+        std::array< demos::scene_data, 2 > _scenes ;
+        demos::scene_manager _scene_mgr ;
 
         // this is only for controlling the 
         // camera for final rendering
