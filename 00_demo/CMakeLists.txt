@@ -4,6 +4,8 @@ set( app_name 00_demo )
 set( sources
     "../common/audio_analysis.h"
     "../common/audio_analysis.cpp"
+    "../common/iscene.h"
+
     "main.h"
     "main.cpp"
     "app_camera.h"
@@ -11,6 +13,12 @@ set( sources
     "on_render.cpp"
     "on_tool.cpp"
     "on_audio.cpp"
+
+    "scenes/scene_0.h"
+    "scenes/scene_0.cpp"
+    "scenes/scene_1.h"
+    "scenes/scene_1.cpp"
+
     )
 
 add_executable( ${app_name} ${sources} ) 

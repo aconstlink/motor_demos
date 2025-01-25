@@ -156,37 +156,19 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
 
 
     {
-        _dummy_render_msl->for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vs ) 
+        for( auto * s : _scenes ) 
         {
+            s->on_camera_final( &_camera[_final_cam_idx].cam ) ;
+            s->on_camera_debug( &_camera[_cam_idx].cam ) ;
+            
             {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( _camera[_final_cam_idx].cam.mat_view() ) ;
+                
+                s->on_graphics( demos::iscene::on_graphics_data 
+                    {
+                        cur_time, gd.sec_dt, &pr
+                    } ) ;
             }
-
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( _camera[ _final_cam_idx ].cam.mat_proj() ) ;
-            }
-
-            {
-                auto * var = vs->data_variable<float_t>( "kick" ) ;
-                var->set( _aanl.asys.kick ) ;
-            }
-        } ) ;
+        }
     }
-
-    {
-        _dummy_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
-        {
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( _camera[ _cam_idx ].cam.mat_view() ) ;
-            }
-
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( _camera[ _cam_idx ].cam.mat_proj() ) ;
-            }
-        } ) ;
-    }
+    
 }

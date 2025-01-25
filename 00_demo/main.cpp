@@ -1,9 +1,10 @@
 
 #include "main.h"
 
-#include <motor/geometry/mesh/tri_mesh.h>
-#include <motor/geometry/mesh/flat_tri_mesh.h>
-#include <motor/geometry/3d/cube.h>
+#include "scenes/scene_0.h"
+#include "scenes/scene_1.h"
+
+
 
 
 using namespace demos ;
@@ -66,12 +67,17 @@ void_t the_app::on_init( void_t ) noexcept
         }
 
         {
-            _scenes[ 0 ].cam_idx = 1 ;
+            _scenes_ar[ 0 ].cam_idx = 1 ;
         }
 
         {
-            _scenes[ 1 ].cam_idx = 2 ;
+            _scenes_ar[ 1 ].cam_idx = 2 ;
         }
+
+
+        
+
+
     }
 
     // init cameras
@@ -148,120 +154,6 @@ void_t the_app::on_init( void_t ) noexcept
         }
     }
 
-
-    // dummy cube
-    {
-        struct vertex { motor::math::vec3f_t pos ; motor::math::vec3f_t nrm ; motor::math::vec2f_t tx ; } ;
-
-        motor::geometry::cube_t::input_params ip ;
-        ip.scale = motor::math::vec3f_t( 1.0f ) ;
-        ip.tess = 100 ;
-
-        motor::geometry::tri_mesh_t tm ;
-        motor::geometry::cube_t::make( &tm, ip ) ;
-
-        motor::geometry::flat_tri_mesh_t ftm ;
-        tm.flatten( ftm ) ;
-
-        auto vb = motor::graphics::vertex_buffer_t()
-            .add_layout_element( motor::graphics::vertex_attribute::position, motor::graphics::type::tfloat, motor::graphics::type_struct::vec3 )
-            .add_layout_element( motor::graphics::vertex_attribute::normal, motor::graphics::type::tfloat, motor::graphics::type_struct::vec3 )
-            .add_layout_element( motor::graphics::vertex_attribute::texcoord0, motor::graphics::type::tfloat, motor::graphics::type_struct::vec2 )
-            .resize( ftm.get_num_vertices() ).update<vertex>( [&] ( vertex * array, size_t const ne )
-        {
-            for ( size_t i = 0; i < ne; ++i )
-            {
-                array[ i ].pos = ftm.get_vertex_position_3d( i ) ;
-                array[ i ].nrm = ftm.get_vertex_normal_3d( i ) ;
-                array[ i ].tx = ftm.get_vertex_texcoord( 0, i ) ;
-            }
-        } );
-
-        auto ib = motor::graphics::index_buffer_t().
-            set_layout_element( motor::graphics::type::tuint ).resize( ftm.indices.size() ).
-            update<uint_t>( [&] ( uint_t * array, size_t const ne )
-        {
-            for ( size_t i = 0; i < ne; ++i ) array[ i ] = ftm.indices[ i ] ;
-        } ) ;
-
-        _dummy_geo= motor::shared( motor::graphics::geometry_object_t( "dummy_object",
-            motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ) ;
-    }
-
-    // dummy shader debug
-    {
-        motor::graphics::msl_object_t mslo( "dummy_debug" ) ;
-
-        auto const res = _db.load( motor::io::location_t( "shaders.dummy_debug.msl" ) ).wait_for_operation(
-            [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
-        {
-            if ( loading_res != motor::io::result::ok )
-            {
-                assert( false ) ;
-            }
-
-            mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
-        } ) ;
-
-        mslo.link_geometry( "dummy_object" ) ;
-
-        {
-            motor::graphics::variable_set_t vars ;
-
-            {
-                auto * var = vars.data_variable< motor::math::vec4f_t >( "color" ) ;
-                var->set( motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 1.0f ) ) ;
-            }
-
-            {
-                motor::math::m3d::trafof_t trans ;
-                trans.set_scale( 100.0f ) ;
-                auto * var = vars.data_variable< motor::math::mat4f_t >( "world" ) ;
-                var->set( trans.get_transformation() ) ;
-            }
-            mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set 1" ) ) ;
-        }
-
-        _dummy_debug_msl = motor::shared( std::move( mslo ) ) ;
-    }
-
-    // dummy shader
-    {
-        motor::graphics::msl_object_t mslo( "dummy_render" ) ;
-
-        auto const res = _db.load( motor::io::location_t( "shaders.dummy_final.msl" ) ).wait_for_operation(
-            [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
-        {
-            if ( loading_res != motor::io::result::ok )
-            {
-                assert( false ) ;
-            }
-
-            mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
-        } ) ;
-
-        mslo.link_geometry( "dummy_object" ) ;
-
-        {
-            motor::graphics::variable_set_t vars ;
-
-            {
-                auto * var = vars.data_variable< motor::math::vec4f_t >( "color" ) ;
-                var->set( motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 1.0f ) ) ;
-            }
-
-            {
-                motor::math::m3d::trafof_t trans ;
-                trans.set_scale( 100.0f ) ;
-                auto * var = vars.data_variable< motor::math::mat4f_t >( "world" ) ;
-                var->set( trans.get_transformation() ) ;
-            }
-            mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set 1" ) ) ;
-        }
-
-        _dummy_render_msl = motor::shared( std::move( mslo ) ) ;
-    }
-
     // post quad vertex/index buffer
     {
         struct vertex { motor::math::vec3f_t pos ; } ;
@@ -331,7 +223,57 @@ void_t the_app::on_init( void_t ) noexcept
 
     {
         motor::graphics::state_object_t so = motor::graphics::state_object_t(
-            "root_render_states" ) ;
+            "post_processing" ) ;
+
+        {
+            motor::graphics::render_state_sets_t rss ;
+            rss.depth_s.do_change = true ;
+            rss.depth_s.ss.do_activate = false ;
+
+            rss.polygon_s.do_change = true ;
+            rss.polygon_s.ss.do_activate = true ;
+            rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise ;
+            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
+            
+            rss.clear_s.do_change = false ;
+            
+            rss.view_s.do_change = false ;
+            
+            so.add_render_state_set( rss ) ;
+        }
+
+        _post_process_rs = std::move( so ) ;
+    }
+
+    {
+        motor::graphics::state_object_t so = motor::graphics::state_object_t(
+            "primitive renderer" ) ;
+
+        {
+            motor::graphics::render_state_sets_t rss ;
+            rss.depth_s.do_change = true ;
+            rss.depth_s.ss.do_activate = true ;
+            rss.depth_s.ss.do_depth_write = true ;
+            rss.polygon_s.do_change = true ;
+            rss.polygon_s.ss.do_activate = true ;
+            rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise ;
+            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
+            
+            rss.clear_s.do_change = false ;
+            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f ) ;
+            rss.clear_s.ss.do_activate = true ;
+            rss.clear_s.ss.do_color_clear = true ;
+            rss.clear_s.ss.do_depth_clear = true ;
+
+            so.add_render_state_set( rss ) ;
+        }
+
+        _pr_rs = std::move( so ) ;
+    }
+
+    {
+        motor::graphics::state_object_t so = motor::graphics::state_object_t(
+            "root_render_states_final" ) ;
 
         {
             motor::graphics::render_state_sets_t rss ;
@@ -357,88 +299,24 @@ void_t the_app::on_init( void_t ) noexcept
         _scene_final_rs = std::move( so ) ;
     }
 
-    {
-        motor::graphics::state_object_t so = motor::graphics::state_object_t(
-            "post_processing" ) ;
-
-        {
-            motor::graphics::render_state_sets_t rss ;
-            rss.depth_s.do_change = true ;
-            rss.depth_s.ss.do_activate = false ;
-
-            rss.polygon_s.do_change = true ;
-            rss.polygon_s.ss.do_activate = true ;
-            rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise ;
-            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
-            
-            rss.clear_s.do_change = false ;
-            
-            rss.view_s.do_change = false ;
-            
-            so.add_render_state_set( rss ) ;
-        }
-
-        _post_process_rs = std::move( so ) ;
-    }
-
-    {
-        motor::graphics::state_object_t so = motor::graphics::state_object_t(
-            "debug scene" ) ;
-
-        {
-            motor::graphics::render_state_sets_t rss ;
-            rss.depth_s.do_change = true ;
-            rss.depth_s.ss.do_activate = true ;
-            rss.depth_s.ss.do_depth_write = true ;
-            rss.polygon_s.do_change = true ;
-            rss.polygon_s.ss.do_activate = true ;
-            rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise ;
-            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
-            rss.clear_s.do_change = true ;
-            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f ) ;
-            rss.clear_s.ss.do_activate = true ;
-            rss.clear_s.ss.do_color_clear = true ;
-            rss.clear_s.ss.do_depth_clear = true ;
-
-            so.add_render_state_set( rss ) ;
-        }
-
-        _debug_rs = std::move( so ) ;
-    }
-
-    {
-        motor::graphics::state_object_t so = motor::graphics::state_object_t(
-            "primitive renderer" ) ;
-
-        {
-            motor::graphics::render_state_sets_t rss ;
-            rss.depth_s.do_change = true ;
-            rss.depth_s.ss.do_activate = true ;
-            rss.depth_s.ss.do_depth_write = true ;
-            rss.polygon_s.do_change = true ;
-            rss.polygon_s.ss.do_activate = true ;
-            rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise ;
-            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
-            
-            rss.clear_s.do_change = false ;
-            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f ) ;
-            rss.clear_s.ss.do_activate = true ;
-            rss.clear_s.ss.do_color_clear = true ;
-            rss.clear_s.ss.do_depth_clear = true ;
-            
-
-            so.add_render_state_set( rss ) ;
-        }
-
-        _pr_rs = std::move( so ) ;
-    }
-
     // framebuffer
     {
         pp_fb = motor::graphics::framebuffer_object_t( "the_scene" ) ;
         pp_fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
             .set_target( motor::graphics::depth_stencil_target_type::depth32 )
             .resize( size_t(fb_dims.z()), size_t( fb_dims.w() ) ) ;
+    }
+
+    {
+        {
+            _scenes.emplace_back( motor::shared( demos::scene_0( "scene_0", 0, motor::math::time::to_milli( 1, 0, 0 ) ) ) ) ;
+            // more here
+        }
+
+        for ( auto * s : _scenes )
+        {
+            s->on_init( _db ) ;
+        }
     }
 }
 
@@ -559,7 +437,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 {
     if ( _proceed_time ) cur_time += ud.milli_dt ;
 
-    _final_cam_idx = _scenes[ _scene_mgr.scene_selector( cur_time ) ].cam_idx ;
+    _final_cam_idx = _scenes_ar[ _scene_mgr.scene_selector( cur_time ) ].cam_idx ;
 }
 
 //******************************************************************************************************
@@ -569,9 +447,11 @@ void_t the_app::on_shutdown( void_t ) noexcept
     motor::release( motor::move( _post_msl ) ) ;
     motor::release( motor::move( _mon ) ) ;
 
-    motor::release( motor::move( _dummy_debug_msl ) ) ;
-    motor::release( motor::move( _dummy_render_msl ) ) ;
-    motor::release( motor::move( _dummy_geo ) ) ;
+    for( auto * s : _scenes )
+    {
+        s->on_release() ;
+        motor::release( motor::move( s ) ) ;
+    }
 }
 
 //******************************************************************************************************

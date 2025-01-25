@@ -15,13 +15,15 @@
 #include <motor/gfx/camera/generic_camera.h>
 
 #include "../common/audio_analysis.h"
+#include "../common/iscene.h"
 
 #include <motor/math/utility/fn.hpp>
 #include <motor/math/utility/angle.hpp>
-#include <motor/math/animation/keyframe_sequence.hpp>
+
 #include <motor/math/quaternion/quaternion4.hpp>
 #include <motor/math/utility/time.hpp>
 
+#include <motor/std/vector>
 #include <motor/log/global.h>
 #include <motor/memory/global.h>
 #include <motor/concurrent/global.h>
@@ -32,6 +34,7 @@
 namespace demos
 {
     using namespace motor::core::types ;
+    
     struct camera_data
     {
         typedef motor::math::linear_bezier_spline< motor::math::vec3f_t > linearf_t ;
@@ -57,6 +60,7 @@ namespace demos
         keyframe_sequence_t scene_selector ;
     };
 
+    //******************************************************************
     class the_app : public motor::application::app
     {
         motor_this_typedefs( the_app ) ;
@@ -73,6 +77,11 @@ namespace demos
         motor::io::monitor_mtr_t _mon = motor::memory::create_ptr( motor::io::monitor_t() ) ;
         motor::io::database _db = motor::io::database( motor::io::path_t( DATAPATH ), "./working", "data" ) ;
 
+
+    private: // scenes
+
+        motor::vector< demos::iscene_mtr_t > _scenes ;
+
     private: // camera 
 
         size_t get_num_cams( void_t ) const noexcept
@@ -86,7 +95,7 @@ namespace demos
         demos::camera_data _camera[ 3 ] ;
         size_t _cam_idx = 0 ;
 
-        std::array< demos::scene_data, 2 > _scenes ;
+        std::array< demos::scene_data, 2 > _scenes_ar ;
         demos::scene_manager _scene_mgr ;
 
         // this is only for controlling the 
@@ -107,23 +116,19 @@ namespace demos
         bool_t _proceed_time = false ;
         size_t cur_time = 0 ;
 
-    private: // debug window
+    private: // final render stuff
 
-        motor::graphics::state_object_t _debug_rs ;
-        motor::graphics::msl_object_mtr_t _dummy_debug_msl ;
+        motor::graphics::state_object_t _scene_final_rs ;
 
-    private: // render window
+    private: // post process
 
         size_t _rwid = size_t( -1 ) ;
         motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
         motor::graphics::framebuffer_object_t pp_fb ; // the scene is rendered to
-        motor::graphics::state_object_t _scene_final_rs ;
+        
         motor::graphics::msl_object_mtr_t _post_msl ;
         motor::graphics::geometry_object_mtr_t _post_quad ;
-
         motor::graphics::state_object_t _post_process_rs ;
-        motor::graphics::msl_object_mtr_t _dummy_render_msl ;
-        motor::graphics::geometry_object_mtr_t _dummy_geo ;
 
     private: // debug window
         

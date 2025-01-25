@@ -18,6 +18,13 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
     ImGui::End() ;
     #endif
 
+    {
+        for( auto * s : _scenes ) 
+        {
+            s->on_tool() ;
+        }
+    }
+
     if( ImGui::Begin("Render Window") )
     {
         {
@@ -29,6 +36,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
             _final_cam_idx = std::min( size_t( used_cam ), size_t( this_t::get_num_cams() - 1 ) ) ;
         }
     }
+    ImGui::End() ;
 
     if ( ImGui::Begin( "Camera Window" ) )
     {
