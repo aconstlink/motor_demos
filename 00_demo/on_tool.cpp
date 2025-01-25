@@ -18,6 +18,18 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
     ImGui::End() ;
     #endif
 
+    if( ImGui::Begin("Render Window") )
+    {
+        {
+            ImGui::Text("F3 will open a gen4_auto window") ;
+        }
+        {
+            int used_cam = int_t( _final_cam_idx ) ;
+            ImGui::SliderInt( "Choose Render Camera", &used_cam, 1, int( this_t::get_num_cams() - 1 ) ) ;
+            _final_cam_idx = std::min( size_t( used_cam ), size_t( this_t::get_num_cams() - 1 ) ) ;
+        }
+    }
+
     if ( ImGui::Begin( "Camera Window" ) )
     {
         {
@@ -27,28 +39,12 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
         }
 
         {
-            int used_cam = int_t( _final_cam_idx ) ;
-            ImGui::SliderInt( "Choose Render Camera", &used_cam, 1, int( this_t::get_num_cams() - 1 ) ) ;
-            _final_cam_idx = std::min( size_t( used_cam ), size_t( this_t::get_num_cams() - 1 ) ) ;
-        }
-
-        {
             auto const cam_pos = _camera[ _cam_idx ].cam.get_position() ;
             float x = cam_pos.x() ;
             float y = cam_pos.y() ;
             ImGui::SliderFloat( "Cur Cam X", &x, -100.0f, 100.0f ) ;
             ImGui::SliderFloat( "Cur Cam Y", &y, -100.0f, 100.0f ) ;
             _camera[ _cam_idx ].cam.translate_to( motor::math::vec3f_t( x, y, cam_pos.z() ) ) ;
-
-        }
-
-        {
-            bool_t ortho = _camera[ _cam_idx ].cam.is_orthographic() ;
-            if( ImGui::Checkbox( "Orthographic", &ortho ) )
-            {
-                if( ortho ) _camera[ _cam_idx ].cam.orthographic() ;
-                else _camera[ _cam_idx ].cam.perspective_fov() ;
-            }
         }
     }
     ImGui::End() ;

@@ -116,7 +116,7 @@ namespace demos
 
         size_t _rwid = size_t( -1 ) ;
         motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
-        motor::graphics::framebuffer_object_t pp_fb ;
+        motor::graphics::framebuffer_object_t pp_fb ; // the scene is rendered to
         motor::graphics::state_object_t _scene_final_rs ;
         motor::graphics::msl_object_mtr_t _post_msl ;
         motor::graphics::geometry_object_mtr_t _post_quad ;
