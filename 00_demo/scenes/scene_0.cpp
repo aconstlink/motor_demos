@@ -18,14 +18,14 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 {
 
     {
-        using kfs_t = demos::iscene::camera_kfs_t ;
+        using kfs_t = demos::camera_manager::camera_kfs_t ;
         kfs_t kf ;
 
         kf.insert( kfs_t::keyframe_t( 0, size_t( 0 ) ) ) ;
         kf.insert( kfs_t::keyframe_t( 6500, size_t( 1 ) ) ) ;
         kf.insert( kfs_t::keyframe_t( 12000, size_t( 1 ) ) ) ;
 
-        this_t::set_camera_selector( std::move( kf ) ) ;
+        this_t::camera_manager().set_camera_selector( std::move( kf ) ) ;
     }
 
     // init cameras
@@ -63,7 +63,7 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
                 cd.kf_lookat = std::move( kf ) ;
             }
 
-            this_t::add_camera( std::move( cd ) ) ;
+            this_t::camera_manager().add_camera( std::move( cd ) ) ;
         }
 
         // camera 2
@@ -101,7 +101,7 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
                 cd.kf_lookat = std::move( kf ) ;
             }
 
-            this_t::add_camera( std::move( cd ) ) ;
+            this_t::camera_manager().add_camera( std::move( cd ) ) ;
         }
     }
 
@@ -267,13 +267,14 @@ void_t scene_0::on_resize( uint_t const width, uint_t const height ) noexcept
 //*******************************************************************************
 void_t scene_0::on_update( size_t const cur_time ) noexcept 
 {
-    this_t::update_camera( cur_time ) ;
+    // there the camera index is also updated
+    this_t::camera_manager().update_camera( cur_time ) ;
 }
 
 //*******************************************************************************
 void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 {
-    this_t::for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
+    this_t::camera_manager().for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
     {
         cd.cam.set_sensor_dims( float_t( _rnd_dims.x() ), float_t( _rnd_dims.y() ) ) ;
         cd.cam.perspective_fov() ;
@@ -296,7 +297,7 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
     }
     else
     {
-        auto * cam = this_t::borrow_debug_camera() ;
+        auto * cam = this_t::camera_manager().borrow_debug_camera() ;
 
         _dummy_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
@@ -320,7 +321,7 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 
     // set camera for final render shader
     {
-        auto * cam = this_t::borrow_final_camera() ;
+        auto * cam = this_t::camera_manager().borrow_final_camera() ;
 
         _dummy_render_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
@@ -376,7 +377,7 @@ void_t scene_0::on_render_final( bool_t const initial, motor::graphics::gen4::fr
         fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
     }
 
-    this_t::for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
+    this_t::camera_manager().for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
     {
         cd.cam.set_sensor_dims( float_t( _rnd_dims.x() ), float_t( _rnd_dims.y() ) ) ;
         cd.cam.perspective_fov() ;
@@ -400,10 +401,4 @@ void_t scene_0::on_tool( void_t ) noexcept
     {
     }
     ImGui::End() ;
-}
-
-//*******************************************************************************
-void_t scene_0::on_shutdown( void_t ) noexcept 
-{
-
 }

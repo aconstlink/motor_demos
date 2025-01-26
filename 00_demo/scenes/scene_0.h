@@ -60,6 +60,5 @@ namespace demos
         virtual void_t on_render_final( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
 
         virtual void_t on_tool( void_t ) noexcept ;
-        virtual void_t on_shutdown( void_t ) noexcept ; 
     };
 }

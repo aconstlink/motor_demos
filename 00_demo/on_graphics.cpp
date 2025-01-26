@@ -22,14 +22,23 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     
     for( auto * s : _scenes )
     {
-        s->for_each_camera( [&]( size_t const idx, demos::camera_data & cd )
-        {
-            if ( idx == s->get_debug_camera_idx() && !_use_free_camera ) return ;
+        auto & camera_manager = s->camera_manager() ;
 
+        camera_manager.for_each_camera( [&]( size_t const idx, demos::camera_data & cd )
+        {
+            if ( idx == camera_manager.get_debug_camera_idx() && !_use_free_camera ) return ;
             auto & cam = cd ;
 
             // draw camera paths
             {
+                motor::math::vec4f_t const color[] =
+                {
+                    motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 0.5f ),
+                    motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f )
+                } ;
+
+                size_t const cidx = idx == s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
+
                 using splinef_t = demos::camera_data::splinef_t ;
                 splinef_t spline = cam.kf_pos.get_spline() ;
 
@@ -44,7 +53,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                         auto const v0 = spline( t0 ) ;
                         auto const v1 = spline( t1 ) ;
 
-                        pr.draw_line( v0, v1, motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 1.0f ) ) ;
+                        pr.draw_line( v0, v1, color[cidx] ) ;
                     }
                 }
 
@@ -106,11 +115,11 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
 
                 motor::math::vec4f_t const color[] =
                 {
-                    motor::math::vec4f_t( 1.0f ),
+                    motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 0.5f ),
                     motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f )
                 } ;
 
-                size_t const cidx = idx == s->get_final_camera_idx() ? 1 : 0 ;
+                size_t const cidx = idx == s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
 
                 // front
                 for ( size_t i = 0; i < 4; ++i )
@@ -143,7 +152,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     // set camera data to primitive renderer and do preparation
     {
         motor::gfx::generic_camera_ptr_t cam = _use_free_camera ? &_camera : 
-            this_t::get_current_scene()->borrow_debug_camera() ; 
+            this_t::get_current_scene()->camera_manager().borrow_debug_camera() ; 
 
         pr.set_view_proj( cam->mat_view(), cam->mat_proj() ) ;
         pr.prepare_for_rendering() ;

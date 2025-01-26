@@ -5,6 +5,8 @@ set( sources
     "../common/audio_analysis.h"
     "../common/audio_analysis.cpp"
     "../common/iscene.h"
+    "../common/camera_manager.h"
+    "../common/camera_manager.cpp"
 
     "main.h"
     "main.cpp"
@@ -14,6 +16,7 @@ set( sources
     "on_tool.cpp"
     "on_audio.cpp"
 
+    
     "scenes/scene_0.h"
     "scenes/scene_0.cpp"
     "scenes/scene_1.h"
