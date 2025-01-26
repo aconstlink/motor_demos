@@ -14,12 +14,18 @@ namespace demos
         motor::graphics::state_object_t _debug_rs ;
         motor::graphics::msl_object_mtr_t _dummy_debug_msl ;
 
+        // I think this is not needed.
+        // always taking the dims from the render window
+        motor::math::vec2ui_t _dbg_dims ;
+
     private: // final render
 
         motor::graphics::state_object_t _scene_final_rs ;
         motor::graphics::msl_object_mtr_t _dummy_render_msl ;
 
         motor::graphics::geometry_object_mtr_t _dummy_geo ;
+
+        motor::math::vec2ui_t _rnd_dims ;
 
     public:
 
@@ -44,11 +50,12 @@ namespace demos
         virtual void_t on_init( motor::io::database_ref_t ) noexcept ;
         virtual void_t on_release( void_t ) noexcept ;
 
+        virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept ;
+        virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept ;
+
         virtual void_t on_update( size_t const cur_time ) noexcept ;
         virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept  ;
 
-        virtual void_t on_camera_debug( motor::gfx::generic_camera_ptr_t cam ) noexcept ;
-        virtual void_t on_camera_final( motor::gfx::generic_camera_ptr_t cam ) noexcept ;
         virtual void_t on_render_debug( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
         virtual void_t on_render_final( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
 

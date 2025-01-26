@@ -10,6 +10,13 @@
 using namespace demos ;
 
 //******************************************************************************************************
+demos::iscene_mtr_t the_app::get_current_scene( void_t ) noexcept 
+{
+    assert( _scenes.size() <= 1 && "need proper scene selection. i.e. via currrent time") ;
+    return _scenes[0] ;
+}
+
+//******************************************************************************************************
 void_t the_app::on_init( void_t ) noexcept
 {
     {
@@ -28,8 +35,7 @@ void_t the_app::on_init( void_t ) noexcept
             wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
         } ) ;
     }
-           
-    #if 1
+
     {
         motor::application::window_info_t wi ;
         wi.x = 900 ;
@@ -46,112 +52,15 @@ void_t the_app::on_init( void_t ) noexcept
             wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
         } ) ;
     }
-    #endif
 
     pr.init( "my_prim_render" ) ;
 
-    // init scenes
     {
-        // init manager
-        {
-            {
-                using kfs_t = demos::scene_manager::keyframe_sequence_t ;
-                kfs_t kf ;
-
-                kf.insert( kfs_t::keyframe_t( 0, size_t(0) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 6500, size_t(1) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 12000, size_t(1) ) ) ;
-
-                _scene_mgr.scene_selector = std::move( kf ) ;
-            }
-        }
-
-        {
-            _scenes_ar[ 0 ].cam_idx = 1 ;
-        }
-
-        {
-            _scenes_ar[ 1 ].cam_idx = 2 ;
-        }
-
-
-        
-
-
-    }
-
-    // init cameras
-    {
-        for ( size_t i = 0; i < this_t::get_num_cams(); ++i )
-        {
-            _camera[ i ].cam.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
-            _camera[ i ].cam.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
-            _camera[ i ].cam.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
-                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
-
-            _camera[ i ].cam.set_sensor_dims( float_t( fb_dims.z() ), float_t( fb_dims.w() ) ) ;
-            _camera[ i ].cam.perspective_fov() ;
-        }
-
-        // camera 1
-        {
-            auto & cam_data = _camera[ 1 ] ;
-
-            cam_data.cam.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
-                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
-
-            {
-                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-                kfs_t kf_pos ;
-                kf_pos.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 1000.0f, 0.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 3000, motor::math::vec3f_t( 0.0f, 500.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 5000, motor::math::vec3f_t( -1000.0f, -100.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 6500, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
-                cam_data.kf_pos = std::move( kf_pos ) ;
-            }
-
-            {
-                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-
-                kfs_t kf( motor::math::time_remap_funk_type::cycle ) ;
-                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                cam_data.kf_lookat = std::move( kf ) ;
-            }
-        }
-
-        // camera 2
-        {
-            auto & cam_data = _camera[ 2 ] ;
-            cam_data.cam.look_at( motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ),
-                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
-
-            {
-                auto const start = motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ) ;
-                size_t const start_milli = 6500 ;
-
-                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-                kfs_t kf_pos ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli, start ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 1000, start + motor::math::vec3f_t( 100.0f, 100.0f, -100.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 2000, start + motor::math::vec3f_t( -400.0f, -500.0f, 1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 3000, start + motor::math::vec3f_t( 0.0f, -100.0f, 0.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 4000, start ) ) ;
-                cam_data.kf_pos = std::move( kf_pos ) ;
-            }
-
-            {
-                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-
-                kfs_t kf( motor::math::time_remap_funk_type::cycle ) ;
-                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                cam_data.kf_lookat = std::move( kf ) ;
-            }
-        }
+        _camera.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
+        _camera.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
+        _camera.set_sensor_dims( float_t( 1920 ), float_t( 1080 ) ) ;
+        _camera.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
+            motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
     }
 
     // post quad vertex/index buffer
@@ -330,8 +239,6 @@ void_t the_app::on_event( window_id_t const wid,
             motor::log::global_t::status( "[my_app] : render window created" ) ;
         else
             motor::log::global_t::status( "[my_app] : window created" ) ;
-
-
     }
     if ( sv.close_changed )
     {
@@ -348,16 +255,20 @@ void_t the_app::on_event( window_id_t const wid,
     }
     if ( sv.resize_changed )
     {
-        float_t const w = float_t( sv.resize_msg.w ) ;
-        float_t const h = float_t( sv.resize_msg.h ) ;
+        auto const w = uint_t( sv.resize_msg.w ) ;
+        auto const h = uint_t( sv.resize_msg.h ) ;
 
-        #if 0
-        for ( size_t i = 0; i < 2; ++i )
+        if( wid == _dwid )
         {
-            camera[ i ].set_sensor_dims( w, h ) ;
-            camera[ i ].perspective_fov() ;
+            for( auto * s : _scenes ) s->on_resize_debug( w, h ) ;
+
+            if( _rwid == size_t(-1) ) 
+                for( auto * s : _scenes ) s->on_resize( w, h ) ;
         }
-        #endif
+        else if( wid == _rwid )
+        {
+            for( auto * s : _scenes ) s->on_resize( w, h ) ;
+        }
     }
 }
 
@@ -375,17 +286,17 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
         if ( keyboard.get_state( key_t::k_1 ) ==
             motor::controls::components::key_state::released )
         {
-            _cam_idx = 0 ;
+            
         }
         else if ( keyboard.get_state( key_t::k_2 ) ==
             motor::controls::components::key_state::released )
         {
-            _cam_idx = 1 ;
+            
         }
         else if ( keyboard.get_state( key_t::k_3 ) ==
             motor::controls::components::key_state::released )
         {
-            _cam_idx = ++_cam_idx % 2 ;
+            
         }
 
         if ( keyboard.get_state( key_t::f3 ) ==
@@ -436,8 +347,7 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
 void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept
 {
     if ( _proceed_time ) cur_time += ud.milli_dt ;
-
-    _final_cam_idx = _scenes_ar[ _scene_mgr.scene_selector( cur_time ) ].cam_idx ;
+    for( auto * s : _scenes ) s->on_update( cur_time ) ;
 }
 
 //******************************************************************************************************

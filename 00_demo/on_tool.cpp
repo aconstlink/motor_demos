@@ -30,16 +30,24 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
         {
             ImGui::Text("F3 will open a gen4_auto window") ;
         }
+        #if 0
         {
             int used_cam = int_t( _final_cam_idx ) ;
             ImGui::SliderInt( "Choose Render Camera", &used_cam, 1, int( this_t::get_num_cams() - 1 ) ) ;
             _final_cam_idx = std::min( size_t( used_cam ), size_t( this_t::get_num_cams() - 1 ) ) ;
         }
+        #endif
     }
     ImGui::End() ;
 
+    
     if ( ImGui::Begin( "Camera Window" ) )
     {
+        if( ImGui::Checkbox( "Use Free Camera", &_use_free_camera ) )
+        {
+        }
+
+        #if 0
         {
             int used_cam = int_t( _cam_idx ) ;
             ImGui::SliderInt( "Choose Debug Camera", &used_cam, 0, int( this_t::get_num_cams() - 1 ) ) ;
@@ -54,9 +62,10 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
             ImGui::SliderFloat( "Cur Cam Y", &y, -100.0f, 100.0f ) ;
             _camera[ _cam_idx ].cam.translate_to( motor::math::vec3f_t( x, y, cam_pos.z() ) ) ;
         }
+        #endif
     }
     ImGui::End() ;
-
+    
     {
         motor::tool::time_info_t ti 
         { 
