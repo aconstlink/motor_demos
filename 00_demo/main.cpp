@@ -265,7 +265,7 @@ void_t the_app::on_event( window_id_t const wid,
             if( _rwid == size_t(-1) ) 
                 for( auto * s : _scenes ) s->on_resize( w, h ) ;
         }
-        else if( wid == _rwid )
+        else if( wid == _rwid && w != 0 )
         {
             for( auto * s : _scenes ) s->on_resize( w, h ) ;
         }
