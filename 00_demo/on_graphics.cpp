@@ -34,7 +34,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                 motor::math::vec4f_t const color[] =
                 {
                     motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 0.5f ),
-                    motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f )
+                    motor::math::vec4f_t( 0.5f, 0.0f, 0.0f, 1.0f )
                 } ;
 
                 size_t const cidx = idx == s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
@@ -136,7 +136,6 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                     size_t const i1 = ( ( i + 1 ) % 4 ) + 4 ;
                     pr.draw_line( points[ i0 ], points[ i1 ], color[ cidx ] ) ;
                 }
-
 
                 // sides
                 for ( size_t i = 0; i < 4; ++i )

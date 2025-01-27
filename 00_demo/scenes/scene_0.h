@@ -9,6 +9,17 @@ namespace demos
     {
         motor_this_typedefs( scene_0 ) ;
 
+    private: // cubes
+
+        int_t num_objects = 0 ;
+        int_t _max_objects = 0 ;
+
+        motor::graphics::geometry_object_t _cubes_geo ;
+        motor::graphics::array_object_t _cubes_data ;
+
+        motor::graphics::msl_object_t _cubes_debug_msl ;
+        motor::graphics::msl_object_t _cubes_final_msl ;
+
     private:// debug view
 
         motor::graphics::state_object_t _debug_rs ;
@@ -22,8 +33,10 @@ namespace demos
 
         motor::graphics::state_object_t _scene_final_rs ;
         motor::graphics::msl_object_mtr_t _dummy_render_msl ;
+        
 
         motor::graphics::geometry_object_mtr_t _dummy_geo ;
+        
 
         motor::math::vec2ui_t _rnd_dims ;
 

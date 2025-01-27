@@ -10,13 +10,18 @@
 #include <motor/math/utility/angle.hpp>
 
 #include <motor/tool/imgui/imgui.h>
+#include <motor/concurrent/parallel_for.hpp>
 
 using namespace demos ;
 
 //*******************************************************************************
 void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept 
 {
+    ///////////////////////////////////////////////////////////////////////////////
+    // Camera section
+    ///////////////////////////////////////////////////////////////////////////////
 
+    // camera selector
     {
         using kfs_t = demos::camera_manager::camera_kfs_t ;
         kfs_t kf ;
@@ -27,8 +32,7 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
         this_t::camera_manager().set_camera_selector( std::move( kf ) ) ;
     }
-
-    // init cameras
+    
     {
         // camera 1
         {
@@ -104,6 +108,10 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
             this_t::camera_manager().add_camera( std::move( cd ) ) ;
         }
     }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // Dummy cube section
+    ///////////////////////////////////////////////////////////////////////////////
 
     // dummy cube
     {
@@ -218,6 +226,10 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
         _dummy_render_msl = motor::shared( std::move( mslo ) ) ;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////
+    // Render States section
+    ///////////////////////////////////////////////////////////////////////////////
+
     {
         motor::graphics::state_object_t so = motor::graphics::state_object_t(
             this_t::name() + ".debug scene" ) ;
@@ -241,6 +253,179 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
         }
 
         _debug_rs = std::move( so ) ;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // Cubes section
+    ///////////////////////////////////////////////////////////////////////////////
+    {
+        _max_objects = 1000 ; 
+        num_objects = _max_objects;//int_t( std::min( size_t( 40000 ), size_t( num_objects_ / 2 ) ) ) ;
+    }
+
+    // cubes geometry
+    {
+        struct vertex { motor::math::vec3f_t pos ; motor::math::vec3f_t nrm ; motor::math::vec2f_t tx ; } ;
+
+        motor::geometry::cube_t::input_params ip ;
+        ip.scale = motor::math::vec3f_t( 1.0f ) ;
+        ip.tess = 100 ;
+
+        motor::geometry::tri_mesh_t tm ;
+        motor::geometry::cube_t::make( &tm, ip ) ;
+
+        motor::geometry::flat_tri_mesh_t ftm ;
+        tm.flatten( ftm ) ;
+
+        auto vb = motor::graphics::vertex_buffer_t()
+            .add_layout_element( motor::graphics::vertex_attribute::position, motor::graphics::type::tfloat, motor::graphics::type_struct::vec3 )
+            .add_layout_element( motor::graphics::vertex_attribute::normal, motor::graphics::type::tfloat, motor::graphics::type_struct::vec3 )
+            .add_layout_element( motor::graphics::vertex_attribute::texcoord0, motor::graphics::type::tfloat, motor::graphics::type_struct::vec2 )
+            .resize( ftm.get_num_vertices() * _max_objects ).update<vertex>( [&] ( vertex * array, size_t const ne )
+        {
+            motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( 0, _max_objects ),
+                [&] ( motor::concurrent::range_1d<size_t> const & r )
+            {
+                for ( size_t o = r.begin(); o < r.end(); ++o )
+                {
+                    size_t const base = o * ftm.get_num_vertices() ;
+                    for ( size_t i = 0; i < ftm.get_num_vertices(); ++i )
+                    {
+                        array[ base + i ].pos = ftm.get_vertex_position_3d( i ) ;
+                        array[ base + i ].nrm = ftm.get_vertex_normal_3d( i ) ;
+                        array[ base + i ].tx = ftm.get_vertex_texcoord( 0, i ) ;
+                    }
+                }
+            } ) ;
+        } );
+
+        auto ib = motor::graphics::index_buffer_t().
+            set_layout_element( motor::graphics::type::tuint ).resize( ftm.indices.size() * _max_objects ).
+            update<uint_t>( [&] ( uint_t * array, size_t const ne )
+        {
+            motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( 0, _max_objects ),
+                [&] ( motor::concurrent::range_1d<size_t> const & r )
+            {
+                for ( size_t o = r.begin(); o < r.end(); ++o )
+                {
+                    size_t const vbase = o * ftm.get_num_vertices() ;
+                    size_t const ibase = o * ftm.indices.size() ;
+                    for ( size_t i = 0; i < ftm.indices.size(); ++i )
+                    {
+                        array[ ibase + i ] = ftm.indices[ i ] + uint_t( vbase ) ;
+                    }
+                }
+            } ) ;
+        } ) ;
+
+        _cubes_geo = motor::graphics::geometry_object_t( this_t::name() + ".cubes",
+            motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ;
+    }
+
+    // cubes data array
+    {
+        struct the_data
+        {
+            motor::math::vec4f_t pos ;
+            motor::math::vec4f_t col ;
+        };
+
+        float_t scale = 20.0f ;
+        motor::graphics::data_buffer_t db_ = motor::graphics::data_buffer_t()
+            .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
+            .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 ) ;
+
+        _cubes_data = motor::graphics::array_object_t( this_t::name() + ".cubes_data", std::move( db_ ) ) ;
+
+    }
+
+    // msl objects
+    {
+        // cubes debug shader
+        {
+            motor::graphics::msl_object_t mslo( this_t::name() + ".cubes_debug" ) ;
+
+            auto const res = db.load( motor::io::location_t( "shaders.scene_0.cubes_debug.msl" ) ).wait_for_operation(
+                [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
+            {
+                if ( loading_res != motor::io::result::ok )
+                {
+                    assert( false ) ;
+                }
+
+                mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
+            } ) ;
+
+            mslo.link_geometry( { this_t::name() + ".cubes" } ) ;
+        
+            motor::graphics::variable_set_t vars = motor::graphics::variable_set_t() ;
+            {
+                auto * var = vars.data_variable< motor::math::vec4f_t >( "color" ) ;
+                var->set( motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ) ) ;
+            }
+
+            {
+                auto * var = vars.data_variable< float_t >( "u_time" ) ;
+                var->set( 0.0f ) ;
+            }
+
+            {
+                auto * var = vars.texture_variable( "tex" ) ;
+                var->set( "checker_board" ) ;
+            }
+
+            {
+                auto * var = vars.array_variable( "u_data" ) ;
+                var->set( this_t::name() + ".cubes_data" ) ;
+            }
+
+            mslo.add_variable_set( motor::shared( std::move( vars ) ) ) ;
+
+            _cubes_debug_msl = std::move( mslo ) ;
+        }
+
+        // cubes final shader
+        {
+            motor::graphics::msl_object_t mslo( this_t::name() + ".cubes_final" ) ;
+
+            auto const res = db.load( motor::io::location_t( "shaders.scene_0.cubes_final.msl" ) ).wait_for_operation(
+                [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
+            {
+                if ( loading_res != motor::io::result::ok )
+                {
+                    assert( false ) ;
+                }
+
+                mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
+            } ) ;
+
+            mslo.link_geometry( { this_t::name() + ".cubes" } ) ;
+
+            motor::graphics::variable_set_t vars = motor::graphics::variable_set_t() ;
+            {
+                auto * var = vars.data_variable< motor::math::vec4f_t >( "color" ) ;
+                var->set( motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ) ) ;
+            }
+
+            {
+                auto * var = vars.data_variable< float_t >( "u_time" ) ;
+                var->set( 0.0f ) ;
+            }
+
+            {
+                auto * var = vars.texture_variable( "tex" ) ;
+                var->set( "checker_board" ) ;
+            }
+
+            {
+                auto * var = vars.array_variable( "u_data" ) ;
+                var->set( this_t::name() + ".cubes_data" ) ;
+            }
+
+            mslo.add_variable_set( motor::shared( std::move( vars ) ) ) ;
+
+            _cubes_final_msl = std::move( mslo ) ;
+        }
     }
 }
 
@@ -274,41 +459,70 @@ void_t scene_0::on_update( size_t const cur_time ) noexcept
 //*******************************************************************************
 void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 {
+    num_objects = _max_objects ; //std::min( max_objects, motor::math::interpolation<int_t>::linear( 1, max_objects - 100, v ) ) ;
+
+    // update array object data
+    {
+        static float_t  angle_ = 0.0f ;
+        angle_ += ( ( ( ( gd.dt ) ) ) * 2.0f * motor::math::constants<float_t>::pi() ) / 1.0f ;
+        if ( angle_ > 4.0f * motor::math::constants<float_t>::pi() ) angle_ = 0.0f ;
+
+        float_t s = 5.0f * std::sin( angle_ ) ;
+
+        struct the_data
+        {
+            motor::math::vec4f_t pos ;
+            motor::math::vec4f_t col ;
+        };
+
+        _cubes_data.data_buffer().resize( num_objects ).
+            update< the_data >( [&] ( the_data * array, size_t const ne )
+        {
+            typedef motor::concurrent::range_1d<size_t> range_t ;
+            auto const & range = range_t( 0, std::min( size_t( num_objects ), ne ) ) ;
+
+            motor::concurrent::parallel_for<size_t>( range, [&] ( range_t const & r )
+            {
+                for ( size_t e = r.begin(); e < r.end(); ++e )
+                {
+                    float_t const v = float_t(e) / float_t(ne)  ;
+                    float_t const x = 100.0f * v - 50.0f ;
+                    float_t const y = 50.0f * std::sin( 2.0f * motor::math::constants<float_t>::pi() * v  ) ;
+                    float_t const z = 0.0f ;
+
+                    motor::math::vec4f_t const pos( x, y, z, 30.0f ) ;
+
+                    array[ e ].pos = pos ;
+
+                    array[ e ].col = motor::math::vec4f_t ( 1.0f, 0.5f, 0.5f, 1.0f ) ;
+                }
+            } ) ;
+        } ) ;
+    }
+
     this_t::camera_manager().for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
     {
         cd.cam.set_sensor_dims( float_t( _rnd_dims.x() ), float_t( _rnd_dims.y() ) ) ;
         cd.cam.perspective_fov() ;
     } ) ;
 
-    if( gd.dbg_cam != nullptr ) 
-    {
-        _dummy_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
-        {
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( gd.dbg_cam->mat_view() ) ;
-            }
-
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( gd.dbg_cam->mat_proj() ) ;
-            }
-        } ) ;
-    }
-    else
+    // debug section
     {
         auto * cam = this_t::camera_manager().borrow_debug_camera() ;
 
+        auto const view = gd.dbg_cam != nullptr ? gd.dbg_cam->mat_view() : cam->mat_view() ;
+        auto const proj = gd.dbg_cam != nullptr ? gd.dbg_cam->mat_proj() : cam->mat_proj() ;
+
         _dummy_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( cam->mat_view() ) ;
+                var->set( view ) ;
             }
 
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( cam->mat_proj() ) ;
+                var->set( proj ) ;
             }
             #if 0
             {
@@ -317,23 +531,69 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
             }
             #endif
         } ) ;
+
+        _cubes_debug_msl.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+        {
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
+                var->set( view ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
+                var->set( proj ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "world" ) ;
+                var->set( motor::math::mat4f_t::make_identity() ) ;
+            }
+        } ) ;
     }
 
     // set camera for final render shader
     {
         auto * cam = this_t::camera_manager().borrow_final_camera() ;
 
+        auto const view = cam->mat_view() ;
+        auto const proj = cam->mat_proj() ;
+
         _dummy_render_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( cam->mat_view() ) ;
+                var->set( view ) ;
             }
 
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( cam->mat_proj() ) ;
+                var->set( proj ) ;
             }
+            #if 0
+            {
+                auto * var = vs->data_variable<float_t>( "kick" ) ;
+                var->set( _aanl.asys.kick ) ;
+            }
+            #endif
+        } ) ;
+
+        _cubes_final_msl.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+        {
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
+                var->set( view ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
+                var->set( proj ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "world" ) ;
+                var->set( motor::math::mat4f_t::make_identity() ) ;
+            }
+
             #if 0
             {
                 auto * var = vs->data_variable<float_t>( "kick" ) ;
@@ -352,13 +612,28 @@ void_t scene_0::on_render_debug( bool_t const initial, motor::graphics::gen4::fr
         fe->configure< motor::graphics::state_object_t>( &_debug_rs ) ;
         fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
         fe->configure<motor::graphics::msl_object>( _dummy_debug_msl ) ;
-    }
 
-    
+        fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
+        fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
+        fe->configure<motor::graphics::msl_object>( &_cubes_debug_msl ) ;
+    }
 
     // render
     {
+        fe->update( &_cubes_data ) ;
+
         fe->push( &_debug_rs ) ;
+        
+        // render cubes
+        {
+            motor::graphics::gen4::backend_t::render_detail_t detail ;
+            detail.start = 0 ;
+            detail.num_elems = num_objects * 36 ;
+            detail.varset = 0 ;
+            fe->render( &_cubes_debug_msl, detail ) ;
+        }
+
+        // render dummy
         {
             motor::graphics::gen4::backend::render_detail_t det ;
             fe->render( _dummy_debug_msl, det ) ;
@@ -375,16 +650,33 @@ void_t scene_0::on_render_final( bool_t const initial, motor::graphics::gen4::fr
         //fe->configure< motor::graphics::state_object_t>( &_scene_final_rs ) ;
         fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
         fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
+
+        fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
+        fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
+        fe->configure<motor::graphics::msl_object>( &_cubes_final_msl ) ;
     }
 
+    fe->update( &_cubes_data ) ;
+
+    #if 0
     this_t::camera_manager().for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
     {
         cd.cam.set_sensor_dims( float_t( _rnd_dims.x() ), float_t( _rnd_dims.y() ) ) ;
         cd.cam.perspective_fov() ;
     } ) ;
+    #endif
 
     // render scene
     {
+        // render cubes
+        {
+            motor::graphics::gen4::backend_t::render_detail_t detail ;
+            detail.start = 0 ;
+            detail.num_elems = num_objects * 36 ;
+            detail.varset = 0 ;
+            fe->render( &_cubes_final_msl, detail ) ;
+        }
+
         //fe->push( &_scene_final_rs ) ;
         {
             motor::graphics::gen4::backend::render_detail_t det ;
