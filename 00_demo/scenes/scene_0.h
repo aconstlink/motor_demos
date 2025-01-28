@@ -11,14 +11,20 @@ namespace demos
 
     private: // cubes
 
-        int_t num_objects = 0 ;
-        int_t _max_objects = 0 ;
+        int_t _max_objects = 10000 ;
 
         motor::graphics::geometry_object_t _cubes_geo ;
         motor::graphics::array_object_t _cubes_data ;
 
         motor::graphics::msl_object_t _cubes_debug_msl ;
         motor::graphics::msl_object_t _cubes_final_msl ;
+
+        typedef motor::math::cubic_hermit_spline< motor::math::vec3f_t > vec3splinef_t ;
+        typedef motor::math::keyframe_sequence< vec3splinef_t > keyframe_sequencef_t ;
+        keyframe_sequencef_t _worm_pos ;
+        vec3splinef_t _worm_pos_spline ;
+        
+
 
     private:// debug view
 

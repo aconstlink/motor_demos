@@ -21,12 +21,21 @@ config cubes_debug
         void main()
         {
             int_t idx = vid / 24 ;
-            vec4_t pos_scl = fetch_data( u_data, (idx << 1)+0 ) ;
-            out.col = fetch_data( u_data, (idx<<1)+1 ) ;
+            vec4_t pos_scl = fetch_data( u_data, (idx *5)+0 ) ;
+            out.col = fetch_data( u_data, (idx*5)+1 ) ;
+            vec4_t x = fetch_data( u_data, (idx*5)+2 ) ;
+            vec4_t y = fetch_data( u_data, (idx*5)+3 ) ;
+            vec4_t z = fetch_data( u_data, (idx*5)+4 ) ;
 
-            vec4_t pos = vec4_t( in.pos ' as_vec3( pos_scl.w ), 1.0 ) ;
-            pos = world * pos + vec4_t( pos_scl.xyz ' as_vec3(pos_scl.w*2.0), 0.0 ) ;
-            out.pos = proj * view * pos ;
+            vec3_t pos = in.pos ;
+            pos.x = dot( x.xyz, in.pos ) ;
+            pos.y = dot( y.xyz, in.pos ) ;
+            pos.z = dot( z.xyz, in.pos ) ;
+
+            vec4_t pos_ = vec4_t( pos ' as_vec3( pos_scl.w ), 1.0 ) ;
+            pos_ = pos_ + vec4_t( pos_scl.xyz, 0.0 ) ;
+
+            out.pos = proj * view * pos_ ;
 
             out.tx = in.tx ;
             out.nrm = normalize( world * vec4_t(in.nrm, 0.0 ) ).xyz ;

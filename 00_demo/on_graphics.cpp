@@ -6,6 +6,9 @@ using namespace demos ;
 //******************************************************************************************************
 void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept
 {
+    static size_t frame_count = 0 ;
+    ++frame_count ;
+
     // global time 
     size_t const time = cur_time ;
 
@@ -42,10 +45,9 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                 using splinef_t = demos::camera_data::splinef_t ;
                 splinef_t spline = cam.kf_pos.get_spline() ;
 
-                // draw spline using lines
                 {
                     size_t const num_steps = 300 ;
-                    for ( size_t i = 0; i < num_steps - 1; ++i )
+                    pr.draw_lines( num_steps, [&]( size_t const i )
                     {
                         float_t const t0 = float_t( i + 0 ) / float_t ( num_steps - 1 ) ;
                         float_t const t1 = float_t( i + 1 ) / float_t ( num_steps - 1 ) ;
@@ -53,8 +55,8 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                         auto const v0 = spline( t0 ) ;
                         auto const v1 = spline( t1 ) ;
 
-                        pr.draw_line( v0, v1, color[cidx] ) ;
-                    }
+                        return motor::gfx::line_render_3d::draw_line_data { v0, v1, color[ cidx ] } ;
+                    } ) ;
                 }
 
                 // draw current position

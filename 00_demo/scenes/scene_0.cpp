@@ -50,7 +50,7 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
                 using kfs_t = demos::camera_data::keyframe_sequencef_t ;
                 kfs_t kf_pos ;
                 kf_pos.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 1000.0f, 0.0f, -1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 1110.0f, 0.0f, -1000.0f ) ) ) ;
                 kf_pos.insert( kfs_t::keyframe_t( 3000, motor::math::vec3f_t( 0.0f, 500.0f, -1000.0f ) ) ) ;
                 kf_pos.insert( kfs_t::keyframe_t( 5000, motor::math::vec3f_t( -1000.0f, -100.0f, -1000.0f ) ) ) ;
                 kf_pos.insert( kfs_t::keyframe_t( 6500, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
@@ -119,7 +119,7 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
         motor::geometry::cube_t::input_params ip ;
         ip.scale = motor::math::vec3f_t( 1.0f ) ;
-        ip.tess = 100 ;
+        ip.tess = 1 ;
 
         motor::geometry::tri_mesh_t tm ;
         motor::geometry::cube_t::make( &tm, ip ) ;
@@ -256,11 +256,33 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
     }
 
     ///////////////////////////////////////////////////////////////////////////////
-    // Cubes section
+    // Cubes section : Worm
     ///////////////////////////////////////////////////////////////////////////////
     {
-        _max_objects = 1000 ; 
-        num_objects = _max_objects;//int_t( std::min( size_t( 40000 ), size_t( num_objects_ / 2 ) ) ) ;
+        auto const start = motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ;
+        size_t const start_milli = 0 ;
+
+        using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+        kfs_t kf_pos ;
+        kf_pos.insert( kfs_t::keyframe_t( start_milli, start ) ) ;
+        kf_pos.insert( kfs_t::keyframe_t( start_milli + 1000, start + motor::math::vec3f_t( -1000.0f, 0.0f, 500.0f ) ) ) ;
+        kf_pos.insert( kfs_t::keyframe_t( start_milli + 2000, start + motor::math::vec3f_t( -2000.0f, 0.0f, 0.0f ) ) ) ;
+        kf_pos.insert( kfs_t::keyframe_t( start_milli + 3000, start + motor::math::vec3f_t( -2000.0f, 0.0f, 1000.0f ) ) ) ;
+        kf_pos.insert( kfs_t::keyframe_t( start_milli + 4000, start + motor::math::vec3f_t( 2000.0f, 0.0f, 1000.0f ) ) ) ;
+        kf_pos.insert( kfs_t::keyframe_t( start_milli + 5000, start + motor::math::vec3f_t( 2000.0f, 0.0f, 0.0f ) ) ) ;
+        kf_pos.insert( kfs_t::keyframe_t( start_milli + 6000, start ) ) ;
+        _worm_pos = std::move( kf_pos ) ;
+    }
+
+    {
+        auto sp = this_t::vec3splinef_t() ;
+        sp.append( motor::math::vec3f_t( -1000.0f, 0.0f, 100.0f ) ) ;
+        sp.append( motor::math::vec3f_t( -500.0f, 100.0f, 100.0f ) ) ;
+        sp.append( motor::math::vec3f_t( -0.0f, 0.0f, 0.0f ) ) ;
+        sp.append( motor::math::vec3f_t( 500.0f, -100.0f, -100.0f ) ) ;
+        sp.append( motor::math::vec3f_t( 1000.0f, 0.0f, -100.0f ) ) ;
+
+        _worm_pos_spline = std::move( sp ) ;
     }
 
     // cubes geometry
@@ -269,7 +291,7 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
         motor::geometry::cube_t::input_params ip ;
         ip.scale = motor::math::vec3f_t( 1.0f ) ;
-        ip.tess = 100 ;
+        ip.tess = 0 ;
 
         motor::geometry::tri_mesh_t tm ;
         motor::geometry::cube_t::make( &tm, ip ) ;
@@ -328,12 +350,18 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
         {
             motor::math::vec4f_t pos ;
             motor::math::vec4f_t col ;
+            motor::math::vec4f_t d ;
+            motor::math::vec4f_t e;
+            motor::math::vec4f_t f ;
         };
 
         float_t scale = 20.0f ;
         motor::graphics::data_buffer_t db_ = motor::graphics::data_buffer_t()
             .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
-            .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 ) ;
+            .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
+            .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
+            .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
+            .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 );
 
         _cubes_data = motor::graphics::array_object_t( this_t::name() + ".cubes_data", std::move( db_ ) ) ;
 
@@ -459,12 +487,10 @@ void_t scene_0::on_update( size_t const cur_time ) noexcept
 //*******************************************************************************
 void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 {
-    num_objects = _max_objects ; //std::min( max_objects, motor::math::interpolation<int_t>::linear( 1, max_objects - 100, v ) ) ;
-
     // update array object data
     {
         static float_t  angle_ = 0.0f ;
-        angle_ += ( ( ( ( gd.dt ) ) ) * 2.0f * motor::math::constants<float_t>::pi() ) / 1.0f ;
+        angle_ += ( ( ( ( gd.dt ) ) ) * 2.0f * motor::math::constants<float_t>::pi() ) / 5.0f ;
         if ( angle_ > 4.0f * motor::math::constants<float_t>::pi() ) angle_ = 0.0f ;
 
         float_t s = 5.0f * std::sin( angle_ ) ;
@@ -473,32 +499,160 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
         {
             motor::math::vec4f_t pos ;
             motor::math::vec4f_t col ;
+            motor::math::vec4f_t frame_x ;
+            motor::math::vec4f_t frame_y ;
+            motor::math::vec4f_t frame_z ;
+
         };
 
-        _cubes_data.data_buffer().resize( num_objects ).
+        _cubes_data.data_buffer().resize( _max_objects ).
             update< the_data >( [&] ( the_data * array, size_t const ne )
         {
             typedef motor::concurrent::range_1d<size_t> range_t ;
-            auto const & range = range_t( 0, std::min( size_t( num_objects ), ne ) ) ;
+            auto const & range = range_t( 0, std::min( size_t( _max_objects ), ne ) ) ;
 
             motor::concurrent::parallel_for<size_t>( range, [&] ( range_t const & r )
             {
+                size_t const cubes_per_ring = 80 ;
+
                 for ( size_t e = r.begin(); e < r.end(); ++e )
                 {
+                    float_t e0 = ((e) % cubes_per_ring) / float_t(cubes_per_ring) ;
+                    float_t e1 = float_t( e / cubes_per_ring ) / (ne/cubes_per_ring) ;
+
+                    size_t const cur_idx = (e / cubes_per_ring)+0 ;
+                    size_t const nxt_idx = (e / cubes_per_ring)+1  ;
+
+
+                    float_t const t0 = float_t( cur_idx ) / float_t ( ne/cubes_per_ring ) ;
+                    float_t const t1 = float_t( nxt_idx ) / float_t ( ne/cubes_per_ring ) ;
+
+                    auto const v0 = _worm_pos_spline( t0 ) ;
+                    auto const v1 = _worm_pos_spline( t1 ) ;
+
+                    auto const dir = ( v1 - v0 ).normalized() ;
+
+                    auto const up = motor::math::vec3f_t(0.0f, 1.0f, 0.0f ) ;// off.normalized() ;
+                    
+                    auto const ortho_ = ( up - ( dir * dir.dot( up ) ) ).normalized() ;
+                    //auto const right = dir.crossed( ortho ).normalized() ;
+
+                    
+                    motor::math::quat4f_t const axis( e0 * 2.0f * motor::math::constants<float_t>::pi(), dir ) ;
+                    
+                    //motor::math::m3d::trafof_t t ;
+                    //t.rotate_by_angle_fl( motor::math::vec3f_t( e0 * 2.0f * motor::math::constants<float_t>::pi(), 0.0f, 0.0f ) ) ;
+                    
+                    auto const ortho = axis.to_matrix() * ortho_ ;
+                    auto const right = dir.crossed( ortho ).normalized().negated() ;
+
+
+                    #if 1
+                    
+
+
+                    
+                    auto const base = v0 + ortho * 300.0f;
+                    auto const pos = motor::math::vec4f_t( base, 20.0f ) ;
+                    array[ e ].frame_x = motor::math::vec4f_t( right, 1.0f ) ;
+                    array[ e ].frame_y = motor::math::vec4f_t( ortho, 1.0f ) ;
+                    array[ e ].frame_z = motor::math::vec4f_t( dir, 1.0f ) ;
+
+                    #else
                     float_t const v = float_t(e) / float_t(ne)  ;
                     float_t const x = 100.0f * v - 50.0f ;
-                    float_t const y = 50.0f * std::sin( 2.0f * motor::math::constants<float_t>::pi() * v  ) ;
+                    float_t const y = 50.0f * std::sin( 2.0f * motor::math::constants<float_t>::pi() * v + s ) ;
                     float_t const z = 0.0f ;
 
                     motor::math::vec4f_t const pos( x, y, z, 30.0f ) ;
+                    #endif
 
                     array[ e ].pos = pos ;
-
                     array[ e ].col = motor::math::vec4f_t ( 1.0f, 0.5f, 0.5f, 1.0f ) ;
                 }
             } ) ;
         } ) ;
     }
+
+    // draw worm path
+    #if 1
+    {
+        auto const spline = _worm_pos_spline;
+
+        // path
+        {
+            size_t const num_steps = 300 ;
+            gd.pr->draw_lines( num_steps, [&] ( size_t const i )
+            {
+                float_t const t0 = float_t( i + 0 ) / float_t ( num_steps - 1 ) ;
+                float_t const t1 = float_t( i + 1 ) / float_t ( num_steps - 1 ) ;
+
+                auto const v0 = spline( t0 ) ;
+                auto const v1 = spline( t1 ) ;
+
+                return motor::gfx::line_render_3d::draw_line_data { v0, v1, motor::math::vec4f_t( 1.0f ) } ;
+            } ) ;
+        }
+
+        // frame
+        {
+            size_t const num_steps = 80 ;
+            gd.pr->draw_lines( num_steps, [&] ( size_t const idx )
+            {
+                size_t const div = 3 ;
+                size_t const i = idx / div ;
+
+                float_t const t0 = float_t( i + 0 ) / float_t ( (num_steps/div) - 1 ) ;
+                float_t const t1 = float_t( i + 1 ) / float_t ( (num_steps/div) - 1 ) ;
+
+                auto const v0 = spline( t0 ) ;
+                auto const v1 = spline( t1 ) ;
+
+                auto const up = motor::math::vec3f_t(0.0f, 1.0f, 0.0f) ;
+                auto const dir = ( v1 - v0 ).normalized() ;
+                auto const ortho = (up - (dir * dir.dot( up ))).normalized() ;
+                auto const right = dir.crossed( ortho ).normalized() ;
+
+                size_t const selector = idx % div ;
+
+                motor::math::vec4f_t const colors[ div ] = 
+                {
+                    motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ),
+                    motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ),
+                    motor::math::vec4f_t( 0.0f, 0.0f, 1.0f, 1.0f )
+                } ;
+                
+                motor::math::vec3f_t const norms[ div ] = 
+                {
+                    dir, ortho, right
+                } ;
+
+                auto off = v0 + norms[selector] * 10.0f ;
+
+                return motor::gfx::line_render_3d::draw_line_data
+                { v0, off, colors[selector] } ;
+                
+            } ) ;
+        }
+    }
+    #else
+    {
+        using splinef_t = this_t::vec3splinef_t ;
+        splinef_t spline = _worm_pos.get_spline() ;
+
+        size_t const num_steps = 300 ;
+        gd.pr->draw_lines( num_steps, [&] ( size_t const i )
+        {
+            float_t const t0 = float_t( i + 0 ) / float_t ( num_steps - 1 ) ;
+            float_t const t1 = float_t( i + 1 ) / float_t ( num_steps - 1 ) ;
+
+            auto const v0 = spline( t0 ) ;
+            auto const v1 = spline( t1 ) ;
+
+            return motor::gfx::line_render_3d::draw_line_data { v0, v1, motor::math::vec4f_t(1.0f) } ;
+        } ) ;
+    }
+    #endif
 
     this_t::camera_manager().for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
     {
@@ -628,7 +782,7 @@ void_t scene_0::on_render_debug( bool_t const initial, motor::graphics::gen4::fr
         {
             motor::graphics::gen4::backend_t::render_detail_t detail ;
             detail.start = 0 ;
-            detail.num_elems = num_objects * 36 ;
+            detail.num_elems = _max_objects * 36 ;
             detail.varset = 0 ;
             fe->render( &_cubes_debug_msl, detail ) ;
         }
@@ -658,21 +812,13 @@ void_t scene_0::on_render_final( bool_t const initial, motor::graphics::gen4::fr
 
     fe->update( &_cubes_data ) ;
 
-    #if 0
-    this_t::camera_manager().for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
-    {
-        cd.cam.set_sensor_dims( float_t( _rnd_dims.x() ), float_t( _rnd_dims.y() ) ) ;
-        cd.cam.perspective_fov() ;
-    } ) ;
-    #endif
-
     // render scene
     {
         // render cubes
         {
             motor::graphics::gen4::backend_t::render_detail_t detail ;
             detail.start = 0 ;
-            detail.num_elems = num_objects * 36 ;
+            detail.num_elems = _max_objects * 36 ;
             detail.varset = 0 ;
             fe->render( &_cubes_final_msl, detail ) ;
         }

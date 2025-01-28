@@ -162,7 +162,7 @@ void_t the_app::on_init( void_t ) noexcept
             motor::graphics::render_state_sets_t rss ;
             rss.depth_s.do_change = true ;
             rss.depth_s.ss.do_activate = true ;
-            rss.depth_s.ss.do_depth_write = true ;
+            rss.depth_s.ss.do_depth_write = false ;
             rss.polygon_s.do_change = true ;
             rss.polygon_s.ss.do_activate = true ;
             rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise ;
@@ -170,7 +170,7 @@ void_t the_app::on_init( void_t ) noexcept
             
             rss.clear_s.do_change = false ;
             rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f ) ;
-            rss.clear_s.ss.do_activate = true ;
+            rss.clear_s.ss.do_activate = false ;
             rss.clear_s.ss.do_color_clear = true ;
             rss.clear_s.ss.do_depth_clear = true ;
 
