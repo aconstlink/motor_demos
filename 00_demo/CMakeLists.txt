@@ -19,6 +19,7 @@ set( sources
     
     "scenes/scene_0.h"
     "scenes/scene_0.cpp"
+    "scenes/scene_0_coreos.cpp"
     "scenes/scene_1.h"
     "scenes/scene_1.cpp"
 

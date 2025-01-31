@@ -14,6 +14,7 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         {
             pr.configure( fe ) ;
             fe->configure< motor::graphics::state_object_t>( &_pr_rs ) ;
+            fe->configure< motor::graphics::state_object_t>( &_dv_rs ) ;
         }
 
         // init render window rendering objects
@@ -30,9 +31,13 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
     // debug view does not use a post framebuffer
     if( wid == _dwid )
     {
-        for ( auto * s : _scenes )
         {
-            s->on_render_debug( rd.first_frame, fe ) ;
+            fe->push( &_dv_rs ) ;
+            for ( auto * s : _scenes )
+            {
+                s->on_render_debug( rd.first_frame, fe ) ;
+            }
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
         }
 
         // do the primitive renderer
@@ -45,6 +50,13 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
     }
     else if ( wid == _rwid )
     {
+        if( _gbuffer_sel_changed )
+        {
+            // need variable set update for msl object
+            //fe->update()
+            _gbuffer_sel_changed = false ;
+        }
+
         {
             fe->use( &pp_fb ) ;
             fe->push( &_scene_final_rs ) ;

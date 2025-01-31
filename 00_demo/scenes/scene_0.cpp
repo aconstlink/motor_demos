@@ -6,11 +6,12 @@
 #include <motor/geometry/3d/cube.h>
 
 #include <motor/math/utility/3d/transformation.hpp>
-#include <motor/math/utility/fn.hpp>
+
 #include <motor/math/utility/angle.hpp>
+#include <motor/concurrent/parallel_for.hpp>
 
 #include <motor/tool/imgui/imgui.h>
-#include <motor/concurrent/parallel_for.hpp>
+
 
 using namespace demos ;
 
@@ -27,8 +28,8 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
         kfs_t kf ;
 
         kf.insert( kfs_t::keyframe_t( 0, size_t( 0 ) ) ) ;
-        kf.insert( kfs_t::keyframe_t( 6500, size_t( 1 ) ) ) ;
-        kf.insert( kfs_t::keyframe_t( 12000, size_t( 1 ) ) ) ;
+        kf.insert( kfs_t::keyframe_t( 8000, size_t( 1 ) ) ) ;
+        kf.insert( kfs_t::keyframe_t( 15000, size_t( 1 ) ) ) ;
 
         this_t::camera_manager().set_camera_selector( std::move( kf ) ) ;
     }
@@ -47,23 +48,27 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
             cd.cam.perspective_fov() ;
 
             {
-                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-                kfs_t kf_pos ;
-                kf_pos.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 1110.0f, 0.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 3000, motor::math::vec3f_t( 0.0f, 500.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 5000, motor::math::vec3f_t( -1000.0f, -100.0f, -1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( 6500, motor::math::vec3f_t( 0.0f, 0.0f, -1000.0f ) ) ) ;
-                cd.kf_pos = std::move( kf_pos ) ;
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ; 
+                kfs_t kf ; 
+                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 1050.910278f, -0.800429f, -182.960831f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 534.924927f, -64.362190f, -130.895432f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 3000, motor::math::vec3f_t( 328.392639f, 198.827835f, -395.404388f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 5000, motor::math::vec3f_t( -205.188736f, -52.714512f, -109.579094f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 6500, motor::math::vec3f_t( -908.151306f, 206.600845f, 28.690346f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 8000, motor::math::vec3f_t( -1576.810669f, -12.273022f, 308.882080f ) ) ) ;
+                cd.kf_pos = std::move( kf ) ;
             }
 
             {
-                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ; 
+                kfs_t kf ; 
+                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 1031.214111f, -0.796436f, -179.487778f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 515.552063f, -59.720646f, -132.669312f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 3000, motor::math::vec3f_t( 312.900757f, 190.665634f, -385.741302f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 5000, motor::math::vec3f_t( -224.431519f, -47.709923f, -107.419807f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 6500, motor::math::vec3f_t( -927.006409f, 203.097549f, 34.364937f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 8000, motor::math::vec3f_t( -1594.317627f, -2.607837f, 308.598633f ) ) ) ;
 
-                kfs_t kf( motor::math::time_remap_funk_type::cycle ) ;
-                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
                 cd.kf_lookat = std::move( kf ) ;
             }
 
@@ -83,7 +88,7 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
             {
                 auto const start = motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ) ;
-                size_t const start_milli = 6500 ;
+                size_t const start_milli = 8000 ;
 
                 using kfs_t = demos::camera_data::keyframe_sequencef_t ;
                 kfs_t kf_pos ;
@@ -107,6 +112,15 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
             this_t::camera_manager().add_camera( std::move( cd ) ) ;
         }
+
+        // test : REMOVE IF NOT USED
+        #if 0
+        {
+            this_t::camera_manager().append( { motor::math::vec3f_t(0), motor::math::vec3f_t(0) } ) ;
+            this_t::camera_manager().append( { motor::math::vec3f_t(1), motor::math::vec3f_t(1) } ) ;
+            this_t::camera_manager().append( { motor::math::vec3f_t(2), motor::math::vec3f_t(2) } ) ;
+        }
+        #endif
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -236,14 +250,16 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
         {
             motor::graphics::render_state_sets_t rss ;
-            rss.depth_s.do_change = true ;
+            rss.depth_s.do_change = false ;
             rss.depth_s.ss.do_activate = true ;
             rss.depth_s.ss.do_depth_write = true ;
-            rss.polygon_s.do_change = true ;
+
+            rss.polygon_s.do_change = false ;
             rss.polygon_s.ss.do_activate = true ;
             rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise ;
             rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
-            rss.clear_s.do_change = true ;
+
+            rss.clear_s.do_change = false ;
             rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f ) ;
             rss.clear_s.ss.do_activate = true ;
             rss.clear_s.ss.do_color_clear = true ;
@@ -276,9 +292,10 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
     {
         auto sp = this_t::vec3splinef_t() ;
-        sp.append( motor::math::vec3f_t( -1000.0f, 0.0f, 100.0f ) ) ;
-        sp.append( motor::math::vec3f_t( -500.0f, 100.0f, 100.0f ) ) ;
-        sp.append( motor::math::vec3f_t( -0.0f, 0.0f, 0.0f ) ) ;
+        sp.append( motor::math::vec3f_t( -2000.0f, 0.0f, 300.0f ) ) ;
+        sp.append( motor::math::vec3f_t( -1000.0f, 200.0f, 100.0f ) ) ;
+        sp.append( motor::math::vec3f_t( -500.0f, -50.0f, -100.0f ) ) ;
+        sp.append( motor::math::vec3f_t( 100.0f, 50.0f, -300.0f ) ) ;
         sp.append( motor::math::vec3f_t( 500.0f, -100.0f, -100.0f ) ) ;
         sp.append( motor::math::vec3f_t( 1000.0f, 0.0f, -100.0f ) ) ;
 
@@ -346,16 +363,6 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
 
     // cubes data array
     {
-        struct the_data
-        {
-            motor::math::vec4f_t pos ;
-            motor::math::vec4f_t col ;
-            motor::math::vec4f_t d ;
-            motor::math::vec4f_t e;
-            motor::math::vec4f_t f ;
-        };
-
-        float_t scale = 20.0f ;
         motor::graphics::data_buffer_t db_ = motor::graphics::data_buffer_t()
             .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
             .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
@@ -364,7 +371,6 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
             .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 );
 
         _cubes_data = motor::graphics::array_object_t( this_t::name() + ".cubes_data", std::move( db_ ) ) ;
-
     }
 
     // msl objects
@@ -455,6 +461,16 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
             _cubes_final_msl = std::move( mslo ) ;
         }
     }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // Position section : position functions
+    ///////////////////////////////////////////////////////////////////////////////
+    {
+        _pos_funks.emplace_back( [&]( float_t const t )
+        {
+            return _worm_pos_spline(t) ;
+        } ) ;
+    }
 }
 
 //*******************************************************************************
@@ -487,92 +503,7 @@ void_t scene_0::on_update( size_t const cur_time ) noexcept
 //*******************************************************************************
 void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 {
-    // update array object data
-    {
-        static float_t  angle_ = 0.0f ;
-        angle_ += ( ( ( ( gd.dt ) ) ) * 2.0f * motor::math::constants<float_t>::pi() ) / 5.0f ;
-        if ( angle_ > 4.0f * motor::math::constants<float_t>::pi() ) angle_ = 0.0f ;
-
-        float_t s = 5.0f * std::sin( angle_ ) ;
-
-        struct the_data
-        {
-            motor::math::vec4f_t pos ;
-            motor::math::vec4f_t col ;
-            motor::math::vec4f_t frame_x ;
-            motor::math::vec4f_t frame_y ;
-            motor::math::vec4f_t frame_z ;
-
-        };
-
-        _cubes_data.data_buffer().resize( _max_objects ).
-            update< the_data >( [&] ( the_data * array, size_t const ne )
-        {
-            typedef motor::concurrent::range_1d<size_t> range_t ;
-            auto const & range = range_t( 0, std::min( size_t( _max_objects ), ne ) ) ;
-
-            motor::concurrent::parallel_for<size_t>( range, [&] ( range_t const & r )
-            {
-                size_t const cubes_per_ring = 80 ;
-
-                for ( size_t e = r.begin(); e < r.end(); ++e )
-                {
-                    float_t e0 = ((e) % cubes_per_ring) / float_t(cubes_per_ring) ;
-                    float_t e1 = float_t( e / cubes_per_ring ) / (ne/cubes_per_ring) ;
-
-                    size_t const cur_idx = (e / cubes_per_ring)+0 ;
-                    size_t const nxt_idx = (e / cubes_per_ring)+1  ;
-
-
-                    float_t const t0 = float_t( cur_idx ) / float_t ( ne/cubes_per_ring ) ;
-                    float_t const t1 = float_t( nxt_idx ) / float_t ( ne/cubes_per_ring ) ;
-
-                    auto const v0 = _worm_pos_spline( t0 ) ;
-                    auto const v1 = _worm_pos_spline( t1 ) ;
-
-                    auto const dir = ( v1 - v0 ).normalized() ;
-
-                    auto const up = motor::math::vec3f_t(0.0f, 1.0f, 0.0f ) ;// off.normalized() ;
-                    
-                    auto const ortho_ = ( up - ( dir * dir.dot( up ) ) ).normalized() ;
-                    //auto const right = dir.crossed( ortho ).normalized() ;
-
-                    
-                    motor::math::quat4f_t const axis( e0 * 2.0f * motor::math::constants<float_t>::pi(), dir ) ;
-                    
-                    //motor::math::m3d::trafof_t t ;
-                    //t.rotate_by_angle_fl( motor::math::vec3f_t( e0 * 2.0f * motor::math::constants<float_t>::pi(), 0.0f, 0.0f ) ) ;
-                    
-                    auto const ortho = axis.to_matrix() * ortho_ ;
-                    auto const right = dir.crossed( ortho ).normalized().negated() ;
-
-
-                    #if 1
-                    
-
-
-                    
-                    auto const base = v0 + ortho * 300.0f;
-                    auto const pos = motor::math::vec4f_t( base, 20.0f ) ;
-                    array[ e ].frame_x = motor::math::vec4f_t( right, 1.0f ) ;
-                    array[ e ].frame_y = motor::math::vec4f_t( ortho, 1.0f ) ;
-                    array[ e ].frame_z = motor::math::vec4f_t( dir, 1.0f ) ;
-
-                    #else
-                    float_t const v = float_t(e) / float_t(ne)  ;
-                    float_t const x = 100.0f * v - 50.0f ;
-                    float_t const y = 50.0f * std::sin( 2.0f * motor::math::constants<float_t>::pi() * v + s ) ;
-                    float_t const z = 0.0f ;
-
-                    motor::math::vec4f_t const pos( x, y, z, 30.0f ) ;
-                    #endif
-
-                    array[ e ].pos = pos ;
-                    array[ e ].col = motor::math::vec4f_t ( 1.0f, 0.5f, 0.5f, 1.0f ) ;
-                }
-            } ) ;
-        } ) ;
-    }
+    this_t::coreo_1( gd ) ;
 
     // draw worm path
     #if 1
@@ -837,6 +768,44 @@ void_t scene_0::on_tool( void_t ) noexcept
 {
     if( ImGui::Begin( this_t::name().c_str() ) )
     {
+        ImGui::Text("Worm") ;
+        {
+            // pos funk
+            {
+                int_t const max_funks = int_t( _pos_funks.size() - 1 ) ;
+                int_t cur_funk = (int_t) _cur_pos_funk ;
+                ImGui::SliderInt( "Pos funk##Scene.0", &cur_funk, 0, max_funks ) ;
+                _cur_pos_funk = size_t( cur_funk ) ;
+            }
+
+            // num cubes per ring
+            {
+                int_t cpr = int_t( _cubes_per_ring ) ;
+                ImGui::SliderInt( "Cubes per ring##Scene.0", &cpr, 10, 200 ) ;
+                _cubes_per_ring = size_t( cpr ) ;
+            }
+
+            {
+                ImGui::SliderFloat( "Cube Radius##scene0", &_cube_radius, 10.0f, 50.0f ) ;
+            }
+
+            {
+                ImGui::SliderFloat( "Center Radius Multiplier##scene0", &_center_radius, 20.0f, 500.0f ) ;
+            }
+
+            {
+                int_t v = int_t(_per_ring_milli) ;
+                ImGui::SliderInt( "Per Ring Time##scene0", &v, 10, 1000 ) ;
+                _per_ring_milli = size_t(v ) ;
+            }
+
+            {
+                ImGui::SliderFloat( "Inner Amplitude##scene0", &_inner_amp, 1.0f, 100.0f ) ;
+                ImGui::SliderFloat( "Inner Frequency##scene0", &_inner_freq, 1.0f, 50.0f ) ;
+                ImGui::SliderFloat( "Inner Shift##scene0", &_inner_shift, 0.0f, 10.0f ) ;
+            }
+        }
+        ImGui::Separator() ;
     }
     ImGui::End() ;
 }

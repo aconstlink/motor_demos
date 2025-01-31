@@ -10,6 +10,24 @@
 using namespace demos ;
 
 //******************************************************************************************************
+the_app::the_app( void_t ) noexcept
+{
+}
+
+//******************************************************************************************************
+the_app::the_app( this_rref_t rhv ) noexcept 
+{
+    _gbuffer_selection = rhv._gbuffer_selection ;
+    _max_time_milli = rhv._max_time_milli ;
+
+}
+
+//******************************************************************************************************
+the_app::~the_app( void_t ) noexcept 
+{
+}
+
+//******************************************************************************************************
 demos::iscene_mtr_t the_app::get_current_scene( void_t ) noexcept 
 {
     assert( _scenes.size() <= 1 && "need proper scene selection. i.e. via currrent time") ;
@@ -182,6 +200,33 @@ void_t the_app::on_init( void_t ) noexcept
 
     {
         motor::graphics::state_object_t so = motor::graphics::state_object_t(
+            "debug scene root render states" ) ;
+
+        {
+            motor::graphics::render_state_sets_t rss ;
+            rss.depth_s.do_change = true ;
+            rss.depth_s.ss.do_activate = true ;
+            rss.depth_s.ss.do_depth_write = true ;
+            rss.polygon_s.do_change = true ;
+            rss.polygon_s.ss.do_activate = true ;
+            rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise ;
+            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back ;
+            rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill ;
+
+            rss.clear_s.do_change = true ;
+            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f ) ;
+            rss.clear_s.ss.do_activate = true ;
+            rss.clear_s.ss.do_color_clear = true ;
+            rss.clear_s.ss.do_depth_clear = true ;
+
+            so.add_render_state_set( rss ) ;
+        }
+
+        _dv_rs = std::move( so ) ;
+    }
+
+    {
+        motor::graphics::state_object_t so = motor::graphics::state_object_t(
             "root_render_states_final" ) ;
 
         {
@@ -340,6 +385,35 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                     } ) ) ;
             } );
         }
+
+        else if( keyboard.get_state( key_t::c ) == motor::controls::components::key_state::released )
+        {
+            if( keyboard.get_state( key_t::ctrl_left) == motor::controls::components::key_state::pressing )
+            {
+                this_t::get_current_scene()->camera_manager().clear_storage_data() ;
+            }
+            else
+            {
+                this_t::get_current_scene()->camera_manager().append_current_free_camera() ;
+            }
+            
+        }
+        else if( keyboard.get_state( key_t::p ) == motor::controls::components::key_state::released )
+        {
+            motor::string_t text = this_t::make_camera_data_file() ;
+            _db.store( motor::io::location_t( "coords.txt" ), text.c_str(), text.size() ).wait_for_operation( [=] ( motor::io::result const res )
+            {
+                if( res != motor::io::result::ok )
+                {
+                    motor::log::global_t::status( "[Demo] : Coords written to file." ) ;
+                    
+                }
+                else
+                {
+                    motor::log::global_t::error( "[Demo] : Coords may NOT be written to file. An error occured." ) ;
+                }
+            } ) ;
+        }
     }
 }
 
@@ -362,6 +436,55 @@ void_t the_app::on_shutdown( void_t ) noexcept
         s->on_release() ;
         motor::release( motor::move( s ) ) ;
     }
+}
+
+//******************************************************************************************************
+motor::string_t the_app::make_camera_data_file( void_t ) noexcept 
+{
+    char buffer[2048] ;
+
+    motor::string_t file = "Camera Data:\n" ;
+    file += "-------------------------------------------------\n" ; 
+    size_t i = 0 ;
+    for ( auto * s : _scenes )
+    {
+        file += "Scene " + motor::to_string( i++ ) + "\n" ;
+        
+        // position
+        {
+            file += "Position:\n" ;
+            file += "using kfs_t = demos::camera_data::keyframe_sequencef_t ;\n" ;
+            file += "kfs_t kf ;\n" ;
+
+            s->camera_manager().for_each( [&] ( demos::store_camera_data const & sd )
+            {
+                std::snprintf( buffer, 2048,
+                    "kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(%ff, %ff, %ff) ) ) ;\n",
+                    sd.pos.x(), sd.pos.y(), sd.pos.z() ) ;
+                file += buffer ;
+                buffer[ 0 ] = '\0' ;
+            } ) ;
+        }
+
+        // lookat
+        {
+            file += "Lookat:\n" ;
+            file += "using kfs_t = demos::camera_data::keyframe_sequencef_t ;\n" ;
+            file += "kfs_t kf ;\n" ;
+
+            s->camera_manager().for_each( [&] ( demos::store_camera_data const & sd )
+            {
+                std::snprintf( buffer, 2048,
+                    "kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(%ff, %ff, %ff) ) ) ;\n ",
+                    sd.lookat.x(), sd.lookat.y(), sd.lookat.z() ) ;
+                file += buffer ;
+                buffer[ 0 ] = '\0' ;
+            } ) ;
+        }
+
+        s->camera_manager().clear_storage_data() ;
+    }
+    return file ;
 }
 
 //******************************************************************************************************

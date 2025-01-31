@@ -44,6 +44,9 @@ namespace demos
         motor::gfx::primitive_render_3d_t pr ;
         motor::graphics::state_object_t _pr_rs ;
 
+        // debug view root render states
+        motor::graphics::state_object_t _dv_rs ;
+
         motor::audio::capture_object_t _co ;
         demos::audio_analysis _aanl ;
 
@@ -63,6 +66,7 @@ namespace demos
 
         bool_t _use_free_camera = true ;
         motor::gfx::generic_camera_t _camera ;
+        // this is only for user input interaction!
         helper::camera_controls::control_vector _cc ;
 
     private: // tool ui
@@ -79,6 +83,8 @@ namespace demos
 
     private: // final render stuff
 
+        bool_t _gbuffer_sel_changed = false ;
+        size_t _gbuffer_selection = 2 ;
         motor::graphics::state_object_t _scene_final_rs ;
 
     private: // post process
@@ -108,5 +114,13 @@ namespace demos
             motor::application::app::render_data_in_t rd ) noexcept ;
         virtual bool_t on_tool( this_t::window_id_t const wid, motor::application::app::tool_data_ref_t td ) noexcept ;
         virtual void_t on_shutdown( void_t ) noexcept ;
+
+        motor::string_t make_camera_data_file( void_t ) noexcept ;
+
+    public:
+
+        the_app( void_t ) noexcept ;
+        the_app( this_rref_t ) noexcept ;
+        virtual ~the_app( void_t ) noexcept ;
     } ;
 }

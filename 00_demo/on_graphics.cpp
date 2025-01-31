@@ -22,6 +22,11 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         }
     }
 
+    {
+        auto const pos = _camera.get_position() ;
+        auto const lookat = _camera.get_position() + _camera.get_direction() * 20.0f ;
+        this_t::get_current_scene()->camera_manager().set_free_camera( { pos, lookat } ) ;
+    }
     
     for( auto * s : _scenes )
     {
@@ -149,6 +154,21 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
             }
         } ) ;
     }
+
+    // change gbuffer textue
+    if ( _gbuffer_sel_changed )
+    {
+        auto const & vss = _post_msl->borrow_varibale_sets() ;
+        for ( size_t i = 0; i < vss.size(); ++i )
+        {
+            auto * vs = vss[ i ] ;
+            auto * var = vs->texture_variable( "tx_map" ) ;
+            var->set( "the_scene." + motor::to_string( _gbuffer_selection ) );
+        }
+        if( _rwid == size_t(-1) )
+            _gbuffer_sel_changed = false ;
+    }
+
 
     // set camera data to primitive renderer and do preparation
     {

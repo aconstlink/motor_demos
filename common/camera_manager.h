@@ -17,6 +17,13 @@ namespace demos
 {
     using namespace motor::core::types ;
 
+    struct store_camera_data
+    {
+        motor::math::vec3f_t pos ;
+        motor::math::vec3f_t lookat ;
+    };
+    using store_camera_datas_t = motor::vector< store_camera_data >  ;
+
     struct camera_data
     {
         typedef motor::math::linear_bezier_spline< motor::math::vec3f_t > linearf_t ;
@@ -27,6 +34,12 @@ namespace demos
         motor::gfx::generic_camera_t cam  ;
         keyframe_sequencef_t kf_pos ;
         keyframe_sequencef_t kf_lookat ;
+    };
+
+    struct free_camera
+    {
+        motor::math::vec3f_t pos ;
+        motor::math::vec3f_t lookat ;
     };
 
     class camera_manager
@@ -40,6 +53,7 @@ namespace demos
 
     private:
 
+        demos::free_camera _free_cam ;
         motor::vector< demos::camera_data > _cameras ;
 
         // the debug window camera
@@ -53,6 +67,12 @@ namespace demos
         camera_kfs_t _cam_selector ;
 
     public: // camera controls
+
+        // this is only for the storage functionality.
+        void_t set_free_camera( demos::free_camera const & cd ) noexcept 
+        {
+            _free_cam = cd ;
+        }
 
         void_t set_camera_selector( camera_kfs_t && kfs ) noexcept
         {
@@ -95,6 +115,13 @@ namespace demos
             return _cameras.size() ;
         }
 
+        bool_t get_camera_data( size_t const idx, demos::camera_data & cd ) const noexcept
+        {
+            if( idx >= this_t::get_num_cameras() ) return false ;
+            cd = _cameras[idx] ;
+            return true ;
+        }
+
         using foreach_camera_funk_t = std::function< void_t ( size_t const idx, demos::camera_data & ) > ;
         void_t for_each_camera( foreach_camera_funk_t funk ) noexcept
         {
@@ -107,6 +134,19 @@ namespace demos
 
         motor::gfx::generic_camera_ptr_t borrow_debug_camera( void_t ) noexcept { return &( _cameras[ _cam_idx ].cam ) ; }
         motor::gfx::generic_camera_ptr_t borrow_final_camera( void_t ) noexcept { return &( _cameras[ _final_cam_idx ].cam ) ; }
+
+
+    private:
+
+        // used for writing to a file
+        store_camera_datas_t _storage ;
+
+    public:
+
+        void_t append_current_free_camera( void_t ) noexcept ;
+        void_t append( store_camera_data && ss  ) noexcept;
+        void_t for_each( std::function< void_t ( store_camera_data const & ) > f ) noexcept ;
+        void_t clear_storage_data( void_t ) noexcept ;
     };
     motor_typedef( camera_manager ) ;
 }

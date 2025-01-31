@@ -2,9 +2,12 @@
 #pragma once
 
 #include "../../common/iscene.h"
+#include <motor/concurrent/range_1d.hpp>
 
 namespace demos
 {
+    using pos_funk_t = std::function< motor::math::vec3f_t ( float_t const t ) > ;
+
     class scene_0 : public demos::iscene 
     {
         motor_this_typedefs( scene_0 ) ;
@@ -23,8 +26,14 @@ namespace demos
         typedef motor::math::keyframe_sequence< vec3splinef_t > keyframe_sequencef_t ;
         keyframe_sequencef_t _worm_pos ;
         vec3splinef_t _worm_pos_spline ;
-        
 
+        size_t _cur_pos_funk = 0 ;
+        motor::vector< pos_funk_t > _pos_funks ;
+
+        motor::math::vec3f_t pos_funk( float_t const t ) const noexcept 
+        {
+            return _pos_funks[_cur_pos_funk]( t ) ;
+        }
 
     private:// debug view
 
@@ -79,5 +88,33 @@ namespace demos
         virtual void_t on_render_final( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
 
         virtual void_t on_tool( void_t ) noexcept ;
+
+    private:
+
+        struct the_data
+        {
+            motor::math::vec4f_t pos ;
+            motor::math::vec4f_t col ;
+            motor::math::vec4f_t frame_x ;
+            motor::math::vec4f_t frame_y ;
+            motor::math::vec4f_t frame_z ;
+        };
+
+    private:
+
+        size_t _cubes_per_ring = 60 ;
+        float_t _cube_radius = 10.0f ;
+        float_t _center_radius = 20.0f ;
+        size_t _per_ring_milli = 10 ;
+
+        float_t _inner_amp = 20.0f ;
+        float_t _inner_freq = 2.0f ;
+        float_t _inner_shift = 0.0f ;
+        typedef motor::concurrent::range_1d<size_t> range_t ;
+
+        // coreo_0 not used! Keeping just for copy and pasting
+        void_t coreo_0( demos::iscene::on_graphics_data_in_t ) noexcept ;
+
+        void_t coreo_1( demos::iscene::on_graphics_data_in_t ) noexcept ;
     };
 }

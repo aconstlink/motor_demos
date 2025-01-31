@@ -25,10 +25,16 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
         }
     }
 
-    if( ImGui::Begin("Render Window") )
+    if ( ImGui::Begin( "Keyboard Info" ) )
     {
         {
             ImGui::Text("F3 will open a gen4_auto window") ;
+            ImGui::Text("F4 will make the render window fullscreen") ;
+            ImGui::Separator() ;
+
+            ImGui::Text("c will capture a camera pos and lookat coordinate") ;
+            ImGui::Text("c + ctrl will clear the captured camera data") ;
+            ImGui::Text("p will print the camera storage per scene in a file") ;
         }
         #if 0
         {
@@ -40,11 +46,79 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
     }
     ImGui::End() ;
 
+    if ( ImGui::Begin( "Render Window" ) )
+    {
+        int_t sel = int_t(_gbuffer_selection) ;
+        if( ImGui::SliderInt( "Select G-Buffer##maintool", &sel, 0, 3 ) )
+        {
+            if( sel != int_t(_gbuffer_selection))
+            {
+                _gbuffer_sel_changed = true ;
+                _gbuffer_selection = size_t( sel ) ;
+            }
+        }
+        
+    }
+    ImGui::End() ;
+
     
     if ( ImGui::Begin( "Camera Window" ) )
     {
         if( ImGui::Checkbox( "Use Free Camera", &_use_free_camera ) )
         {
+        }
+
+
+        {
+            ImGui::Text("Place Free Camera to keyframe control point") ;
+            int num_cams = (int_t)this_t::get_current_scene()->camera_manager().get_num_cameras() ;
+            int sel_cam = (int_t)this_t::get_current_scene()->camera_manager().get_final_camera_idx() ;
+            ImGui::SliderInt( "Which Camera##maintool", &sel_cam, 0, num_cams-1 ) ;
+
+            demos::camera_data cd ;
+            if( this_t::get_current_scene()->camera_manager().get_camera_data( size_t(sel_cam), cd ) )
+            {
+                static bool_t lock_selection = true ;
+                static int_t sel_kf = 0 ;
+                bool_t set_lookat = false ;
+                bool_t set_now = false ;
+
+                ImGui::Checkbox( "Lock Selection##selectionforfreecameratokeyframe", &lock_selection ) ;
+                ImGui::SameLine() ;
+                if( ImGui::Checkbox( "Place now##setfreecameranowtokeyframe", &set_now ) )
+                {
+                    set_now = true ;
+                }
+
+                // position
+                {
+                    int_t const num_keyframes = (int_t)cd.kf_pos.get_num_keyframes() ;
+                    
+                    if ( ImGui::SliderInt( "Position##KeyframeFreeCamera", &sel_kf, 0, num_keyframes-1 ) || set_now )
+                    {
+                        _camera.translate_to( cd.kf_pos.get_spline().get_control_point( size_t(sel_kf) ).p ) ;
+                        set_lookat = true ;
+                    }
+                }
+
+                // lookat
+                {
+                    int_t const num_keyframes = (int_t)cd.kf_lookat.get_num_keyframes() ;
+                    static int_t sel_kf2 = 0 ;
+                    sel_kf2 = lock_selection ? std::min( sel_kf, num_keyframes ) : sel_kf2 ;
+                    if ( ImGui::SliderInt( "Lookat##KeyframeFreeCamera", &sel_kf2, 0, num_keyframes - 1 ) )
+                    {
+                        
+                    }
+
+                    if( set_lookat )
+                    {
+                        auto const lookat = cd.kf_lookat.get_spline().get_control_point( size_t( sel_kf2 ) ).p ;
+                        _camera.look_at( _camera.get_position(), motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), lookat ) ;
+                    }
+                }
+            }
+
         }
 
         #if 0
@@ -63,6 +137,46 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
             _camera[ _cam_idx ].cam.translate_to( motor::math::vec3f_t( x, y, cam_pos.z() ) ) ;
         }
         #endif
+    }
+    ImGui::End() ;
+
+    
+    if ( ImGui::Begin( "Global Settings" ) )
+    {
+        ImGui::Text("Primitive Renderer") ;
+        _pr_rs.access_render_state( 0, [&]( motor::graphics::render_state_sets_ref_t rs )
+        {
+            bool_t is_depth_test = rs.depth_s.do_change && rs.depth_s.ss.do_activate ;
+            if ( ImGui::Checkbox( "Depth Test Debug Elements", &is_depth_test ) )
+            {
+                if( is_depth_test )
+                {
+                    rs.depth_s.do_change = true ;
+                    rs.depth_s.ss.do_activate = true ;
+                }
+                else
+                {
+                    rs.depth_s.do_change = true ;
+                    rs.depth_s.ss.do_activate = false ;
+                }
+                return true ;
+            }
+            return false ;
+        } ) ;
+
+        ImGui::Text("Debug Window") ;
+        _dv_rs.access_render_state( 0, [&] ( motor::graphics::render_state_sets_ref_t rs )
+        {
+            bool_t is_flag = rs.polygon_s.ss.fm == motor::graphics::fill_mode::line ;
+            if( ImGui::Checkbox("Wireframe##DebugWindow", &is_flag) )
+            {
+                rs.polygon_s.ss.fm = is_flag ? motor::graphics::fill_mode::line : 
+                    motor::graphics::fill_mode::fill ;
+
+                return true ;
+            }
+            return false ;
+        } ) ;
     }
     ImGui::End() ;
     
