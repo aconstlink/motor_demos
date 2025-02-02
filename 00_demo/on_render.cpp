@@ -50,12 +50,14 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
     }
     else if ( wid == _rwid )
     {
+        #if 0
         if( _gbuffer_sel_changed )
         {
             // need variable set update for msl object
-            //fe->update()
+            fe->update( _post_msl, 0 ) ;
             _gbuffer_sel_changed = false ;
         }
+        #endif
 
         {
             fe->use( &pp_fb ) ;

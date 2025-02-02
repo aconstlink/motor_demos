@@ -165,8 +165,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
             auto * var = vs->texture_variable( "tx_map" ) ;
             var->set( "the_scene." + motor::to_string( _gbuffer_selection ) );
         }
-        if( _rwid == size_t(-1) )
-            _gbuffer_sel_changed = false ;
+        _gbuffer_sel_changed = false ;
     }
 
 

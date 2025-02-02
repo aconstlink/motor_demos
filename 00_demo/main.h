@@ -52,7 +52,7 @@ namespace demos
 
     private: // file
 
-        motor::io::monitor_mtr_t _mon = motor::memory::create_ptr( motor::io::monitor_t() ) ;
+        motor::io::monitor_mtr_t _mon = nullptr ; // motor::memory::create_ptr( motor::io::monitor_t() ) ;
         motor::io::database _db = motor::io::database( motor::io::path_t( DATAPATH ), "./working", "data" ) ;
 
 
@@ -93,8 +93,8 @@ namespace demos
         motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
         motor::graphics::framebuffer_object_t pp_fb ; // the scene is rendered to
         
-        motor::graphics::msl_object_mtr_t _post_msl ;
-        motor::graphics::geometry_object_mtr_t _post_quad ;
+        motor::graphics::msl_object_mtr_t _post_msl = nullptr ;
+        motor::graphics::geometry_object_mtr_t _post_quad = nullptr ;
         motor::graphics::state_object_t _post_process_rs ;
 
     private: // debug window

@@ -19,7 +19,7 @@ the_app::the_app( this_rref_t rhv ) noexcept
 {
     _gbuffer_selection = rhv._gbuffer_selection ;
     _max_time_milli = rhv._max_time_milli ;
-
+    _mon = motor::move( rhv._mon ) ;
 }
 
 //******************************************************************************************************

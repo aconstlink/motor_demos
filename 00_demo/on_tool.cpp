@@ -118,25 +118,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                     }
                 }
             }
-
         }
-
-        #if 0
-        {
-            int used_cam = int_t( _cam_idx ) ;
-            ImGui::SliderInt( "Choose Debug Camera", &used_cam, 0, int( this_t::get_num_cams() - 1 ) ) ;
-            _cam_idx = std::min( size_t( used_cam ), this_t::get_num_cams() - 1 ) ;
-        }
-
-        {
-            auto const cam_pos = _camera[ _cam_idx ].cam.get_position() ;
-            float x = cam_pos.x() ;
-            float y = cam_pos.y() ;
-            ImGui::SliderFloat( "Cur Cam X", &x, -100.0f, 100.0f ) ;
-            ImGui::SliderFloat( "Cur Cam Y", &y, -100.0f, 100.0f ) ;
-            _camera[ _cam_idx ].cam.translate_to( motor::math::vec3f_t( x, y, cam_pos.z() ) ) ;
-        }
-        #endif
     }
     ImGui::End() ;
 
