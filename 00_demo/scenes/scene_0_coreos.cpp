@@ -16,11 +16,11 @@ void_t scene_0::coreo_0( demos::iscene::on_graphics_data_in_t gd ) noexcept
 
     float_t s = 5.0f * std::sin( angle_ ) ;
 
-    _cubes_data.data_buffer().resize( _max_objects ).
+    _cubes_data.data_buffer().resize( this_t::num_objects() ).
         update< the_data >( [&] ( the_data * array, size_t const ne )
     {
         typedef motor::concurrent::range_1d<size_t> range_t ;
-        auto const & range = range_t( 0, std::min( size_t( _max_objects ), ne ) ) ;
+        auto const & range = range_t( 0, std::min( size_t( this_t::num_objects() ), ne ) ) ;
 
         motor::concurrent::parallel_for<size_t>( range, [&] ( range_t const & r )
         {
@@ -127,16 +127,18 @@ void_t scene_0::coreo_1( demos::iscene::on_graphics_data_in_t gd ) noexcept
 
     float_t s = 5.0f * std::sin( angle_ ) ;
 
-    _cubes_data.data_buffer().resize( _max_objects ).
+    float_t const circle = 2.0f * motor::math::constants<float_t>::pi() ;
+
+    _cubes_data.data_buffer().resize( this_t::num_objects() ).
         update< the_data >( [&] ( the_data * array, size_t const ne )
     {
         typedef motor::concurrent::range_1d<size_t> range_t ;
-        auto const & range = range_t( 0, std::min( size_t( _max_objects ), ne ) ) ;
+        auto const & range = range_t( 0, std::min( size_t( this_t::num_objects() ), this_t::num_objects() ) ) ;
 
         motor::concurrent::parallel_for<size_t>( range, [&] ( range_t const & r )
         {
             size_t const cubes_per_ring = _cubes_per_ring ;
-            size_t const num_rings = ne / cubes_per_ring ;
+            size_t const num_rings = this_t::num_objects() / cubes_per_ring ;
 
             for ( size_t e = r.begin(); e < r.end(); ++e )
             {
@@ -147,23 +149,86 @@ void_t scene_0::coreo_1( demos::iscene::on_graphics_data_in_t gd ) noexcept
                 // the ring the time is on.
                 size_t const cur_ring_time = ( gd.cur_time / _per_ring_milli ) % num_rings ;
 
-                
+                float_t final_radius = _center_radius ;
+                // radius computation
+                {
+                    // compute random radius
+                    {
+                        float_t const rand_rad = _center_rand_radius * _center_rand_radius_mult *
+                            this_t::rand( e ) ;
+                        final_radius += rand_rad ;
+                    }
 
+                    // add frequencies to radius
+                    {
+                        float_t radius = _center_radius + _inner_amp * motor::math::fn<float_t>::sin(
+                            ( ( float_t( cur_ring ) / float_t( num_rings ) ) * _inner_freq + _inner_shift ) * circle ) ;
 
-                float_t const t0 = float_t( cur_ring ) / float_t ( num_rings ) ;
-                float_t const t1 = float_t( nxt_ring ) / float_t ( num_rings ) ;
+                        final_radius += radius ;
+                    }
 
+                    //
+                    // compute lift up rings
+                    //
+                    if ( _ring_to_lift != size_t( -1 ) )
+                    {
+                        size_t const start = std::min(
+                            size_t( std::max( int_t( _ring_to_lift ) - int_t( _ring_to_lift_range ), 0 ) ), this_t::num_rings() ) ;
 
-                float_t const freq_mult = float_t( cur_ring % 2 ) * 2.0f - 1.0f ;
+                        size_t const end = std::min( _ring_to_lift + _ring_to_lift_range, this_t::num_rings() ) ; ;
 
-                float_t e0 = ( ( e ) % cubes_per_ring ) / float_t( cubes_per_ring ) ;
-                float_t const freq_add = float_t ( ( gd.cur_time >> 2 ) % 1000 ) / 1000.0f ;
-                float_t const circle = 2.0f * motor::math::constants<float_t>::pi() ;
-                float_t const angle = motor::math::fn<float_t>::mod( e0 * circle + ( freq_add * freq_mult ), circle ) ;
+                        if ( cur_ring >= start && cur_ring <= end )
+                        {
+                            float_t const range = float_t( _ring_to_lift_range )  ;
+                            float_t const rad_add = 1.0f - motor::math::fn<float_t>::abs(
+                                ( float_t( _ring_to_lift ) - float_t( cur_ring ) ) / range ) ;
 
-                motor::math::vec3f_t final_pos ;
+                            final_radius += _ring_lift_radius * rad_add * 10.0f ;
+                        }
+
+                    }
+
+                    {
+                        final_radius = motor::math::fn<float_t>::clamp( final_radius, 10.0f, _max_center_radius ) ;
+                    }
+                }
+
+                float_t angle = 0.0f ;
+                // angle computation
+                {
+                    #if 0
+                    // cur cube in ring in [0,1]
+                    float_t e0 = ( ( e ) % cubes_per_ring ) / float_t( cubes_per_ring ) ;
+                    angle = motor::math::fn<float_t>::mod( e0 * circle , circle ) ;
+
+                    #else
+                    float_t e0 = ( ( e ) % cubes_per_ring ) / float_t( cubes_per_ring ) ;
+                    float_t const freq_add = float_t ( ( gd.cur_time >> 2 ) % 1000 ) / 1000.0f ;
+                    float_t const freq_mult = float_t( cur_ring % 2 ) * 2.0f - 1.0f ;
+                    angle = motor::math::fn<float_t>::mod( e0 * circle + ( freq_add * freq_mult ), circle ) ;
+                    #endif
+                }
+
+                float_t directional_shift = 0.0f ;
+                {
+                    directional_shift =  _direction_shift_rand_mult * (this_t::rand( e + 17 )*2.0f-1.0f) ;
+                }
 
                 {
+                    float_t t0 = float_t( cur_ring ) / float_t ( num_rings ) ;
+                    float_t t1 = float_t( nxt_ring ) / float_t ( num_rings ) ;
+
+                    {
+                        t0 += _direction_offset ;
+                        t1 += _direction_offset ;
+
+                        if( _clamp_directionl_offset )
+                        {
+                            t0 = motor::math::fn<float_t>::mod( t0, 1.0 ) ;
+                            t1 = motor::math::fn<float_t>::mod( t1, 1.0 ) ;
+                        }
+                    }
+
                     auto const v0 = this_t::pos_funk( t0 ) ;
                     auto const v1 = this_t::pos_funk( t1 )  ;
 
@@ -174,11 +239,10 @@ void_t scene_0::coreo_1( demos::iscene::on_graphics_data_in_t gd ) noexcept
                     auto ortho = motor::math::quat4f_t( angle, dir ) * ortho_ ;
                     auto const right = dir.crossed( ortho ).normalized().negated() ;
 
-                   float_t const radius = _center_radius + _inner_amp * motor::math::fn<float_t>::sin( 
-                       ((float_t(cur_ring)/float_t(num_rings))*_inner_freq+_inner_shift) * circle ) ;
+                    float_t const radius = final_radius ;
 
                     auto const radius_vec = ortho * radius ;
-                    auto const base = v0 + radius_vec ;
+                    auto const base = v0 + radius_vec + dir * directional_shift ;
                    
 
                     auto const pos = motor::math::vec4f_t( base, _cube_radius ) ;

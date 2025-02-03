@@ -8,6 +8,13 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
 { 
     if( wid != _twid ) return false ;
 
+    auto slider_int_fn = [&] ( char const * name, size_t & io_value, size_t const min, size_t const max )
+    {
+        int_t v = int_t( io_value ) ;
+        ImGui::SliderInt( name, &v, int_t( min ), int_t( max ) ) ;
+        io_value = size_t( v ) ;
+    } ;
+
     #if 0 
     // this only works if the scene is rendered in the 
     // same windows as the tool
@@ -19,9 +26,9 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
     #endif
 
     {
-        for( auto * s : _scenes ) 
+        for( auto & s : _scenes ) 
         {
-            s->on_tool() ;
+            s.s->on_tool() ;
         }
     }
 
@@ -125,6 +132,12 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
     
     if ( ImGui::Begin( "Global Settings" ) )
     {
+        {
+            ImGui::Text( "Select Scene" ) ;
+            slider_int_fn( "Select Scene##main", _sel_scene, 0, _scenes.size()-1 ) ; 
+            ImGui::Checkbox( "Select by time progression", &_prog_sel_scene_by_time ) ;
+        }
+
         ImGui::Text("Primitive Renderer") ;
         _pr_rs.access_render_state( 0, [&]( motor::graphics::render_state_sets_ref_t rs )
         {
@@ -165,7 +178,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
     {
         motor::tool::time_info_t ti 
         { 
-            _max_time_milli, cur_time 
+            _max_time_milli, _cur_time 
         } ;
 
         if( ImGui::Begin("Timeline") )
@@ -175,7 +188,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
             {
                 tl.begin( ti ) ;
                 tl.end() ;
-                cur_time = ti.cur_milli ;
+                _cur_time = ti.cur_milli ;
             }
         
             // the player_controller stores some state, 
@@ -184,7 +197,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                 auto const s = pc.do_tool( "Player" ) ;
                 if ( s == motor::tool::player_controller_t::player_state::stop )
                 {
-                    cur_time = 0  ;
+                    _cur_time = 0  ;
                     _proceed_time = false ;
                 }
                 else if ( s == motor::tool::player_controller_t::player_state::play )
@@ -192,7 +205,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                     _proceed_time = true ;
                     if ( ti.cur_milli >= ti.max_milli )
                     {
-                        cur_time = 0 ;
+                        _cur_time = 0 ;
                     }
                 }
                 else if( s == motor::tool::player_controller_t::player_state::pause )
@@ -200,9 +213,9 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                     _proceed_time = false ;
                 }
 
-                if ( cur_time > ti.max_milli )
+                if ( _cur_time > ti.max_milli )
                 {
-                    cur_time = ti.max_milli ;
+                    _cur_time = ti.max_milli ;
                     pc.set_stop() ;
                 }
             }

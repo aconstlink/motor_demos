@@ -22,6 +22,7 @@ set( sources
     "scenes/scene_0_coreos.cpp"
     "scenes/scene_1.h"
     "scenes/scene_1.cpp"
+    "scenes/scene_1_coreos.cpp"
 
     )
 

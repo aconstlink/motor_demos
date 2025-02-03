@@ -14,7 +14,8 @@ namespace demos
 
     private: // cubes
 
-        int_t _max_objects = 10000 ;
+        size_t _max_objects = 50000 ;
+        size_t _num_objects = 0 ;
 
         motor::graphics::geometry_object_t _cubes_geo ;
         motor::graphics::array_object_t _cubes_data ;
@@ -35,6 +36,11 @@ namespace demos
             return _pos_funks[_cur_pos_funk]( t ) ;
         }
 
+        size_t num_objects( void_t ) const noexcept { return _num_objects ; }
+        void_t set_num_objects( size_t const no ) noexcept 
+        {
+            _num_objects = std::min( no, _max_objects ) ;
+        }
     private:// debug view
 
         motor::graphics::state_object_t _debug_rs ;
@@ -102,19 +108,42 @@ namespace demos
 
     private:
 
+        size_t _num_rings = 10 ;
         size_t _cubes_per_ring = 60 ;
         float_t _cube_radius = 10.0f ;
-        float_t _center_radius = 20.0f ;
         size_t _per_ring_milli = 10 ;
 
+        float_t _max_center_radius = 200.0f ;
+        float_t _center_radius = 20.0f ;
+        float_t _center_rand_radius = 0.0f ;
+        float_t _center_rand_radius_mult = 0.0f ; // in [0.0,1.0]
+
+        
         float_t _inner_amp = 20.0f ;
         float_t _inner_freq = 2.0f ;
         float_t _inner_shift = 0.0f ;
+        float_t _direction_shift_rand_mult = 0.0f ;
+        float_t _direction_offset = 0.0f ;
+        bool_t _clamp_directionl_offset = true ;
+
+        size_t _ring_rotate = size_t(-1) ;
+        size_t _ring_to_lift = size_t(-1) ;
+        size_t _ring_to_lift_range = size_t(0) ;
+        float_t _ring_lift_radius = 0.0f ;
+
+        std::array< float_t, 1024 > _random_numbers ;
+
         typedef motor::concurrent::range_1d<size_t> range_t ;
 
         // coreo_0 not used! Keeping just for copy and pasting
         void_t coreo_0( demos::iscene::on_graphics_data_in_t ) noexcept ;
 
         void_t coreo_1( demos::iscene::on_graphics_data_in_t ) noexcept ;
+
+        size_t num_rings( void_t ) const noexcept { return _num_rings ; }
+        float_t rand( size_t const i ) const noexcept 
+        {
+            return _random_numbers[i%_random_numbers.size()] ;
+        }
     };
 }

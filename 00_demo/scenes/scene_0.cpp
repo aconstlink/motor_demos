@@ -471,6 +471,14 @@ void_t scene_0::on_init( motor::io::database_ref_t db ) noexcept
             return _worm_pos_spline(t) ;
         } ) ;
     }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // Create Random Numbers
+    ///////////////////////////////////////////////////////////////////////////////
+    {
+        for( size_t i=0; i<_random_numbers.size(); ++i ) 
+            _random_numbers[i] = float_t(std::rand() % 2000) / 2000.0f ;
+    }
 }
 
 //*******************************************************************************
@@ -713,7 +721,7 @@ void_t scene_0::on_render_debug( bool_t const initial, motor::graphics::gen4::fr
         {
             motor::graphics::gen4::backend_t::render_detail_t detail ;
             detail.start = 0 ;
-            detail.num_elems = _max_objects * 36 ;
+            detail.num_elems = this_t::num_objects() * 36 ;
             detail.varset = 0 ;
             fe->render( &_cubes_debug_msl, detail ) ;
         }
@@ -749,7 +757,7 @@ void_t scene_0::on_render_final( bool_t const initial, motor::graphics::gen4::fr
         {
             motor::graphics::gen4::backend_t::render_detail_t detail ;
             detail.start = 0 ;
-            detail.num_elems = _max_objects * 36 ;
+            detail.num_elems = this_t::num_objects() * 36 ;
             detail.varset = 0 ;
             fe->render( &_cubes_final_msl, detail ) ;
         }
@@ -766,10 +774,29 @@ void_t scene_0::on_render_final( bool_t const initial, motor::graphics::gen4::fr
 //*******************************************************************************
 void_t scene_0::on_tool( void_t ) noexcept 
 {
+    auto slider_int_fn = [&]( char const * name, size_t & io_value, size_t const min, size_t const max )
+    {
+        int_t v = int_t( io_value ) ;
+        ImGui::SliderInt( name, &v, int_t(min), int_t( max ) ) ;
+        io_value = size_t( v ) ;
+    } ;
+
     if( ImGui::Begin( this_t::name().c_str() ) )
     {
         ImGui::Text("Worm") ;
         {
+            ImGui::Text( "%d:%d", this_t::num_objects(), _max_objects ) ; ImGui::SameLine() ;
+            ImGui::ColorButton( "##numobjectsok.scene0", this_t::num_objects() == _max_objects ? ImVec4(1.0f, 0.0f, 0.0f, 1.0f ) : 
+            ImVec4(0.0f, 1.0f, 0.0f, 1.0f ) ) ;
+            // general props
+            {
+                ImGui::Text("General Properties") ;
+                slider_int_fn( "Number of Rings##Scene.0",_num_rings, 0, 300 ) ;
+                slider_int_fn( "Cubes per ring##Scene.0",_cubes_per_ring, 10, 200 ) ;
+                this_t::set_num_objects( _num_rings * _cubes_per_ring ) ;
+            }
+
+            ImGui::Separator() ;
             // pos funk
             {
                 int_t const max_funks = int_t( _pos_funks.size() - 1 ) ;
@@ -778,31 +805,46 @@ void_t scene_0::on_tool( void_t ) noexcept
                 _cur_pos_funk = size_t( cur_funk ) ;
             }
 
-            // num cubes per ring
-            {
-                int_t cpr = int_t( _cubes_per_ring ) ;
-                ImGui::SliderInt( "Cubes per ring##Scene.0", &cpr, 10, 200 ) ;
-                _cubes_per_ring = size_t( cpr ) ;
-            }
-
             {
                 ImGui::SliderFloat( "Cube Radius##scene0", &_cube_radius, 10.0f, 50.0f ) ;
             }
 
             {
-                ImGui::SliderFloat( "Center Radius Multiplier##scene0", &_center_radius, 20.0f, 500.0f ) ;
+                
             }
 
             {
-                int_t v = int_t(_per_ring_milli) ;
-                ImGui::SliderInt( "Per Ring Time##scene0", &v, 10, 1000 ) ;
-                _per_ring_milli = size_t(v ) ;
+                slider_int_fn( "Per Ring Time##scene0", _per_ring_milli, 10, 1000 ) ;
             }
 
+            ImGui::Separator() ;
             {
+                ImGui::Text("Directional Shifting") ;
                 ImGui::SliderFloat( "Inner Amplitude##scene0", &_inner_amp, 1.0f, 100.0f ) ;
                 ImGui::SliderFloat( "Inner Frequency##scene0", &_inner_freq, 1.0f, 50.0f ) ;
                 ImGui::SliderFloat( "Inner Shift##scene0", &_inner_shift, 0.0f, 10.0f ) ;
+                ImGui::SliderFloat( "Direction Rand Shift Multip##scene0", &_direction_shift_rand_mult, 0.0f, 50.0f ) ;
+                ImGui::SliderFloat( "Directional Offset##scene0", &_direction_offset, 0.0f, 1.0f ) ; ImGui::SameLine() ;
+                ImGui::Checkbox( "##clampscene0directionaloffset", &_clamp_directionl_offset ) ;
+            }
+            ImGui::Separator() ;
+
+            {
+                ImGui::Text("Ring Lift up") ;
+                slider_int_fn( "Rotation: Which Ring##scene0", _ring_rotate, size_t(-1), this_t::num_rings() ) ;
+                slider_int_fn( "Lift up: Which Ring##scene0", _ring_to_lift, size_t(-1), this_t::num_rings() ) ;
+                slider_int_fn( "Lift up Range: Which Ring##scene0", _ring_to_lift_range, size_t(0), 10 ) ;
+                ImGui::SliderFloat( "Lift Radius##scene0", &_ring_lift_radius, 0.0f, 50.0f ) ;
+                
+            }
+
+            ImGui::Separator() ;
+            {
+                ImGui::Text("Center Radius Properties") ;
+                ImGui::SliderFloat( "Max Center Radius##scene0", &_max_center_radius, 10.0f, 1000.0f ) ;
+                ImGui::SliderFloat( "Center Radius Multiplier##scene0", &_center_radius, 20.0f, 500.0f ) ;
+                ImGui::SliderFloat( "Center Radius Randomizer##scene0", &_center_rand_radius, 0.0f, 100.0f ) ;
+                ImGui::SliderFloat( "Center Radius Randomizer Effect##scene0", &_center_rand_radius_mult, 0.0f, 1.0f ) ;
             }
         }
         ImGui::Separator() ;

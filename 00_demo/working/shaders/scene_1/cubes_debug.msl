@@ -1,0 +1,67 @@
+config cubes_debug
+{
+    vertex_shader
+    {
+        uint_t vid : vertex_id ;
+        data_buffer_t u_data ;
+
+        mat4_t proj : projection ;
+        mat4_t view : view ;
+        mat4_t world : world ;
+
+        in vec3_t nrm : normal ;
+        in vec2_t tx : texcoord ; 
+        in vec3_t pos : position ;
+
+        out vec4_t pos : position ;
+        out vec2_t tx : texcoord ;
+        out vec3_t nrm : normal ;
+        out vec4_t col : color ;
+
+        void main()
+        {
+            int_t idx = vid / 24 ;
+            vec4_t pos_scl = fetch_data( u_data, (idx *5)+0 ) ;
+            out.col = fetch_data( u_data, (idx*5)+1 ) ;
+            vec4_t x = fetch_data( u_data, (idx*5)+2 ) ;
+            vec4_t y = fetch_data( u_data, (idx*5)+3 ) ;
+            vec4_t z = fetch_data( u_data, (idx*5)+4 ) ;
+
+            vec3_t fx = vec3_t( x.x, y.x, z.x ) ;
+            vec3_t fy = vec3_t( x.y, y.y, z.y ) ;
+            vec3_t fz = vec3_t( x.z, y.z, z.z ) ;
+
+            vec3_t pos = in.pos ;
+            pos.x = dot( fx.xyz, in.pos ) ;
+            pos.y = dot( fy.xyz, in.pos ) ;
+            pos.z = dot( fz.xyz, in.pos ) ;
+
+            vec4_t pos_ = vec4_t( pos ' as_vec3( pos_scl.w ), 1.0 ) ;
+            pos_ = pos_ + vec4_t( pos_scl.xyz, 0.0 ) ;
+
+            out.pos = proj * view * pos_ ;
+
+            out.tx = in.tx ;
+            out.nrm = normalize( world * vec4_t(in.nrm, 0.0 ) ).xyz ;
+        }
+    }
+
+    pixel_shader
+    {
+        tex2d_t tex ;
+        vec4_t color ;
+
+        in vec2_t tx : texcoord ;
+        in vec3_t nrm : normal ;
+        in vec4_t col : color ;
+
+        out vec4_t color : color0 ;
+        //out vec4_t color1 : color1 ;
+        //out vec4_t color2 : color2 ;
+
+        void main()
+        {
+            out.color = in.col ; //' texture( tex, in.tx ) ' in.col ;
+        }
+    }
+}

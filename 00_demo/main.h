@@ -58,8 +58,23 @@ namespace demos
 
     private: // scenes
 
-        motor::vector< demos::iscene_mtr_t > _scenes ;
+        size_t _sel_scene = 0 ;
+        
+        // this function is only used in debug mode.
+        // dont use for production
         demos::iscene_mtr_t get_current_scene( void_t ) noexcept ;
+
+        // if time goes on, the scene selection 
+        // will changed if true. Otherwise the selected 
+        // scene will stay put.
+        bool_t _prog_sel_scene_by_time = true ;
+
+        struct scene_data
+        {
+            bool_t render_in_debug = false ;
+            demos::iscene_mtr_t s ;
+        };
+        motor::vector< scene_data > _scenes ;
 
     private: // free camera 
       
@@ -79,7 +94,7 @@ namespace demos
 
         size_t _max_time_milli = motor::math::time::to_milli( 3, 11, 10 ) ;
         bool_t _proceed_time = false ;
-        size_t cur_time = 0 ;
+        size_t _cur_time = 0 ;
 
     private: // final render stuff
 
@@ -91,7 +106,8 @@ namespace demos
 
         size_t _rwid = size_t( -1 ) ;
         motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
-        motor::graphics::framebuffer_object_t pp_fb ; // the scene is rendered to
+        motor::graphics::framebuffer_object_t pp_fb0 ; // the 1st scene is rendered to
+        motor::graphics::framebuffer_object_t pp_fb1 ; // the 2nd scene is rendered to
         
         motor::graphics::msl_object_mtr_t _post_msl = nullptr ;
         motor::graphics::geometry_object_mtr_t _post_quad = nullptr ;

@@ -99,8 +99,11 @@ namespace demos
                     cam.cam.look_at( cam.kf_pos( cur_time ), up, cam.kf_lookat( cur_time ) ) ;
                 }
             }
-            _final_cam_idx = _cam_selector( cur_time ) ;
-            _cam_idx = dbg_cam != size_t( -1 ) ? dbg_cam : _final_cam_idx ;
+            if( _cameras.size() != 0 )
+            {
+                _final_cam_idx = _cam_selector( cur_time ) ;
+                _cam_idx = dbg_cam != size_t( -1 ) ? dbg_cam : _final_cam_idx ;
+            }
         }
 
         motor::gfx::generic_camera_ptr_t borrow_cur_debug_camera( void_t ) noexcept

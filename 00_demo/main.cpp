@@ -5,8 +5,6 @@
 #include "scenes/scene_1.h"
 
 
-
-
 using namespace demos ;
 
 //******************************************************************************************************
@@ -30,8 +28,9 @@ the_app::~the_app( void_t ) noexcept
 //******************************************************************************************************
 demos::iscene_mtr_t the_app::get_current_scene( void_t ) noexcept 
 {
-    assert( _scenes.size() <= 1 && "need proper scene selection. i.e. via currrent time") ;
-    return _scenes[0] ;
+    //assert( _scenes.size() <= 1 && "need proper scene selection. i.e. via currrent time") ;
+
+    return _scenes[_sel_scene].s ;
 }
 
 //******************************************************************************************************
@@ -139,7 +138,7 @@ void_t the_app::on_init( void_t ) noexcept
 
             {
                 auto * var = vars.texture_variable( "tx_map" ) ;
-                var->set( "the_scene.2" ) ;
+                var->set( "the_scene_0.2" ) ;
             }
 
             mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set" ) ) ;
@@ -255,21 +254,37 @@ void_t the_app::on_init( void_t ) noexcept
 
     // framebuffer
     {
-        pp_fb = motor::graphics::framebuffer_object_t( "the_scene" ) ;
-        pp_fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
-            .set_target( motor::graphics::depth_stencil_target_type::depth32 )
-            .resize( size_t(fb_dims.z()), size_t( fb_dims.w() ) ) ;
+        {
+            pp_fb0 = motor::graphics::framebuffer_object_t( "the_scene_0" ) ;
+            pp_fb0.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
+                .set_target( motor::graphics::depth_stencil_target_type::depth32 )
+                .resize( size_t( fb_dims.z() ), size_t( fb_dims.w() ) ) ;
+        }
+        {
+            pp_fb1 = motor::graphics::framebuffer_object_t( "the_scene_1" ) ;
+            pp_fb1.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
+                .set_target( motor::graphics::depth_stencil_target_type::depth32 )
+                .resize( size_t( fb_dims.z() ), size_t( fb_dims.w() ) ) ;
+        }
     }
 
     {
         {
-            _scenes.emplace_back( motor::shared( demos::scene_0( "scene_0", 0, motor::math::time::to_milli( 1, 0, 0 ) ) ) ) ;
-            // more here
+            auto const s = motor::math::time::to_milli( 0, 0, 0 ) ;
+            auto const e = motor::math::time::to_milli( 0, 30, 0 ) ;
+            _scenes.emplace_back( this_t::scene_data{true, motor::shared( demos::scene_0( "scene_0", s, e ) ) } ) ;
+            
         }
 
-        for ( auto * s : _scenes )
         {
-            s->on_init( _db ) ;
+            auto const s = motor::math::time::to_milli( 0, 25, 0 ) ;
+            auto const e = motor::math::time::to_milli( 0, 50, 0 ) ;
+            _scenes.emplace_back( this_t::scene_data{false, motor::shared( demos::scene_1( "scene_1", s, e ) ) } ) ;
+        }
+
+        for ( auto & s : _scenes )
+        {
+            s.s->on_init( _db ) ;
         }
     }
 }
@@ -305,14 +320,14 @@ void_t the_app::on_event( window_id_t const wid,
 
         if( wid == _dwid )
         {
-            for( auto * s : _scenes ) s->on_resize_debug( w, h ) ;
+            for( auto & s : _scenes ) s.s->on_resize_debug( w, h ) ;
 
             if( _rwid == size_t(-1) ) 
-                for( auto * s : _scenes ) s->on_resize( w, h ) ;
+                for( auto & s : _scenes ) s.s->on_resize( w, h ) ;
         }
         else if( wid == _rwid && w != 0 )
         {
-            for( auto * s : _scenes ) s->on_resize( w, h ) ;
+            for( auto & s : _scenes ) s.s->on_resize( w, h ) ;
         }
     }
 }
@@ -354,7 +369,7 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                 wi.y = 720 ;
                 wi.w = 800 ;
                 wi.h = 600 ;
-                wi.gen = motor::application::graphics_generation::gen4_auto ;
+                wi.gen = motor::application::graphics_generation::gen4_gl4 ;
 
                 _rwid = this_t::create_window( wi );
 
@@ -420,8 +435,8 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
 //******************************************************************************************************
 void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept
 {
-    if ( _proceed_time ) cur_time += ud.milli_dt ;
-    for( auto * s : _scenes ) s->on_update( cur_time ) ;
+    if ( _proceed_time ) _cur_time += ud.milli_dt ;
+    for( auto & s : _scenes ) s.s->on_update( _cur_time ) ;
 }
 
 //******************************************************************************************************
@@ -431,10 +446,10 @@ void_t the_app::on_shutdown( void_t ) noexcept
     motor::release( motor::move( _post_msl ) ) ;
     motor::release( motor::move( _mon ) ) ;
 
-    for( auto * s : _scenes )
+    for( auto & s : _scenes )
     {
-        s->on_release() ;
-        motor::release( motor::move( s ) ) ;
+        s.s->on_release() ;
+        motor::release( motor::move( s.s ) ) ;
     }
 }
 
@@ -446,7 +461,7 @@ motor::string_t the_app::make_camera_data_file( void_t ) noexcept
     motor::string_t file = "Camera Data:\n" ;
     file += "-------------------------------------------------\n" ; 
     size_t i = 0 ;
-    for ( auto * s : _scenes )
+    for ( auto & s : _scenes )
     {
         file += "Scene " + motor::to_string( i++ ) + "\n" ;
         
@@ -456,7 +471,7 @@ motor::string_t the_app::make_camera_data_file( void_t ) noexcept
             file += "using kfs_t = demos::camera_data::keyframe_sequencef_t ;\n" ;
             file += "kfs_t kf ;\n" ;
 
-            s->camera_manager().for_each( [&] ( demos::store_camera_data const & sd )
+            s.s->camera_manager().for_each( [&] ( demos::store_camera_data const & sd )
             {
                 std::snprintf( buffer, 2048,
                     "kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(%ff, %ff, %ff) ) ) ;\n",
@@ -472,7 +487,7 @@ motor::string_t the_app::make_camera_data_file( void_t ) noexcept
             file += "using kfs_t = demos::camera_data::keyframe_sequencef_t ;\n" ;
             file += "kfs_t kf ;\n" ;
 
-            s->camera_manager().for_each( [&] ( demos::store_camera_data const & sd )
+            s.s->camera_manager().for_each( [&] ( demos::store_camera_data const & sd )
             {
                 std::snprintf( buffer, 2048,
                     "kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(%ff, %ff, %ff) ) ) ;\n ",
@@ -482,7 +497,7 @@ motor::string_t the_app::make_camera_data_file( void_t ) noexcept
             } ) ;
         }
 
-        s->camera_manager().clear_storage_data() ;
+        s.s->camera_manager().clear_storage_data() ;
     }
     return file ;
 }
@@ -490,6 +505,8 @@ motor::string_t the_app::make_camera_data_file( void_t ) noexcept
 //******************************************************************************************************
 int main( int argc, char ** argv )
 {
+    std::srand( 127439126 );
+
     using namespace motor::core::types ;
 
     motor::application::carrier_mtr_t carrier = motor::platform::global_t::create_carrier(

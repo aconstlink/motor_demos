@@ -10,7 +10,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     ++frame_count ;
 
     // global time 
-    size_t const time = cur_time ;
+    size_t const time = _cur_time ;
 
     // change free camera
     if( _use_free_camera )
@@ -28,9 +28,9 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         this_t::get_current_scene()->camera_manager().set_free_camera( { pos, lookat } ) ;
     }
     
-    for( auto * s : _scenes )
+    for( auto & s : _scenes )
     {
-        auto & camera_manager = s->camera_manager() ;
+        auto & camera_manager = s.s->camera_manager() ;
 
         camera_manager.for_each_camera( [&]( size_t const idx, demos::camera_data & cd )
         {
@@ -45,7 +45,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                     motor::math::vec4f_t( 0.5f, 0.0f, 0.0f, 1.0f )
                 } ;
 
-                size_t const cidx = idx == s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
+                size_t const cidx = idx == s.s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
 
                 using splinef_t = demos::camera_data::splinef_t ;
                 splinef_t spline = cam.kf_pos.get_spline() ;
@@ -126,7 +126,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                     motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f )
                 } ;
 
-                size_t const cidx = idx == s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
+                size_t const cidx = idx == s.s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
 
                 // front
                 for ( size_t i = 0; i < 4; ++i )
@@ -163,7 +163,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         {
             auto * vs = vss[ i ] ;
             auto * var = vs->texture_variable( "tx_map" ) ;
-            var->set( "the_scene." + motor::to_string( _gbuffer_selection ) );
+            var->set( "the_scene_0." + motor::to_string( _gbuffer_selection ) );
         }
         _gbuffer_sel_changed = false ;
     }
@@ -180,11 +180,11 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
 
     // scene on_graphcis
     {
-        for( auto * s : _scenes ) 
+        for( auto & s : _scenes ) 
         {
-            s->on_graphics( demos::iscene::on_graphics_data
+            s.s->on_graphics( demos::iscene::on_graphics_data
             {
-                cur_time, gd.sec_dt, &pr,
+                _cur_time, gd.sec_dt, &pr,
                 _use_free_camera ? &_camera : nullptr
             } ) ;
         }
