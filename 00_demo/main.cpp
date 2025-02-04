@@ -147,6 +147,52 @@ void_t the_app::on_init( void_t ) noexcept
         _post_msl = motor::shared( std::move( mslo ) ) ;
     }
 
+    // post shader
+    {
+        motor::graphics::msl_object_t mslo( "xfade_to_screen" ) ;
+
+        _db.load( motor::io::location_t( "shaders.post_process.xfade_to_screen.msl" ) ).wait_for_operation(
+            [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
+        {
+            if ( loading_res != motor::io::result::ok )
+            {
+                assert( false ) ;
+            }
+
+            mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
+        } ) ;
+
+        mslo.link_geometry( "post_quad" ) ;
+
+        // variable sets
+        {
+            motor::graphics::variable_set_t vars ;
+            {
+                auto * var = vars.data_variable< motor::math::vec4f_t >( "u_color" ) ;
+                var->set( motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ) ) ;
+            }
+
+            {
+                auto * var = vars.texture_variable( "tx_0_map" ) ;
+                var->set( "the_scene_0.2" ) ;
+            }
+
+            {
+                auto * var = vars.texture_variable( "tx_1_map" ) ;
+                var->set( "the_scene_1.2" ) ;
+            }
+
+            {
+                auto * var = vars.data_variable<float_t>( "u_overlap" ) ;
+                var->set( 0.5f ) ;
+            }
+
+            mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set" ) ) ;
+        }
+
+        _post_xfade_msl = motor::shared( std::move( mslo ) ) ;
+    }
+
     {
         motor::graphics::state_object_t so = motor::graphics::state_object_t(
             "post_processing" ) ;
@@ -277,7 +323,7 @@ void_t the_app::on_init( void_t ) noexcept
         }
 
         {
-            auto const s = motor::math::time::to_milli( 0, 25, 0 ) ;
+            auto const s = motor::math::time::to_milli( 0, 27, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 50, 0 ) ;
             _scenes.emplace_back( this_t::scene_data{false, motor::shared( demos::scene_1( "scene_1", s, e ) ) } ) ;
         }

@@ -110,6 +110,7 @@ namespace demos
         motor::graphics::framebuffer_object_t pp_fb1 ; // the 2nd scene is rendered to
         
         motor::graphics::msl_object_mtr_t _post_msl = nullptr ;
+        motor::graphics::msl_object_mtr_t _post_xfade_msl = nullptr ;
         motor::graphics::geometry_object_mtr_t _post_quad = nullptr ;
         motor::graphics::state_object_t _post_process_rs ;
 
