@@ -75,15 +75,15 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
         {
         }
 
-
+        this_t::call_for_current_scene( [&]( demos::iscene_mtr_t s )
         {
             ImGui::Text("Place Free Camera to keyframe control point") ;
-            int num_cams = (int_t)this_t::get_current_scene()->camera_manager().get_num_cameras() ;
-            int sel_cam = (int_t)this_t::get_current_scene()->camera_manager().get_final_camera_idx() ;
+            int num_cams = (int_t)s->camera_manager().get_num_cameras() ;
+            int sel_cam = (int_t)s->camera_manager().get_final_camera_idx() ;
             ImGui::SliderInt( "Which Camera##maintool", &sel_cam, 0, num_cams-1 ) ;
 
             demos::camera_data cd ;
-            if( this_t::get_current_scene()->camera_manager().get_camera_data( size_t(sel_cam), cd ) )
+            if( s->camera_manager().get_camera_data( size_t(sel_cam), cd ) )
             {
                 static bool_t lock_selection = true ;
                 static int_t sel_kf = 0 ;
@@ -125,7 +125,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                     }
                 }
             }
-        }
+        } ) ;
     }
     ImGui::End() ;
 

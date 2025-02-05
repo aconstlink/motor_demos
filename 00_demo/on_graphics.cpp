@@ -22,15 +22,23 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         }
     }
 
+    this_t::call_for_current_scene( [&]( demos::iscene_mtr_t s )
     {
         auto const pos = _camera.get_position() ;
         auto const lookat = _camera.get_position() + _camera.get_direction() * 20.0f ;
-        this_t::get_current_scene()->camera_manager().set_free_camera( { pos, lookat } ) ;
-    }
+        s->camera_manager().set_free_camera( { pos, lookat } ) ;
+    } ) ;
     
-    for( auto & s : _scenes )
+    size_t const scene_ids [2] = { _cur_scene_idx, _nxt_scene_idx } ;
+
+    for( size_t i=0; i<2; ++i )
     {
+        if( scene_ids[i] == size_t(-1) ) break ;
+
+        auto & s = _scenes[ scene_ids[i] ] ;
         auto & camera_manager = s.s->camera_manager() ;
+
+        if( s.ss_dbg != demos::scene_state::ready ) continue ;
 
         camera_manager.for_each_camera( [&]( size_t const idx, demos::camera_data & cd )
         {
@@ -182,6 +190,8 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     {
         for( auto & s : _scenes ) 
         {
+            if( s.ss_dbg != demos::scene_state::ready ) continue ;
+
             s.s->on_graphics( demos::iscene::on_graphics_data
             {
                 _cur_time, gd.sec_dt, &pr,

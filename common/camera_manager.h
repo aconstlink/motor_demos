@@ -103,6 +103,9 @@ namespace demos
             {
                 _final_cam_idx = _cam_selector( cur_time ) ;
                 _cam_idx = dbg_cam != size_t( -1 ) ? dbg_cam : _final_cam_idx ;
+
+                _cam_idx = motor::math::fn<size_t>::clamp( _cam_idx, 0, _cameras.size()-1 ) ;
+                _final_cam_idx = motor::math::fn<size_t>::clamp( _final_cam_idx, 0, _cameras.size()-1 ) ;
             }
         }
 

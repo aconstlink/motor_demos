@@ -30,16 +30,76 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         }
     }
 
+    //
+    // handle render scene states
+    //
+    {
+        auto const tmp = this_t::current_scene_idx() ;
+
+        size_t const cur_scene = tmp.first ;
+        size_t const nxt_scene = tmp.second ;
+
+        if ( cur_scene != size_t( -1 ) )
+        {
+            auto & s = _scenes[ cur_scene ] ;
+
+            // debug window init
+            if( wid == _dwid ) 
+            {
+                if ( s.ss_dbg == demos::scene_state::init )
+                {
+                    // could put time constraint here. So render object init
+                    // is carried out later. Time constraint could be placed near the
+                    // scene time range.
+                    s.s->on_render_init( demos::iscene::render_mode::debug, fe ) ;
+                    s.ss_dbg = demos::scene_state::render_init ;
+                }
+
+                // at the moment, no async render init, so just move on.
+                if ( s.ss_dbg == demos::scene_state::render_init )
+                {
+                    s.ss_dbg = demos::scene_state::ready ;
+                }
+            }
+            // prod window init
+            else if( wid == _rwid )
+            {
+                if ( s.ss_prod == demos::scene_state::init )
+                {
+                    // could put time constraint here. So render object init
+                    // is carried out later. Time constraint could be placed near the
+                    // scene time range.
+                    s.s->on_render_init( demos::iscene::render_mode::production, fe ) ;
+                    s.ss_prod = demos::scene_state::render_init ;
+                }
+
+                // at the moment, no async render init, so just move on.
+                if ( s.ss_prod == demos::scene_state::render_init )
+                {
+                    s.ss_prod = demos::scene_state::ready ;
+                }
+            }
+        }
+    }
+
     // debug view does not use a post framebuffer
     if( wid == _dwid )
     {
+        auto const tmp = this_t::current_scene_idx() ;
+
+        size_t const cur_scene = tmp.first ;
+        size_t const nxt_scene = tmp.second ;
+        
+        if ( cur_scene != size_t( -1 ) )
         {
-            fe->push( &_dv_rs ) ;
-            for ( auto & s : _scenes )
+            auto & s = _scenes[ cur_scene ] ;
+
+            if( s.ss_dbg == demos::scene_state::ready )
             {
-                s.s->on_render_debug( rd.first_frame, fe ) ;
+                fe->push( &_dv_rs ) ;
+                s.s->on_render_debug( fe ) ;
+                fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
             }
-            fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
         }
 
         // do the primitive renderer
@@ -63,57 +123,39 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
 
         // render and post
         {
-            size_t cur_scene = size_t( -1 ) ;
-            size_t nxt_scene = size_t( -1 ) ;
+            auto const tmp = this_t::current_scene_idx() ;
 
-            size_t cur_end = 0 ;
-            size_t nxt_srt = 0 ;
-
-            // #0 : determine scene idx
-            {
-                while ( ++cur_scene < _scenes.size() )
-                {
-                    if( _scenes[ cur_scene ].s->is_in_time_range( _cur_time ) ) break ;
-                }
-                if( cur_scene == _scenes.size() ) cur_scene = size_t(-1) ;
-
-                if ( ( cur_scene + 1 ) < _scenes.size() &&
-                    _scenes[ cur_scene + 1 ].s->is_in_time_range( _cur_time ) )
-                    nxt_scene = cur_scene + 1 ;
-
-                if( cur_scene != size_t(-1) )
-                {
-                    cur_end = _scenes[ cur_scene ].s->get_time_range().second ;
-                }
-
-                if ( nxt_scene != size_t( -1 ) )
-                {
-                    nxt_srt = _scenes[ nxt_scene ].s->get_time_range().first ;
-                }
-            }
+            size_t const cur_scene = tmp.first ;
+            size_t const nxt_scene = tmp.second ;
 
             // #1 : Render the actual scene in the GBuffers
             {
                 if ( cur_scene != size_t( -1 ) )
                 {
-                    auto * s = _scenes[ cur_scene ].s ;
+                    auto & s = _scenes[ cur_scene ] ;
 
-                    fe->use( &pp_fb0 ) ;
-                    fe->push( &_scene_final_rs ) ;
-                    s->on_render_final( rd.first_frame, fe ) ;
-                    fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
-                    fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
+                    if ( s.ss_dbg == demos::scene_state::ready )
+                    {
+                        fe->use( &pp_fb0 ) ;
+                        fe->push( &_scene_final_rs ) ;
+                        s.s->on_render_final( fe ) ;
+                        fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+                        fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
+                    }
                 }
 
                 if ( nxt_scene != size_t( -1 ) )
                 {
-                    auto * s = _scenes[ cur_scene ].s ;
+                    auto & s = _scenes[ nxt_scene ] ;
 
-                    fe->use( &pp_fb1 ) ;
-                    fe->push( &_scene_final_rs ) ;
-                    s->on_render_final( rd.first_frame, fe ) ;
-                    fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
-                    fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
+                    if ( s.ss_dbg == demos::scene_state::ready )
+                    {
+                        fe->use( &pp_fb1 ) ;
+                        fe->push( &_scene_final_rs ) ;
+                        s.s->on_render_final( fe ) ;
+                        fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+                        fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
+                    }
                 }
             }
 
@@ -123,27 +165,25 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
 
             // #3 : Combine the render posts
             {
-                bool_t const need_mix = cur_scene != size_t(-1) && nxt_scene != size_t(-1) ;
+                float_t overlap = 0.0f ;
 
                 fe->push( &_post_process_rs ) ;
-                if( !need_mix )
+                if( this_t::is_in_transition( overlap ) )
                 {
-                    motor::graphics::gen4::backend::render_detail_t det ;
-                    fe->render( _post_msl, det ) ;
-                }
-                else
-                {
-                    float_t const overl = float_t(_cur_time - nxt_srt) / float_t( cur_end - nxt_srt ) ;
-
                     auto & vss = _post_xfade_msl->borrow_varibale_sets() ;
-                    for( size_t i=0; i<vss.size(); ++i )
+                    for ( size_t i = 0; i < vss.size(); ++i )
                     {
-                        auto * vs = vss[i] ;
+                        auto * vs = vss[ i ] ;
                         auto * d = vs->data_variable<float_t>( "u_overlap" ) ;
-                        d->set( overl ) ;
+                        d->set( overlap ) ;
                     }
                     motor::graphics::gen4::backend::render_detail_t det ;
                     fe->render( _post_xfade_msl, det ) ;
+                }
+                else
+                {
+                    motor::graphics::gen4::backend::render_detail_t det ;
+                    fe->render( _post_msl, det ) ;
                 }
                 fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
                 

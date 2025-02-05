@@ -81,7 +81,7 @@ namespace demos
 
     public:
 
-        virtual void_t on_init( motor::io::database_ref_t ) noexcept ;
+        virtual void_t on_init( motor::io::database_ptr_t ) noexcept ;
         virtual void_t on_release( void_t ) noexcept ;
 
         virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept ;
@@ -90,8 +90,10 @@ namespace demos
         virtual void_t on_update( size_t const cur_time ) noexcept ;
         virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept  ;
 
-        virtual void_t on_render_debug( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
-        virtual void_t on_render_final( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_init( demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_deinit( demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept ;
 
         virtual void_t on_tool( void_t ) noexcept ;
 

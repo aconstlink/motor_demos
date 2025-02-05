@@ -7,6 +7,7 @@
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/io/database.h>
+#include <motor/concurrent/task/task.hpp>
 
 namespace demos
 {
@@ -18,6 +19,14 @@ namespace demos
     {
         motor_this_typedefs( iscene ) ;
 
+    public:
+
+        enum class render_mode
+        {
+            debug,
+            production
+        };
+        
     public:
 
         struct on_graphics_data
@@ -34,7 +43,8 @@ namespace demos
         motor::string_t _name ;
         size_t const _start ;
         size_t const _end ;
-
+        // final rendering
+        bool_t _scene_is_on = false ;
         
         demos::camera_manager _cm ;
 
@@ -56,6 +66,12 @@ namespace demos
         virtual ~iscene( void_t ) noexcept{}
 
     public: // 
+        
+        // should be used for final rendition
+        bool_t is_in_time_range( void_t ) const noexcept
+        {
+            return _scene_is_on ;
+        }
 
         std::pair< size_t, size_t > get_time_range( void_t ) const noexcept
         {
@@ -69,10 +85,16 @@ namespace demos
 
         motor::string_cref_t name( void_t ) const noexcept { return _name ; }
         
+    protected:
+
+        void_t update_time( size_t const cur_time ) noexcept
+        {
+            _scene_is_on = this_t::is_in_time_range( cur_time ) ;
+        }
 
     public: // interface
 
-        virtual void_t on_init( motor::io::database_ref_t ) noexcept = 0 ;
+        virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0 ;
         virtual void_t on_release( void_t ) noexcept = 0 ;
 
         virtual void_t on_update( size_t const cur_time ) noexcept = 0 ;
@@ -82,8 +104,10 @@ namespace demos
 
         virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept = 0 ;
 
-        virtual void_t on_render_debug( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0 ;
-        virtual void_t on_render_final( bool_t const initial,  motor::graphics::gen4::frontend_ptr_t ) noexcept = 0 ;
+        virtual void_t on_render_init( demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0 ;
+        virtual void_t on_render_deinit( demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0 ;
+        virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept = 0 ;
+        virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept = 0 ;
 
         virtual void_t on_tool( void_t ) noexcept = 0 ;
 

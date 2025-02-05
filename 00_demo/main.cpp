@@ -18,6 +18,7 @@ the_app::the_app( this_rref_t rhv ) noexcept
     _gbuffer_selection = rhv._gbuffer_selection ;
     _max_time_milli = rhv._max_time_milli ;
     _mon = motor::move( rhv._mon ) ;
+    _db = motor::move( rhv._db ) ;
 }
 
 //******************************************************************************************************
@@ -26,16 +27,41 @@ the_app::~the_app( void_t ) noexcept
 }
 
 //******************************************************************************************************
-demos::iscene_mtr_t the_app::get_current_scene( void_t ) noexcept 
+bool_t the_app::get_current_scene_data( this_t::scene_data & ret ) const noexcept 
 {
-    //assert( _scenes.size() <= 1 && "need proper scene selection. i.e. via currrent time") ;
+    if( _cur_scene_idx == size_t(-1)  ) return false ;
+    ret = _scenes[_cur_scene_idx] ;
+    return true ;
+}
 
-    return _scenes[_sel_scene].s ;
+//******************************************************************************************************
+bool_t the_app::access_current_scene_data( std::function< void_t (scene_data & sd ) > funk ) noexcept 
+{
+    if( _cur_scene_idx == size_t(-1)  ) return false ;
+    funk( _scenes[ _cur_scene_idx ] ) ;
+    return true ;
+}
+
+//******************************************************************************************************
+bool_t the_app::call_for_current_scene( std::function< void_t ( demos::iscene_mtr_t ) > funk ) noexcept 
+{
+    if( !this_t::has_current_scene() ) return false ;
+    funk( this_t::get_current_scene() ) ;
+    return true ;
+}
+
+//******************************************************************************************************
+demos::iscene_mtr_t the_app::get_current_scene( void_t ) noexcept 
+{    
+    assert( _cur_scene_idx != size_t(-1) && "There must be a scene. At least one." ) ;
+    return _scenes[_cur_scene_idx].s ;
 }
 
 //******************************************************************************************************
 void_t the_app::on_init( void_t ) noexcept
 {
+    _db = motor::shared( motor::io::database( motor::io::path_t( DATAPATH ), "./working", "data" ) ) ;
+
     {
         motor::application::window_info_t wi ;
         wi.x = 100 ;
@@ -115,7 +141,7 @@ void_t the_app::on_init( void_t ) noexcept
     {
         motor::graphics::msl_object_t mslo( "color_to_screen" ) ;
         
-        _db.load( motor::io::location_t( "shaders.post_process.color_to_screen.msl" ) ).wait_for_operation( 
+        _db->load( motor::io::location_t( "shaders.post_process.color_to_screen.msl" ) ).wait_for_operation( 
             [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
         {
             if( loading_res != motor::io::result::ok )
@@ -151,7 +177,7 @@ void_t the_app::on_init( void_t ) noexcept
     {
         motor::graphics::msl_object_t mslo( "xfade_to_screen" ) ;
 
-        _db.load( motor::io::location_t( "shaders.post_process.xfade_to_screen.msl" ) ).wait_for_operation(
+        _db->load( motor::io::location_t( "shaders.post_process.xfade_to_screen.msl" ) ).wait_for_operation(
             [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
         {
             if ( loading_res != motor::io::result::ok )
@@ -314,23 +340,22 @@ void_t the_app::on_init( void_t ) noexcept
         }
     }
 
+    // init scenes
     {
         {
             auto const s = motor::math::time::to_milli( 0, 0, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 30, 0 ) ;
-            _scenes.emplace_back( this_t::scene_data{true, motor::shared( demos::scene_0( "scene_0", s, e ) ) } ) ;
-            
+            _scenes.emplace_back( this_t::scene_data
+                { true, demos::scene_state::raw, demos::scene_state::raw, 
+                motor::shared( demos::scene_0( "scene_0", s, e ) ) } ) ;
         }
 
         {
             auto const s = motor::math::time::to_milli( 0, 27, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 50, 0 ) ;
-            _scenes.emplace_back( this_t::scene_data{false, motor::shared( demos::scene_1( "scene_1", s, e ) ) } ) ;
-        }
-
-        for ( auto & s : _scenes )
-        {
-            s.s->on_init( _db ) ;
+            _scenes.emplace_back( this_t::scene_data
+                { false, demos::scene_state::raw, demos::scene_state::raw, 
+                motor::shared( demos::scene_1( "scene_1", s, e ) ) } ) ;
         }
     }
 }
@@ -353,6 +378,10 @@ void_t the_app::on_event( window_id_t const wid,
         if ( _rwid == wid )
         {
             _rwid = size_t( -1 ) ;
+            this_t::access_current_scene_data( [&] ( this_t::scene_data & sd )
+            {
+                sd.ss_prod = demos::scene_state::init ;
+            } ) ;
         }
         else
         {
@@ -415,7 +444,7 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                 wi.y = 720 ;
                 wi.w = 800 ;
                 wi.h = 600 ;
-                wi.gen = motor::application::graphics_generation::gen4_gl4 ;
+                wi.gen = motor::application::graphics_generation::gen4_auto ;
 
                 _rwid = this_t::create_window( wi );
 
@@ -462,7 +491,7 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
         else if( keyboard.get_state( key_t::p ) == motor::controls::components::key_state::released )
         {
             motor::string_t text = this_t::make_camera_data_file() ;
-            _db.store( motor::io::location_t( "coords.txt" ), text.c_str(), text.size() ).wait_for_operation( [=] ( motor::io::result const res )
+            _db->store( motor::io::location_t( "coords.txt" ), text.c_str(), text.size() ).wait_for_operation( [=] ( motor::io::result const res )
             {
                 if( res != motor::io::result::ok )
                 {
@@ -482,7 +511,57 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
 void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept
 {
     if ( _proceed_time ) _cur_time += ud.milli_dt ;
-    for( auto & s : _scenes ) s.s->on_update( _cur_time ) ;
+
+    // determine scene to be played
+    // and the next scene
+    {
+        this_t::determine_scene_index() ;
+    }
+
+    // state manage the debug scenes
+    {
+        this_t::scene_data sd ;
+        if( this_t::get_current_scene_data( sd ) )
+        {
+            if( sd.ss_dbg == demos::scene_state::raw )
+            {
+                this_t::access_current_scene_data( [&] ( this_t::scene_data & sd )
+                {
+                    sd.ss_dbg = demos::scene_state::in_transit ;
+                } ) ;
+
+                auto the_task = motor::shared( motor::concurrent::task_t( [=]( motor::concurrent::task_t::task_funk_param const & )
+                {
+                    size_t const idx = _cur_scene_idx ;
+                    this->_scenes[idx].s->on_init( _db ) ;
+                    this->_scenes[idx].ss_dbg = demos::scene_state::init ;
+                    this->_scenes[idx].ss_prod = demos::scene_state::init ;
+                }) ) ;
+                motor::concurrent::global::schedule( motor::move( the_task ),
+                    motor::concurrent::schedule_type::loose ) ;
+            }
+        }
+    }
+
+    // update all scenes
+    {
+        auto idxs = this_t::current_scene_idx() ;
+        if ( idxs.first != size_t( -1 ) )
+        {
+            auto & s = _scenes[ idxs.first ] ;
+            if ( s.ss_dbg != demos::scene_state::raw ||
+                s.ss_prod != demos::scene_state::raw )
+                s.s->on_update( _cur_time ) ;
+        }
+
+        if ( idxs.second != size_t( -1 ) )
+        {
+            auto & s = _scenes[ idxs.second ] ;
+            if ( s.ss_dbg != demos::scene_state::raw ||
+                s.ss_prod != demos::scene_state::raw )
+                s.s->on_update( _cur_time ) ;
+        }
+    }
 }
 
 //******************************************************************************************************
@@ -490,11 +569,17 @@ void_t the_app::on_shutdown( void_t ) noexcept
 {
     motor::release( motor::move( _post_quad ) ) ;
     motor::release( motor::move( _post_msl ) ) ;
+    motor::release( motor::move( _post_xfade_msl ) ) ;
     motor::release( motor::move( _mon ) ) ;
+    motor::release( motor::move( _db )  ) ;
 
     for( auto & s : _scenes )
     {
-        s.s->on_release() ;
+        if( s.ss_dbg != demos::scene_state::raw || 
+            s.ss_prod != demos::scene_state::raw )
+        {
+            s.s->on_release() ;
+        }
         motor::release( motor::move( s.s ) ) ;
     }
 }

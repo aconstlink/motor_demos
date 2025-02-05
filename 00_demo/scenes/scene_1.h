@@ -12,6 +12,10 @@ namespace demos
     {
         motor_this_typedefs( scene_1 ) ;
 
+    private: // general
+
+        bool_t _is_render_init = false ;
+
     private: // cubes
 
         size_t _max_objects = 50000 ;
@@ -41,6 +45,7 @@ namespace demos
         {
             _num_objects = std::min( no, _max_objects ) ;
         }
+
     private:// debug view
 
         motor::graphics::state_object_t _debug_rs ;
@@ -54,11 +59,7 @@ namespace demos
 
         motor::graphics::state_object_t _scene_final_rs ;
         motor::graphics::msl_object_mtr_t _dummy_render_msl ;
-
-
         motor::graphics::geometry_object_mtr_t _dummy_geo ;
-
-
         motor::math::vec2ui_t _rnd_dims ;
 
     public:
@@ -81,7 +82,7 @@ namespace demos
 
     public:
 
-        virtual void_t on_init( motor::io::database_ref_t ) noexcept ;
+        virtual void_t on_init( motor::io::database_ptr_t ) noexcept ;
         virtual void_t on_release( void_t ) noexcept ;
 
         virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept ;
@@ -90,8 +91,10 @@ namespace demos
         virtual void_t on_update( size_t const cur_time ) noexcept ;
         virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept  ;
 
-        virtual void_t on_render_debug( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
-        virtual void_t on_render_final( bool_t const initial, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_init( demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_deinit( demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+        virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept ;
 
         virtual void_t on_tool( void_t ) noexcept ;
 
