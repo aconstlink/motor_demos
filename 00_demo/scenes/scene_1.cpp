@@ -123,8 +123,6 @@ void_t scene_1::on_init_cameras( void_t ) noexcept
 //*******************************************************************************
 void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept 
 {
-
-    std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
     {
         ///////////////////////////////////////////////////////////////////////////////
         // Dummy cube section
