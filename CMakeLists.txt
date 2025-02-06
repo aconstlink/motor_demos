@@ -18,7 +18,16 @@ motor_emacs_default_directory( "${CMAKE_CURRENT_LIST_DIR}/motor" )
 
 set( CMAKE_DEBUG_POSTFIX d )
 
+option( DEMO_PRODUCTION_MODE "Demo Mode" OFF )
+
+if( ${DEMO_PRODUCTION_MODE} )
+add_definitions( -DPRODUCTION_MODE )
+else()
+add_definitions( -DDEBUG_MODE )
+endif()
+
 add_subdirectory( "00_demo" )
+
 
 
 install( EXPORT suites-targets DESTINATION "cmake" )

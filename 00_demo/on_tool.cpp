@@ -129,7 +129,43 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
     }
     ImGui::End() ;
 
-    
+    if( ImGui::Begin( "Scene Infos" ) )
+    {
+        for( size_t i=0; i<_scenes.size(); ++i )
+        {
+            auto & s = _scenes[i] ;
+
+            char buffer[4096] ;
+            std::snprintf( buffer, 4096, "%s", s.s->name().c_str() ) ;
+            
+            ImGui::Text( buffer ) ; ImGui::SameLine() ;
+
+            ImVec4 color( 0.0f, 0.0f, 0.0f, 1.0 ) ;
+            if( s.ss_dbg == demos::scene_state::in_transit )
+            {
+                // yellow
+                color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f ) ;
+            }
+            else if( s.ss_dbg == demos::scene_state::init )
+            {
+                // orange
+                color = ImColor( 255, 165, 0, 1 ) ;
+            }
+            else if ( s.ss_dbg == demos::scene_state::ready )
+            {
+                // orange
+                color = ImColor( 0, 255, 0, 1 ) ;
+            }
+
+            {
+                std::memset( buffer, 0, sizeof(buffer) ) ;
+                std::snprintf( buffer, 4096, "##scene_state_%s", s.s->name().c_str() ) ;
+                ImGui::ColorButton( buffer, color ) ;
+            }
+        }
+    }
+    ImGui::End() ;
+
     if ( ImGui::Begin( "Global Settings" ) )
     {
         {

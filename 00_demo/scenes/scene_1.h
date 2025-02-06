@@ -64,7 +64,7 @@ namespace demos
 
     public:
 
-        scene_1( motor::string_in_t name, size_t const s, size_t const e ) noexcept : iscene( name, s, e )
+        scene_1( motor::string_in_t name ) noexcept : iscene( name )
         {
 
         }
@@ -82,6 +82,7 @@ namespace demos
 
     public:
 
+        virtual void_t on_init_cameras( void_t ) noexcept ;
         virtual void_t on_init( motor::io::database_ptr_t ) noexcept ;
         virtual void_t on_release( void_t ) noexcept ;
 

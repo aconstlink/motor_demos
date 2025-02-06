@@ -12,117 +12,120 @@
 
 #include <motor/tool/imgui/imgui.h>
 
-
 using namespace demos ;
+
+//*******************************************************************************
+void_t scene_1::on_init_cameras( void_t ) noexcept
+{
+    ///////////////////////////////////////////////////////////////////////////////
+    // Camera section
+    ///////////////////////////////////////////////////////////////////////////////
+
+    // camera selector
+    {
+        using kfs_t = demos::camera_manager::camera_kfs_t ;
+        kfs_t kf ;
+
+        kf.insert( kfs_t::keyframe_t( 13000, size_t( 0 ) ) ) ;
+        kf.insert( kfs_t::keyframe_t( 20000, size_t( 1 ) ) ) ;
+        kf.insert( kfs_t::keyframe_t( 30000, size_t( 1 ) ) ) ;
+
+        this_t::camera_manager().set_camera_selector( std::move( kf ) ) ;
+    }
+
+    {
+        // camera 1
+        {
+            demos::camera_data cd ;
+
+            cd.cam.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
+            cd.cam.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
+            cd.cam.set_sensor_dims( float_t( 1920 ), float_t( 1080 ) ) ;
+            cd.cam.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
+                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
+
+            cd.cam.perspective_fov() ;
+
+            auto const tr = this_t::get_time_range() ;
+
+            {
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+                kfs_t kf ;
+                kf.insert( kfs_t::keyframe_t( tr.first + 0, motor::math::vec3f_t( 0, 0, 0 ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( tr.first + 1000, motor::math::vec3f_t( 1000, 500, 80 ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( tr.first + 3000, motor::math::vec3f_t( 0, 800, 0 ) ) ) ;
+                cd.kf_pos = std::move( kf ) ;
+            }
+
+            {
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+                kfs_t kf ;
+                kf.insert( kfs_t::keyframe_t( tr.first + 0, motor::math::vec3f_t( 0, -0, -0 ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( tr.first + 1000, motor::math::vec3f_t( 0, -0, -0 ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( tr.first + 3000, motor::math::vec3f_t( 0, 0, -0 ) ) ) ;
+
+                cd.kf_lookat = std::move( kf ) ;
+            }
+
+            this_t::camera_manager().add_camera( std::move( cd ) ) ;
+        }
+
+        #if 0
+        // camera 2
+        {
+            demos::camera_data cd ;
+
+            cd.cam.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
+            cd.cam.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
+            cd.cam.set_sensor_dims( float_t( 1920 ), float_t( 1080 ) ) ;
+            cd.cam.look_at( motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ),
+                motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
+            //cd.cam.perspective_fov() ;
+
+            {
+                auto const start = motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ) ;
+                size_t const start_milli = 8000 ;
+
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+                kfs_t kf_pos ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli, start ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 1000, start + motor::math::vec3f_t( 100.0f, 100.0f, -100.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 2000, start + motor::math::vec3f_t( -400.0f, -500.0f, 1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 3000, start + motor::math::vec3f_t( 0.0f, -100.0f, 0.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( start_milli + 4000, start ) ) ;
+                cd.kf_pos = std::move( kf_pos ) ;
+            }
+
+            {
+                using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+
+                kfs_t kf( motor::math::time_remap_funk_type::cycle ) ;
+                kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
+                cd.kf_lookat = std::move( kf ) ;
+            }
+
+            this_t::camera_manager().add_camera( std::move( cd ) ) ;
+        }
+        #endif
+        // test : REMOVE IF NOT USED
+        #if 0
+        {
+            this_t::camera_manager().append( { motor::math::vec3f_t( 0 ), motor::math::vec3f_t( 0 ) } ) ;
+            this_t::camera_manager().append( { motor::math::vec3f_t( 1 ), motor::math::vec3f_t( 1 ) } ) ;
+            this_t::camera_manager().append( { motor::math::vec3f_t( 2 ), motor::math::vec3f_t( 2 ) } ) ;
+        }
+        #endif
+    }
+}
 
 //*******************************************************************************
 void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept 
 {
+
+    std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
     {
-        ///////////////////////////////////////////////////////////////////////////////
-        // Camera section
-        ///////////////////////////////////////////////////////////////////////////////
-
-        // camera selector
-        {
-            auto const tr = this_t::get_time_range() ;
-
-            using kfs_t = demos::camera_manager::camera_kfs_t ;
-            kfs_t kf ;
-
-            kf.insert( kfs_t::keyframe_t( tr.first + 0, size_t( 0 ) ) ) ;
-            kf.insert( kfs_t::keyframe_t( tr.first + 8000, size_t( 1 ) ) ) ;
-            kf.insert( kfs_t::keyframe_t( tr.first + 15000, size_t( 1 ) ) ) ;
-
-            this_t::camera_manager().set_camera_selector( std::move( kf ) ) ;
-        }
-    
-        {
-            // camera 1
-            {
-                demos::camera_data cd ;
-
-                cd.cam.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
-                cd.cam.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
-                cd.cam.set_sensor_dims( float_t( 1920 ), float_t( 1080 ) ) ;
-                cd.cam.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
-                    motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
-
-                cd.cam.perspective_fov() ;
-
-                auto const tr = this_t::get_time_range() ;
-
-                {
-                    using kfs_t = demos::camera_data::keyframe_sequencef_t ; 
-                    kfs_t kf ; 
-                    kf.insert( kfs_t::keyframe_t( tr.first + 0, motor::math::vec3f_t( 0, 0, 0 ) ) ) ;
-                    kf.insert( kfs_t::keyframe_t( tr.first + 1000, motor::math::vec3f_t( 1000, 500, 80 ) ) ) ;
-                    kf.insert( kfs_t::keyframe_t( tr.first + 3000, motor::math::vec3f_t( 0, 800, 0 ) ) ) ;
-                    cd.kf_pos = std::move( kf ) ;
-                }
-
-                {
-                    using kfs_t = demos::camera_data::keyframe_sequencef_t ; 
-                    kfs_t kf ; 
-                    kf.insert( kfs_t::keyframe_t( tr.first + 0, motor::math::vec3f_t( 0, -0, -0 ) ) ) ;
-                    kf.insert( kfs_t::keyframe_t( tr.first + 1000, motor::math::vec3f_t( 0, -0, -0 ) ) ) ;
-                    kf.insert( kfs_t::keyframe_t( tr.first + 3000, motor::math::vec3f_t( 0, 0, -0 ) ) ) ;
-
-                    cd.kf_lookat = std::move( kf ) ;
-                }
-
-                this_t::camera_manager().add_camera( std::move( cd ) ) ;
-            }
-
-            #if 0
-            // camera 2
-            {
-                demos::camera_data cd ;
-
-                cd.cam.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
-                cd.cam.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
-                cd.cam.set_sensor_dims( float_t( 1920 ), float_t( 1080 ) ) ;
-                cd.cam.look_at( motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ),
-                    motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
-                //cd.cam.perspective_fov() ;
-
-                {
-                    auto const start = motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ) ;
-                    size_t const start_milli = 8000 ;
-
-                    using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-                    kfs_t kf_pos ;
-                    kf_pos.insert( kfs_t::keyframe_t( start_milli, start ) ) ;
-                    kf_pos.insert( kfs_t::keyframe_t( start_milli + 1000, start + motor::math::vec3f_t( 100.0f, 100.0f, -100.0f ) ) ) ;
-                    kf_pos.insert( kfs_t::keyframe_t( start_milli + 2000, start + motor::math::vec3f_t( -400.0f, -500.0f, 1000.0f ) ) ) ;
-                    kf_pos.insert( kfs_t::keyframe_t( start_milli + 3000, start + motor::math::vec3f_t( 0.0f, -100.0f, 0.0f ) ) ) ;
-                    kf_pos.insert( kfs_t::keyframe_t( start_milli + 4000, start ) ) ;
-                    cd.kf_pos = std::move( kf_pos ) ;
-                }
-
-                {
-                    using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-
-                    kfs_t kf( motor::math::time_remap_funk_type::cycle ) ;
-                    kf.insert( kfs_t::keyframe_t( 0, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                    kf.insert( kfs_t::keyframe_t( 1000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                    kf.insert( kfs_t::keyframe_t( 2000, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ) ;
-                    cd.kf_lookat = std::move( kf ) ;
-                }
-
-                this_t::camera_manager().add_camera( std::move( cd ) ) ;
-            }
-            #endif
-            // test : REMOVE IF NOT USED
-            #if 0
-            {
-                this_t::camera_manager().append( { motor::math::vec3f_t(0), motor::math::vec3f_t(0) } ) ;
-                this_t::camera_manager().append( { motor::math::vec3f_t(1), motor::math::vec3f_t(1) } ) ;
-                this_t::camera_manager().append( { motor::math::vec3f_t(2), motor::math::vec3f_t(2) } ) ;
-            }
-            #endif
-        }
-
         ///////////////////////////////////////////////////////////////////////////////
         // Dummy cube section
         ///////////////////////////////////////////////////////////////////////////////
@@ -414,7 +417,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
                     var->set( this_t::name() + ".cubes_data" ) ;
                 }
 
-                mslo.add_variable_set( motor::shared( std::move( vars ) ) ) ;
+                mslo.add_variable_set( motor::shared( std::move( vars ), "scene 1: variable set" ) ) ;
 
                 _cubes_debug_msl = std::move( mslo ) ;
             }
@@ -486,8 +489,8 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
 //*******************************************************************************
 void_t scene_1::on_release( void_t ) noexcept
 {
-    motor::release( motor::move( _dummy_debug_msl ) ) ;
     motor::release( motor::move( _dummy_render_msl ) ) ;
+    motor::release( motor::move( _dummy_debug_msl ) ) ;
     motor::release( motor::move( _dummy_geo ) ) ;
 }
 
@@ -626,53 +629,69 @@ void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::gr
 {
     if ( rm == demos::iscene::render_mode::debug )
     {
+        fe->release( motor::move( _dummy_debug_msl ) ) ;
+        fe->release( motor::move( _dummy_geo ) ) ;
+        fe->fence( [&] ( void_t )
+        {
+            //motor::release( motor::move( _dummy_debug_msl )  ) ;
+            //motor::release( motor::move( _dummy_geo ) ) ;
+        } ) ;
+
+        //_dummy_debug_msl = nullptr ;
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
+        motor::release( motor::move( _dummy_render_msl ) ) ;
+
+        #ifdef PRODUCTION_MODE
+        fe->release( motor::move( _dummy_geo ) ) ;
+
+        #endif
+
+        fe->fence( [=] ( void_t )
+        {
+
+
+        } ) ;
+        _dummy_debug_msl = nullptr ;
     }
 }
 
 //*******************************************************************************
 void_t scene_1::on_render_debug( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    // render
+    //fe->update( &_cubes_data ) ;
+
+    fe->push( &_debug_rs ) ;
+
+    #if 1
+    // render dummy
     {
-        //fe->update( &_cubes_data ) ;
-
-        fe->push( &_debug_rs ) ;
-        #if 0
-        #if 1
-        // render dummy
-        {
-            motor::graphics::gen4::backend::render_detail_t det ;
-            fe->render( _dummy_debug_msl, det ) ;
-        }
-        #else
-        // render cubes
-        {
-            motor::graphics::gen4::backend_t::render_detail_t detail ;
-            detail.start = 0 ;
-            detail.num_elems = this_t::num_objects() * 36 ;
-            detail.varset = 0 ;
-            fe->render( &_cubes_debug_msl, detail ) ;
-        }
-        // render dummy
-        {
-            motor::graphics::gen4::backend::render_detail_t det ;
-            fe->render( _dummy_debug_msl, det ) ;
-        }
-        #endif
-        #endif
-
-        fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+        motor::graphics::gen4::backend::render_detail_t det ;
+        fe->render( _dummy_debug_msl, det ) ;
     }
+    #else
+    // render cubes
+    {
+        motor::graphics::gen4::backend_t::render_detail_t detail ;
+        detail.start = 0 ;
+        detail.num_elems = this_t::num_objects() * 36 ;
+        detail.varset = 0 ;
+        fe->render( &_cubes_debug_msl, detail ) ;
+    }
+    // render dummy
+    {
+        motor::graphics::gen4::backend::render_detail_t det ;
+        fe->render( _dummy_debug_msl, det ) ;
+    }
+    #endif
+
+    fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
 }
 
 //*******************************************************************************
 void_t scene_1::on_render_final( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    #if 1
-
     #if 0
     fe->update( &_cubes_data ) ;
     #endif
@@ -695,7 +714,6 @@ void_t scene_1::on_render_final( motor::graphics::gen4::frontend_ptr_t fe ) noex
         }
         //fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
-    #endif
 }
 
 //*******************************************************************************

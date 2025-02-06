@@ -30,53 +30,60 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         }
     }
 
-    //
+    /////////////////////////////////////////////////////////////////////
     // handle render scene states
-    //
+    /////////////////////////////////////////////////////////////////////
     {
-        auto const tmp = this_t::current_scene_idx() ;
-
-        size_t const cur_scene = tmp.first ;
-        size_t const nxt_scene = tmp.second ;
-
-        if ( cur_scene != size_t( -1 ) )
+        for ( size_t i = 0; i < _scenes.size(); ++i )
         {
-            auto & s = _scenes[ cur_scene ] ;
+            auto & sd = _scenes[ i ] ;
 
             // debug window init
-            if( wid == _dwid ) 
+            if ( wid == _dwid )
             {
-                if ( s.ss_dbg == demos::scene_state::init )
+                if ( sd.ss_dbg == demos::scene_state::init )
                 {
                     // could put time constraint here. So render object init
                     // is carried out later. Time constraint could be placed near the
                     // scene time range.
-                    s.s->on_render_init( demos::iscene::render_mode::debug, fe ) ;
-                    s.ss_dbg = demos::scene_state::render_init ;
+                    sd.s->on_render_init( demos::iscene::render_mode::debug, fe ) ;
+                    sd.ss_dbg = demos::scene_state::render_init ;
                 }
 
                 // at the moment, no async render init, so just move on.
-                if ( s.ss_dbg == demos::scene_state::render_init )
+                else if ( sd.ss_dbg == demos::scene_state::render_init )
                 {
-                    s.ss_dbg = demos::scene_state::ready ;
+                    sd.ss_dbg = demos::scene_state::ready ;
+                }
+
+                else if ( sd.ss_dbg == demos::scene_state::render_deinit_trigger )
+                {
+                    sd.s->on_render_deinit( demos::iscene::render_mode::debug, fe ) ;
+                    sd.ss_dbg = demos::scene_state::render_deinit ;
                 }
             }
             // prod window init
-            else if( wid == _rwid )
+            else if ( wid == _rwid )
             {
-                if ( s.ss_prod == demos::scene_state::init )
+                if ( sd.ss_prod == demos::scene_state::init )
                 {
                     // could put time constraint here. So render object init
                     // is carried out later. Time constraint could be placed near the
                     // scene time range.
-                    s.s->on_render_init( demos::iscene::render_mode::production, fe ) ;
-                    s.ss_prod = demos::scene_state::render_init ;
+                    sd.s->on_render_init( demos::iscene::render_mode::production, fe ) ;
+                    sd.ss_prod = demos::scene_state::render_init ;
                 }
 
                 // at the moment, no async render init, so just move on.
-                if ( s.ss_prod == demos::scene_state::render_init )
+                else if ( sd.ss_prod == demos::scene_state::render_init )
                 {
-                    s.ss_prod = demos::scene_state::ready ;
+                    sd.ss_prod = demos::scene_state::ready ;
+                }
+
+                else if ( sd.ss_prod == demos::scene_state::render_deinit_trigger )
+                {
+                    sd.s->on_render_deinit( demos::iscene::render_mode::production, fe ) ;
+                    sd.ss_prod = demos::scene_state::render_deinit ;
                 }
             }
         }
@@ -112,14 +119,18 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
     }
     else if ( wid == _rwid )
     {
-        #if 0
-        if( _gbuffer_sel_changed )
+        // deinit render objects
         {
-            // need variable set update for msl object
-            fe->update( _post_msl, 0 ) ;
-            _gbuffer_sel_changed = false ;
+            for ( size_t i = 0; i < _scenes.size(); ++i )
+            {
+                auto & sd = _scenes[ i ] ;
+                if ( sd.ss_prod == demos::scene_state::render_deinit_trigger )
+                {
+                    sd.s->on_render_deinit( demos::iscene::render_mode::production, fe ) ;
+                    sd.ss_prod = demos::scene_state::render_deinit ;
+                }
+            }
         }
-        #endif
 
         // render and post
         {

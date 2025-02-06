@@ -79,6 +79,19 @@ namespace demos
             _cam_selector = std::move( kfs ) ;
         }
 
+        bool_t camera_selector_range(std::pair< size_t, size_t > & range ) const noexcept
+        {
+            if( _cam_selector.get_num_keyframes() == 0 ) return false ;
+            range = this_t::camera_selector_range() ;
+            return true ;
+        }
+
+        std::pair< size_t, size_t > camera_selector_range( void_t ) const noexcept
+        {
+            
+            return std::make_pair( _cam_selector.front().get_time(), _cam_selector.back().get_time() ) ;
+        }
+
         void_t add_camera( demos::camera_data && cd ) noexcept
         {
             _cameras.emplace_back( std::move( cd ) ) ;

@@ -41,8 +41,7 @@ namespace demos
     private: 
 
         motor::string_t _name ;
-        size_t const _start ;
-        size_t const _end ;
+
         // final rendering
         bool_t _scene_is_on = false ;
         
@@ -55,13 +54,11 @@ namespace demos
 
     public:
 
-        iscene( motor::string_in_t name, size_t const start, size_t const end ) noexcept : 
-            _name( name ), _start( start ), _end( end ){}
+        iscene( motor::string_in_t name ) noexcept : 
+            _name( name ){}
 
         iscene( this_cref_t ) = delete ;
-        iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ),
-            _start( rhv._start ), _end( rhv._end )
-        {}
+        iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ){}
 
         virtual ~iscene( void_t ) noexcept{}
 
@@ -75,16 +72,33 @@ namespace demos
 
         std::pair< size_t, size_t > get_time_range( void_t ) const noexcept
         {
-            return std::make_pair( _start, _end ) ;
+            return _cm.camera_selector_range() ;
         }
 
         bool_t is_in_time_range( size_t const milli ) const noexcept
         {
-            return milli >= _start && milli <= _end ;
+            std::pair< size_t, size_t > range ;
+            if( !_cm.camera_selector_range( range ) ) return false ;
+            return milli >= range.first && milli <= range.second ;
         }
 
         motor::string_cref_t name( void_t ) const noexcept { return _name ; }
         
+    public: // preload time range
+
+        // should be used for final rendition
+        bool_t is_in_preload_time_range( size_t const cur_time ) const noexcept
+        {
+            size_t const preload_time = 2000 ;
+
+            auto tr = this_t::get_time_range() ;
+
+            auto const s = std::max( tr.first, size_t(preload_time) ) - preload_time ;
+            auto const e = tr.second + preload_time ;
+
+            return s <= cur_time && cur_time <= e ;
+        }
+
     protected:
 
         void_t update_time( size_t const cur_time ) noexcept
@@ -94,6 +108,7 @@ namespace demos
 
     public: // interface
 
+        virtual void_t on_init_cameras( void_t ) noexcept = 0 ;
         virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0 ;
         virtual void_t on_release( void_t ) noexcept = 0 ;
 

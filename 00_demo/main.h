@@ -42,6 +42,7 @@ namespace demos
         init,
         render_init, 
         ready,
+        render_deinit_trigger,
         render_deinit, 
         deinit
     };
