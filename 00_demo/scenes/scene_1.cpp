@@ -417,7 +417,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
 
                 mslo.add_variable_set( motor::shared( std::move( vars ), "scene 1: variable set" ) ) ;
 
-                _cubes_debug_msl = std::move( mslo ) ;
+                _cubes_debug_msl = motor::shared( std::move( mslo ) ) ;
             }
 
             // cubes final shader
@@ -460,7 +460,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
 
                 mslo.add_variable_set( motor::shared( std::move( vars ) ) ) ;
 
-                _cubes_final_msl = std::move( mslo ) ;
+                _cubes_final_msl = motor::shared( std::move( mslo ) ) ;
             }
         }
 
@@ -490,6 +490,8 @@ void_t scene_1::on_release( void_t ) noexcept
     motor::release( motor::move( _dummy_render_msl ) ) ;
     motor::release( motor::move( _dummy_debug_msl ) ) ;
     motor::release( motor::move( _dummy_geo ) ) ;
+    motor::release( motor::move( _cubes_debug_msl ) ) ;
+    motor::release( motor::move( _cubes_final_msl ) ) ;
 }
 
 //*******************************************************************************
@@ -549,7 +551,7 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
             #endif
         } ) ;
 
-        _cubes_debug_msl.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+        _cubes_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
@@ -608,7 +610,7 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
 
         fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
         fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
-        fe->configure<motor::graphics::msl_object>( &_cubes_debug_msl ) ;
+        fe->configure<motor::graphics::msl_object>( _cubes_debug_msl ) ;
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
@@ -618,7 +620,7 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
 
         fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
         fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
-        fe->configure<motor::graphics::msl_object>( &_cubes_final_msl ) ;
+        fe->configure<motor::graphics::msl_object>( _cubes_final_msl ) ;
     }
 }
 
