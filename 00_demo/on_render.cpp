@@ -46,7 +46,7 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
                     // could put time constraint here. So render object init
                     // is carried out later. Time constraint could be placed near the
                     // scene time range.
-                    sd.s->on_render_init( demos::iscene::render_mode::debug, fe ) ;
+                    sd.s->on_render_init( demos::iscene::render_mode::tool, fe ) ;
                     sd.ss_dbg = demos::scene_state::render_init ;
                 }
 
@@ -58,7 +58,7 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
 
                 else if ( sd.ss_dbg == demos::scene_state::render_deinit_trigger )
                 {
-                    sd.s->on_render_deinit( demos::iscene::render_mode::debug, fe ) ;
+                    sd.s->on_render_deinit( demos::iscene::render_mode::tool, fe ) ;
                     sd.ss_dbg = demos::scene_state::render_deinit ;
                 }
             }

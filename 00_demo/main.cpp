@@ -61,34 +61,54 @@ demos::iscene_mtr_t the_app::get_current_scene( void_t ) noexcept
 void_t the_app::on_init( void_t ) noexcept
 {
     _db = motor::shared( motor::io::database( motor::io::path_t( DATAPATH ), "./working", "data" ) ) ;
+    
+    if( this_t::is_tool_mode() )
+    {
+        {
+            motor::application::window_info_t wi ;
+            wi.x = 100 ;
+            wi.y = 100 ;
+            wi.w = 800 ;
+            wi.h = 1200 ;
+            wi.gen = motor::application::graphics_generation::gen4_auto ;
 
+            _twid = this_t::create_window( wi ) ;
+            this_t::send_window_message( _twid, [&] ( motor::application::app::window_view & wnd )
+            {
+                wnd.send_message( motor::application::show_message( { true } ) ) ;
+                wnd.send_message( motor::application::cursor_message_t( { true } ) ) ;
+                wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
+            } ) ;
+        }
+
+        {
+            motor::application::window_info_t wi ;
+            wi.x = 900 ;
+            wi.y = 100 ;
+            wi.w = 800 ;
+            wi.h = 600 ;
+            wi.gen = motor::application::graphics_generation::gen4_gl4 ;
+
+            _dwid = this_t::create_window( wi ) ;
+            this_t::send_window_message( _dwid, [&] ( motor::application::app::window_view & wnd )
+            {
+                wnd.send_message( motor::application::show_message( { true } ) ) ;
+                wnd.send_message( motor::application::cursor_message_t( { true } ) ) ;
+                wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
+            } ) ;
+        }
+    }
+    else
     {
         motor::application::window_info_t wi ;
         wi.x = 100 ;
         wi.y = 100 ;
-        wi.w = 800 ;
-        wi.h = 1200 ;
+        wi.w = 1280 ;
+        wi.h = 960 ;
         wi.gen = motor::application::graphics_generation::gen4_auto ;
 
-        _twid = this_t::create_window( wi ) ;
-        this_t::send_window_message( _twid, [&] ( motor::application::app::window_view & wnd )
-        {
-            wnd.send_message( motor::application::show_message( { true } ) ) ;
-            wnd.send_message( motor::application::cursor_message_t( { true } ) ) ;
-            wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
-        } ) ;
-    }
-
-    {
-        motor::application::window_info_t wi ;
-        wi.x = 900 ;
-        wi.y = 100 ;
-        wi.w = 800 ;
-        wi.h = 600 ;
-        wi.gen = motor::application::graphics_generation::gen4_gl4 ;
-
-        _dwid = this_t::create_window( wi ) ;
-        this_t::send_window_message( _dwid, [&] ( motor::application::app::window_view & wnd )
+        _rwid = this_t::create_window( wi ) ;
+        this_t::send_window_message( _rwid, [&] ( motor::application::app::window_view & wnd )
         {
             wnd.send_message( motor::application::show_message( { true } ) ) ;
             wnd.send_message( motor::application::cursor_message_t( { true } ) ) ;
@@ -347,7 +367,7 @@ void_t the_app::on_init( void_t ) noexcept
             auto const e = motor::math::time::to_milli( 0, 30, 0 ) ;
             _scenes.emplace_back( this_t::scene_data
                 { true, demos::scene_state::raw, demos::scene_state::raw, 
-                motor::shared( demos::scene_0( "scene_0" ) ) } ) ;
+                motor::shared( demos::scene_0( "scene_0", _dm ) ) } ) ;
         }
 
         {
@@ -355,7 +375,7 @@ void_t the_app::on_init( void_t ) noexcept
             auto const e = motor::math::time::to_milli( 0, 70, 0 ) ;
             _scenes.emplace_back( this_t::scene_data
                 { false, demos::scene_state::raw, demos::scene_state::raw, 
-                motor::shared( demos::scene_1( "scene_1" ) ) } ) ;
+                motor::shared( demos::scene_1( "scene_1", _dm ) ) } ) ;
         }
 
         for( auto & s : _scenes )
@@ -387,6 +407,9 @@ void_t the_app::on_event( window_id_t const wid,
             {
                 sd.ss_prod = demos::scene_state::init ;
             } ) ;
+
+            if( !this_t::is_tool_mode() ) 
+                this->close() ;
         }
         else
         {
@@ -509,6 +532,11 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                 }
             } ) ;
         }
+
+        else if( keyboard.get_state( key_t::space ) == motor::controls::components::key_state::released )
+        {
+            _space_bar_pressed = true ;
+        }
     }
 }
 
@@ -552,7 +580,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
                         sd.ss_prod = demos::scene_state::render_deinit_trigger ;
                 }
 
-                #if defined( DEBUG_MODE )
+                if( this_t::is_tool_mode() )
                 {
                     bool_t const cond =
                         sd.ss_dbg == demos::scene_state::render_deinit ||
@@ -575,7 +603,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
                             motor::concurrent::schedule_type::loose ) ;
                     }
                 }
-                #else
+                else
                 {
                     bool_t const cond =
                         sd.ss_prod == demos::scene_state::render_deinit ||
@@ -597,7 +625,6 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
                             motor::concurrent::schedule_type::loose ) ;
                     }
                 }
-                #endif
             }
         } 
     }
@@ -610,21 +637,14 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 
     // update all scenes
     {
-        auto idxs = this_t::current_scene_idx() ;
-        if ( idxs.first != size_t( -1 ) )
+        for( auto & s : _scenes )
         {
-            auto & s = _scenes[ idxs.first ] ;
-            if ( s.ss_dbg != demos::scene_state::raw ||
-                s.ss_prod != demos::scene_state::raw )
-                s.s->on_update( _cur_time ) ;
-        }
-
-        if ( idxs.second != size_t( -1 ) )
-        {
-            auto & s = _scenes[ idxs.second ] ;
-            if ( s.ss_dbg != demos::scene_state::raw ||
-                s.ss_prod != demos::scene_state::raw )
-                s.s->on_update( _cur_time ) ;
+            if( s.s->is_in_preload_time_range( _cur_time ) ) 
+            {
+                if ( s.ss_dbg != demos::scene_state::raw ||
+                    s.ss_prod != demos::scene_state::raw )
+                    s.s->on_update( _cur_time ) ;
+            }
         }
     }
 }

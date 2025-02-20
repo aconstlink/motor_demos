@@ -64,7 +64,7 @@ namespace demos
 
     public:
 
-        scene_1( motor::string_in_t name ) noexcept : iscene( name )
+        scene_1( motor::string_in_t name, demos::demo_mode const dm ) noexcept : iscene( name, dm )
         {
 
         }

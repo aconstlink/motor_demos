@@ -129,6 +129,7 @@ void_t scene_0::on_init_cameras( void_t ) noexcept
 void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept 
 {
     // dummy cube
+    if( this_t::is_tool_mode() )
     {
         struct vertex { motor::math::vec3f_t pos ; motor::math::vec3f_t nrm ; motor::math::vec2f_t tx ; } ;
 
@@ -168,6 +169,7 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
     }
 
     // dummy shader debug
+    if( this_t::is_tool_mode() )
     {
         motor::graphics::msl_object_t mslo( this_t::name() + ".dummy_debug" ) ;
 
@@ -205,6 +207,7 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
     }
 
     // dummy shader
+    if( this_t::is_tool_mode() )
     {
         motor::graphics::msl_object_t mslo( this_t::name() + ".dummy_render" ) ;
 
@@ -377,6 +380,7 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
     // msl objects
     {
         // cubes debug shader
+        if( this_t::is_tool_mode() )
         {
             motor::graphics::msl_object_t mslo( this_t::name() + ".cubes_debug" ) ;
 
@@ -519,6 +523,7 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 
     // draw worm path
     #if 1
+    if( this_t::is_tool_mode() )
     {
         auto const spline = _worm_pos_spline;
 
@@ -604,6 +609,7 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
     } ) ;
 
     // debug section
+    if( this_t::is_tool_mode() )
     {
         auto * cam = this_t::camera_manager().borrow_debug_camera() ;
 
@@ -704,7 +710,7 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 //*******************************************************************************
 void_t scene_0::on_render_init( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
-    if( rm == demos::iscene::render_mode::debug )
+    if( rm == demos::iscene::render_mode::tool )
     {
         fe->configure< motor::graphics::state_object_t>( &_debug_rs ) ;
         fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
@@ -717,8 +723,8 @@ void_t scene_0::on_render_init( demos::iscene::render_mode const rm, motor::grap
     else if ( rm == demos::iscene::render_mode::production )
     {
         //fe->configure< motor::graphics::state_object_t>( &_scene_final_rs ) ;
-        fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
-        fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
+        //fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
+        //fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
 
         fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
         fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
@@ -729,7 +735,7 @@ void_t scene_0::on_render_init( demos::iscene::render_mode const rm, motor::grap
 //*******************************************************************************
 void_t scene_0::on_render_deinit( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
-    if ( rm == demos::iscene::render_mode::debug )
+    if ( rm == demos::iscene::render_mode::tool )
     {
         fe->release( motor::move( _dummy_debug_msl ) ) ;
         fe->release( motor::move( _dummy_geo  ) ) ;
@@ -743,12 +749,12 @@ void_t scene_0::on_render_deinit( demos::iscene::render_mode const rm, motor::gr
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
-        motor::release( motor::move( _dummy_render_msl ) ) ;
+        //motor::release( motor::move( _dummy_render_msl ) ) ;
         
-        #ifdef PRODUCTION_MODE
-        fe->release( motor::move( _dummy_geo ) ) ;
-        
-        #endif
+        if( this_t::is_production_mode() )
+        {
+            //fe->release( motor::move( _dummy_geo ) ) ;
+        }
 
         fe->fence( [=] ( void_t )
         {
@@ -802,12 +808,14 @@ void_t scene_0::on_render_final( motor::graphics::gen4::frontend_ptr_t fe ) noex
             fe->render( _cubes_final_msl, detail ) ;
         }
 
+        #if 0
         //fe->push( &_scene_final_rs ) ;
         {
             motor::graphics::gen4::backend::render_detail_t det ;
             fe->render( _dummy_render_msl, det ) ;
         }
         //fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+        #endif
     }
 }
 

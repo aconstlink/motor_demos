@@ -20,8 +20,8 @@ namespace demos
         motor::graphics::geometry_object_t _cubes_geo ;
         motor::graphics::array_object_t _cubes_data ;
 
-        motor::graphics::msl_object_mtr_t _cubes_debug_msl ;
-        motor::graphics::msl_object_mtr_t _cubes_final_msl ;
+        motor::graphics::msl_object_mtr_t _cubes_debug_msl = nullptr;
+        motor::graphics::msl_object_mtr_t _cubes_final_msl = nullptr;
 
         typedef motor::math::cubic_hermit_spline< motor::math::vec3f_t > vec3splinef_t ;
         typedef motor::math::keyframe_sequence< vec3splinef_t > keyframe_sequencef_t ;
@@ -44,7 +44,7 @@ namespace demos
     private:// debug view
 
         motor::graphics::state_object_t _debug_rs ;
-        motor::graphics::msl_object_mtr_t _dummy_debug_msl ;
+        motor::graphics::msl_object_mtr_t _dummy_debug_msl = nullptr ;
 
         // I think this is not needed.
         // always taking the dims from the render window
@@ -53,17 +53,17 @@ namespace demos
     private: // final render
 
         motor::graphics::state_object_t _scene_final_rs ;
-        motor::graphics::msl_object_mtr_t _dummy_render_msl ;
+        motor::graphics::msl_object_mtr_t _dummy_render_msl = nullptr;
         
 
-        motor::graphics::geometry_object_mtr_t _dummy_geo ;
+        motor::graphics::geometry_object_mtr_t _dummy_geo = nullptr;
         
 
         motor::math::vec2ui_t _rnd_dims ;
 
     public:
 
-        scene_0( motor::string_in_t name ) noexcept : iscene( name )
+        scene_0( motor::string_in_t name, demos::demo_mode const dm ) noexcept : iscene( name, dm )
         {
 
         }

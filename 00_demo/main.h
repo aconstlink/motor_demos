@@ -62,6 +62,14 @@ namespace demos
         motor::audio::capture_object_t _co ;
         demos::audio_analysis _aanl ;
 
+        #if 1//PRODUCTION_MODE
+        demos::demo_mode const _dm = demos::demo_mode::production ;
+        #else
+        demos::demo_mode const _dm = demos::demo_mode::tool ;
+        #endif
+
+        bool_t is_tool_mode( void_t ) const noexcept { return _dm == demos::demo_mode::tool ; }
+
     private: // file
 
         motor::io::monitor_mtr_t _mon = nullptr ; // motor::memory::create_ptr( motor::io::monitor_t() ) ;
@@ -172,6 +180,7 @@ namespace demos
         size_t _twid = size_t( -1 ) ;
         motor::tool::player_controller_t pc ;
         motor::tool::timeline_t tl = motor::tool::timeline_t( "my timeline" ) ;
+        bool_t _space_bar_pressed = false ;
 
     private: // time control
 

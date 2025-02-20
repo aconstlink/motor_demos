@@ -602,7 +602,7 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 //*******************************************************************************
 void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
-    if ( rm == demos::iscene::render_mode::debug )
+    if ( rm == demos::iscene::render_mode::tool )
     {
         fe->configure< motor::graphics::state_object_t>( &_debug_rs ) ;
         fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
@@ -627,7 +627,7 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
 //*******************************************************************************
 void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
-    if ( rm == demos::iscene::render_mode::debug )
+    if ( rm == demos::iscene::render_mode::tool )
     {
         fe->release( motor::move( _dummy_debug_msl ) ) ;
         fe->release( motor::move( _dummy_geo ) ) ;

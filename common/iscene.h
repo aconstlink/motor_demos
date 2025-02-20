@@ -13,6 +13,12 @@ namespace demos
 {
     using namespace motor::core::types ;
 
+    enum class demo_mode
+    {
+        tool,
+        production
+    };
+
     //**********************************************************
     // Base scene
     class iscene
@@ -23,7 +29,7 @@ namespace demos
 
         enum class render_mode
         {
-            debug,
+            tool,
             production
         };
         
@@ -47,6 +53,8 @@ namespace demos
         
         demos::camera_manager _cm ;
 
+        demos::demo_mode _dm ;
+
     public: 
 
         // camera manager
@@ -54,11 +62,12 @@ namespace demos
 
     public:
 
-        iscene( motor::string_in_t name ) noexcept : 
-            _name( name ){}
+        iscene( motor::string_in_t name, demos::demo_mode const dm ) noexcept : 
+            _name( name ), _dm( dm ) {}
 
         iscene( this_cref_t ) = delete ;
-        iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ){}
+        iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ),
+        _dm( rhv._dm ) {}
 
         virtual ~iscene( void_t ) noexcept{}
 
@@ -104,6 +113,16 @@ namespace demos
         void_t update_time( size_t const cur_time ) noexcept
         {
             _scene_is_on = this_t::is_in_time_range( cur_time ) ;
+        }
+
+        bool_t is_production_mode( void_t ) const noexcept
+        {
+            return _dm == demos::demo_mode::production ;
+        }
+
+        bool_t is_tool_mode( void_t ) const noexcept
+        {
+            return _dm == demos::demo_mode::tool ;
         }
 
     public: // interface

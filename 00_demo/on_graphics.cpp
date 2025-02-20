@@ -39,6 +39,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         auto & camera_manager = s.s->camera_manager() ;
 
         if( s.ss_dbg != demos::scene_state::ready ) continue ;
+        if( !s.s->is_in_time_range() ) continue ;
 
         camera_manager.for_each_camera( [&]( size_t const idx, demos::camera_data & cd )
         {

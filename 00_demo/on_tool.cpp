@@ -135,6 +135,8 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
         {
             auto & s = _scenes[i] ;
 
+            auto const in_play_range = s.s->is_in_time_range() ;
+
             char buffer[4096] ;
             std::snprintf( buffer, 4096, "%s", s.s->name().c_str() ) ;
             
@@ -146,7 +148,8 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                 // yellow
                 color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f ) ;
             }
-            else if( s.ss_dbg == demos::scene_state::init )
+            else if( s.ss_dbg == demos::scene_state::init ||
+                (s.ss_dbg == demos::scene_state::ready && !in_play_range) )
             {
                 // orange
                 color = ImColor( 255, 165, 0, 1 ) ;
@@ -230,7 +233,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
             // the player_controller stores some state, 
             // so it is defined further above
             {
-                auto const s = pc.do_tool( "Player" ) ;
+                auto const s = pc.do_tool( "Player", _space_bar_pressed  ) ;
                 if ( s == motor::tool::player_controller_t::player_state::stop )
                 {
                     _cur_time = 0  ;
@@ -254,6 +257,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                     _cur_time = ti.max_milli ;
                     pc.set_stop() ;
                 }
+                _space_bar_pressed = false ;
             }
         }
         ImGui::End() ;
