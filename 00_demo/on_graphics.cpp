@@ -38,7 +38,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
         auto & s = _scenes[ scene_ids[i] ] ;
         auto & camera_manager = s.s->camera_manager() ;
 
-        if( s.ss_dbg != demos::scene_state::ready ) continue ;
+        if( s.ss != demos::scene_state::ready ) continue ;
         if( !s.s->is_in_time_range() ) continue ;
 
         camera_manager.for_each_camera( [&]( size_t const idx, demos::camera_data & cd )
@@ -191,7 +191,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     {
         for( auto & s : _scenes ) 
         {
-            if( s.ss_dbg != demos::scene_state::ready ) continue ;
+            if( s.ss != demos::scene_state::ready ) continue ;
 
             s.s->on_graphics( demos::iscene::on_graphics_data
             {

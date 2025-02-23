@@ -143,18 +143,18 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
             ImGui::Text( buffer ) ; ImGui::SameLine() ;
 
             ImVec4 color( 0.0f, 0.0f, 0.0f, 1.0 ) ;
-            if( s.ss_dbg == demos::scene_state::in_transit )
+            if( s.ss == demos::scene_state::in_transit )
             {
                 // yellow
                 color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f ) ;
             }
-            else if( s.ss_dbg == demos::scene_state::init ||
-                (s.ss_dbg == demos::scene_state::ready && !in_play_range) )
+            else if( s.ss == demos::scene_state::init ||
+                (s.ss == demos::scene_state::ready && !in_play_range) )
             {
                 // orange
                 color = ImColor( 255, 165, 0, 1 ) ;
             }
-            else if ( s.ss_dbg == demos::scene_state::ready )
+            else if ( s.ss == demos::scene_state::ready )
             {
                 // orange
                 color = ImColor( 0, 255, 0, 1 ) ;

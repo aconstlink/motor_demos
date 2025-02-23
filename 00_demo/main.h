@@ -35,16 +35,28 @@ namespace demos
 {
     using namespace motor::core::types ;
 
+    // per scene
     enum class scene_state
     {
         raw,
         in_transit,
         init,
-        render_init, 
         ready,
-        render_deinit_trigger,
-        render_deinit, 
-        deinit
+        num_states
+    };
+
+    // per scene and per window
+    // possible state transitions
+    // raw -> init_triggered -> init -> ready
+    // ready/init -> deinit_triggered -> raw
+    enum class graphics_state
+    {
+        raw,
+        init_triggered,
+        init,
+        ready,
+        deinit_triggered,
+        num_states
     };
 
     //******************************************************************
@@ -62,7 +74,7 @@ namespace demos
         motor::audio::capture_object_t _co ;
         demos::audio_analysis _aanl ;
 
-        #if 1//PRODUCTION_MODE
+        #if 0//PRODUCTION_MODE
         demos::demo_mode const _dm = demos::demo_mode::production ;
         #else
         demos::demo_mode const _dm = demos::demo_mode::tool ;
@@ -155,10 +167,11 @@ namespace demos
         {
             // should the scene render in 
             // debug window?
-            bool_t render_in_debug = false ;
+            //bool_t render_in_debug = false ;
 
-            demos::scene_state ss_dbg ;
-            demos::scene_state ss_prod ;
+            demos::scene_state ss ;
+            demos::graphics_state ss_dbg ;
+            demos::graphics_state ss_prod ;
             demos::iscene_mtr_t s ;
         };
         motor::vector< scene_data > _scenes ;

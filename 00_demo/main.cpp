@@ -64,6 +64,7 @@ void_t the_app::on_init( void_t ) noexcept
     
     if( this_t::is_tool_mode() )
     {
+        // tool window
         {
             motor::application::window_info_t wi ;
             wi.x = 100 ;
@@ -81,6 +82,7 @@ void_t the_app::on_init( void_t ) noexcept
             } ) ;
         }
 
+        // debug window
         {
             motor::application::window_info_t wi ;
             wi.x = 900 ;
@@ -97,8 +99,10 @@ void_t the_app::on_init( void_t ) noexcept
                 wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
             } ) ;
         }
+
+        pr.init( "prims_for_debug" ) ;
     }
-    else
+    else // production window
     {
         motor::application::window_info_t wi ;
         wi.x = 100 ;
@@ -115,8 +119,6 @@ void_t the_app::on_init( void_t ) noexcept
             wnd.send_message( motor::application::vsync_message_t( { true } ) ) ;
         } ) ;
     }
-
-    pr.init( "my_prim_render" ) ;
 
     {
         _camera.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
@@ -366,7 +368,7 @@ void_t the_app::on_init( void_t ) noexcept
             auto const s = motor::math::time::to_milli( 0, 0, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 30, 0 ) ;
             _scenes.emplace_back( this_t::scene_data
-                { true, demos::scene_state::raw, demos::scene_state::raw, 
+                { /*true,*/ demos::scene_state::raw, demos::graphics_state::raw, demos::graphics_state::raw, 
                 motor::shared( demos::scene_0( "scene_0", _dm ) ) } ) ;
         }
 
@@ -374,7 +376,7 @@ void_t the_app::on_init( void_t ) noexcept
             auto const s = motor::math::time::to_milli( 0, 27, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 70, 0 ) ;
             _scenes.emplace_back( this_t::scene_data
-                { false, demos::scene_state::raw, demos::scene_state::raw, 
+                { /*false,*/ demos::scene_state::raw, demos::graphics_state::raw, demos::graphics_state::raw,
                 motor::shared( demos::scene_1( "scene_1", _dm ) ) } ) ;
         }
 
@@ -392,7 +394,7 @@ void_t the_app::on_event( window_id_t const wid,
     if ( sv.create_changed )
     {
         if ( _rwid == wid )
-            motor::log::global_t::status( "[my_app] : render window created" ) ;
+            motor::log::global_t::status( "[my_app] : production window created" ) ;
         else
             motor::log::global_t::status( "[my_app] : window created" ) ;
     }
@@ -405,7 +407,7 @@ void_t the_app::on_event( window_id_t const wid,
             _rwid = size_t( -1 ) ;
             this_t::access_current_scene_data( [&] ( this_t::scene_data & sd )
             {
-                sd.ss_prod = demos::scene_state::init ;
+                sd.ss_prod = demos::graphics_state::init ;
             } ) ;
 
             if( !this_t::is_tool_mode() ) 
@@ -553,7 +555,73 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
             auto & sd = _scenes[i] ;
 
             bool_t const in_range = sd.s->is_in_preload_time_range( _cur_time ) ;
+            bool_t const in_tool_mode = this_t::is_tool_mode() ;
 
+            if( in_range && sd.ss == demos::scene_state::raw )
+            {
+                // maybe we have to wait until the graphics obects
+                // are properly released.also
+                bool_t const can_init = 
+                    (sd.ss_prod == demos::graphics_state::raw) &&
+                    (sd.ss_dbg == demos::graphics_state::raw) ;
+
+                if( can_init )
+                {
+                    sd.ss = demos::scene_state::in_transit ;
+
+                    auto the_task = motor::shared( motor::concurrent::task_t( 
+                        [=] ( motor::concurrent::task_t::task_funk_param const & )
+                    {
+                        size_t const idx = i ;
+                        this->_scenes[ idx ].s->on_init( _db ) ;
+                        this->_scenes[ idx ].ss = demos::scene_state::init ;
+                        // there is no more transition function, so ...
+                        // ... the scene itself is ready.
+                        this->_scenes[ idx ].ss = demos::scene_state::ready ;
+                    } ) ) ;
+                    motor::concurrent::global::schedule( motor::move( the_task ),
+                            motor::concurrent::schedule_type::loose ) ;
+                }
+            }
+            else if( !in_range && sd.ss == demos::scene_state::ready )
+            {
+                // we can not releas the scene until the graphics data
+                // has been released!
+                bool_t const can_deinit = 
+                    (sd.ss_prod == demos::graphics_state::raw) && 
+                    (sd.ss_dbg == demos::graphics_state::raw) ;
+
+                if( can_deinit )
+                {
+                    sd.ss = demos::scene_state::in_transit ;
+
+                    auto the_task = motor::shared( motor::concurrent::task_t(
+                        [=] ( motor::concurrent::task_t::task_funk_param const & )
+                    {
+                        size_t const idx = i ;
+                        this->_scenes[ idx ].s->on_release() ;
+                        this->_scenes[ idx ].ss = demos::scene_state::raw ;
+                    } ) ) ;
+
+                    motor::concurrent::global::schedule( motor::move( the_task ),
+                            motor::concurrent::schedule_type::loose ) ;
+                }
+                else
+                {
+                    // tell to deinit render objects
+                    if( sd.ss_dbg == demos::graphics_state::ready )
+                    {
+                        sd.ss_dbg = demos::graphics_state::deinit_triggered ;
+                    }
+
+                    if( sd.ss_prod == demos::graphics_state::ready )
+                    {
+                        sd.ss_prod = demos::graphics_state::deinit_triggered ;
+                    }
+                }
+            }
+            
+            #if 0
             if( in_range && sd.ss_dbg == demos::scene_state::raw )
             {
                 sd.ss_dbg = demos::scene_state::in_transit ;
@@ -626,6 +694,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
                     }
                 }
             }
+            #endif
         } 
     }
 
@@ -635,15 +704,27 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
         this_t::determine_scene_index() ;
     }
 
+    // if in production mode, the demo should start as soon
+    // as all the data is initialized.
+    if( !this_t::is_tool_mode() && !_proceed_time )
+    {
+        auto const [a,b] = this_t::current_scene_idx() ;
+        if( _scenes[a].ss == demos::scene_state::ready && 
+            _scenes[a].ss_prod == demos::graphics_state::ready )
+            _proceed_time = true ;
+    }
+
     // update all scenes
     {
         for( auto & s : _scenes )
         {
-            if( s.s->is_in_preload_time_range( _cur_time ) ) 
+            bool_t const can_update = 
+                (s.ss == demos::scene_state::ready) && 
+                s.s->is_in_preload_time_range( _cur_time ) ;
+
+            if( can_update ) 
             {
-                if ( s.ss_dbg != demos::scene_state::raw ||
-                    s.ss_prod != demos::scene_state::raw )
-                    s.s->on_update( _cur_time ) ;
+                s.s->on_update( _cur_time ) ;
             }
         }
     }
@@ -660,8 +741,7 @@ void_t the_app::on_shutdown( void_t ) noexcept
 
     for( auto & s : _scenes )
     {
-        if( s.ss_dbg != demos::scene_state::raw || 
-            s.ss_prod != demos::scene_state::raw )
+        if( s.ss == demos::scene_state::ready )
         {
             s.s->on_release() ;
         }
