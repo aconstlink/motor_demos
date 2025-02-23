@@ -484,6 +484,8 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
         for( size_t i=0; i<_random_numbers.size(); ++i ) 
             _random_numbers[i] = float_t(std::rand() % 2000) / 2000.0f ;
     }
+
+    this_t::set_num_objects(100) ;
 }
 
 //*******************************************************************************
@@ -661,24 +663,27 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
         auto const view = cam->mat_view() ;
         auto const proj = cam->mat_proj() ;
 
-        _dummy_render_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+        if( this_t::is_tool_mode() )
         {
+            _dummy_render_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
             {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( view ) ;
-            }
+                {
+                    auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
+                    var->set( view ) ;
 
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( proj ) ;
-            }
-            #if 0
-            {
-                auto * var = vs->data_variable<float_t>( "kick" ) ;
-                var->set( _aanl.asys.kick ) ;
-            }
-            #endif
-        } ) ;
+                }
+                {
+                    auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
+                    var->set( proj ) ;
+                }
+                #if 0
+                {
+                    auto * var = vs->data_variable<float_t>( "kick" ) ;
+                    var->set( _aanl.asys.kick ) ;
+                }
+                #endif
+            } ) ;
+        }
 
         _cubes_final_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
@@ -705,6 +710,8 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
             #endif
         } ) ;
     }
+
+    this_t::set_num_objects( _num_rings * _cubes_per_ring ) ;
 }
 
 //*******************************************************************************
@@ -841,7 +848,6 @@ void_t scene_0::on_tool( void_t ) noexcept
                 ImGui::Text("General Properties") ;
                 slider_int_fn( "Number of Rings##Scene.0",_num_rings, 0, 300 ) ;
                 slider_int_fn( "Cubes per ring##Scene.0",_cubes_per_ring, 10, 200 ) ;
-                this_t::set_num_objects( _num_rings * _cubes_per_ring ) ;
             }
 
             ImGui::Separator() ;

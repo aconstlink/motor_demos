@@ -179,6 +179,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
 
 
     // set camera data to primitive renderer and do preparation
+    if( this_t::is_tool_mode() )
     {
         motor::gfx::generic_camera_ptr_t cam = _use_free_camera ? &_camera : 
             this_t::get_current_scene()->camera_manager().borrow_debug_camera() ; 
@@ -188,6 +189,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     }
 
     // scene on_graphcis
+    #if 1
     {
         for( auto & s : _scenes ) 
         {
@@ -200,5 +202,5 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
             } ) ;
         }
     }
-    
+    #endif
 }

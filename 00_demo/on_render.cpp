@@ -113,6 +113,7 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         }
     }
 
+    #if 1
     else if ( wid == _rwid )
     {
         // render and post
@@ -184,4 +185,5 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
             }
         }
     }
+    #endif
 }

@@ -129,6 +129,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
         ///////////////////////////////////////////////////////////////////////////////
 
         // dummy cube
+        if( this_t::is_tool_mode() )
         {
             struct vertex { motor::math::vec3f_t pos ; motor::math::vec3f_t nrm ; motor::math::vec2f_t tx ; } ;
 
@@ -168,6 +169,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
         }
 
         // dummy shader debug
+        if( this_t::is_tool_mode() )
         {
             motor::graphics::msl_object_t mslo( this_t::name() + ".dummy_debug" ) ;
 
@@ -206,6 +208,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
         }
 
         // dummy shader
+        if( this_t::is_tool_mode() )
         {
             motor::graphics::msl_object_t mslo( this_t::name() + ".dummy_render" ) ;
 
@@ -246,6 +249,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
         // Render States section
         ///////////////////////////////////////////////////////////////////////////////
 
+        if( this_t::is_tool_mode() )
         {
             motor::graphics::state_object_t so = motor::graphics::state_object_t(
                 this_t::name() + ".debug scene" ) ;
@@ -378,6 +382,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
         // msl objects
         {
             // cubes debug shader
+            if( this_t::is_tool_mode() )
             {
                 motor::graphics::msl_object_t mslo( this_t::name() + ".cubes_debug" ) ;
 
@@ -526,6 +531,7 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
     } ) ;
 
     // debug section
+    if( this_t::is_tool_mode() )
     {
         auto * cam = this_t::camera_manager().borrow_debug_camera() ;
 
@@ -571,7 +577,7 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
     }
 
     // set camera for final render shader
-    if ( this_t::is_in_time_range() )
+    if ( this_t::is_in_time_range() && this_t::is_tool_mode() )
     {
         auto * cam = this_t::camera_manager().borrow_final_camera() ;
 

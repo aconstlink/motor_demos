@@ -74,7 +74,7 @@ namespace demos
         motor::audio::capture_object_t _co ;
         demos::audio_analysis _aanl ;
 
-        #if 0//PRODUCTION_MODE
+        #if 1//PRODUCTION_MODE
         demos::demo_mode const _dm = demos::demo_mode::production ;
         #else
         demos::demo_mode const _dm = demos::demo_mode::tool ;

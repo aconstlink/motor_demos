@@ -82,7 +82,7 @@ namespace demos
     public:
 
         virtual void_t on_init_cameras( void_t ) noexcept ;
-        virtual void_t on_init( motor::io::database_ptr_t ) noexcept ;
+        virtual void_t on_init( motor::io::database_mtr_t ) noexcept ;
         virtual void_t on_release( void_t ) noexcept ;
 
         virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept ;
