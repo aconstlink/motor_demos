@@ -31,137 +31,141 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     
     size_t const scene_ids [2] = { _cur_scene_idx, _nxt_scene_idx } ;
 
-    for( size_t i=0; i<2; ++i )
+    // draw camera
+    if( this_t::is_tool_mode() )
     {
-        if( scene_ids[i] == size_t(-1) ) break ;
-
-        auto & s = _scenes[ scene_ids[i] ] ;
-        auto & camera_manager = s.s->camera_manager() ;
-
-        if( s.ss != demos::scene_state::ready ) continue ;
-        if( !s.s->is_in_time_range() ) continue ;
-
-        camera_manager.for_each_camera( [&]( size_t const idx, demos::camera_data & cd )
+        for ( size_t i = 0; i < 2; ++i )
         {
-            if ( idx == camera_manager.get_debug_camera_idx() && !_use_free_camera ) return ;
-            auto & cam = cd ;
+            if ( scene_ids[ i ] == size_t( -1 ) ) break ;
 
-            // draw camera paths
+            auto & s = _scenes[ scene_ids[ i ] ] ;
+            auto & camera_manager = s.s->camera_manager() ;
+
+            if ( s.ss != demos::scene_state::ready ) continue ;
+            if ( !s.s->is_in_time_range() ) continue ;
+
+            camera_manager.for_each_camera( [&] ( size_t const idx, demos::camera_data & cd )
             {
-                motor::math::vec4f_t const color[] =
+                if ( idx == camera_manager.get_debug_camera_idx() && !_use_free_camera ) return ;
+                auto & cam = cd ;
+
+                // draw camera paths
                 {
-                    motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 0.5f ),
-                    motor::math::vec4f_t( 0.5f, 0.0f, 0.0f, 1.0f )
-                } ;
-
-                size_t const cidx = idx == s.s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
-
-                using splinef_t = demos::camera_data::splinef_t ;
-                splinef_t spline = cam.kf_pos.get_spline() ;
-
-                {
-                    size_t const num_steps = 300 ;
-                    pr.draw_lines( num_steps, [&]( size_t const i )
+                    motor::math::vec4f_t const color[] =
                     {
-                        float_t const t0 = float_t( i + 0 ) / float_t ( num_steps - 1 ) ;
-                        float_t const t1 = float_t( i + 1 ) / float_t ( num_steps - 1 ) ;
+                        motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 0.5f ),
+                        motor::math::vec4f_t( 0.5f, 0.0f, 0.0f, 1.0f )
+                    } ;
 
-                        auto const v0 = spline( t0 ) ;
-                        auto const v1 = spline( t1 ) ;
+                    size_t const cidx = idx == s.s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
 
-                        return motor::gfx::line_render_3d::draw_line_data { v0, v1, color[ cidx ] } ;
-                    } ) ;
-                }
+                    using splinef_t = demos::camera_data::splinef_t ;
+                    splinef_t spline = cam.kf_pos.get_spline() ;
 
-                // draw current position
-                {
-                    pr.draw_circle( motor::math::mat3f_t::make_identity(), cam.kf_pos( time ), 10.0f,
-                        motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 1.0f ), motor::math::vec4f_t( 1.0f, 1.0f, 0.0f, 1.0f ), 20 ) ;
-                }
-
-                // draw control points
-                {
-                    auto const points = spline.control_points() ;
-                    for ( size_t i = 0; i < points.size(); ++i )
                     {
-                        auto const pos = points[ i ] ;
-                        pr.draw_circle( motor::math::mat3f_t::make_identity(), pos, 10.0f,
-                            motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ), motor::math::vec4f_t( 1.0f, 1.0f, 0.0f, 1.0f ), 20 ) ;
-                    }
-                }
-            }
+                        size_t const num_steps = 300 ;
+                        pr.draw_lines( num_steps, [&] ( size_t const i )
+                        {
+                            float_t const t0 = float_t( i + 0 ) / float_t ( num_steps - 1 ) ;
+                            float_t const t1 = float_t( i + 1 ) / float_t ( num_steps - 1 ) ;
 
-            // draw frustum
-            {
-                motor::gfx::generic_camera_ptr_t gcam = &cd.cam ;
+                            auto const v0 = spline( t0 ) ;
+                            auto const v1 = spline( t1 ) ;
 
-                // 0-3 : front plane
-                // 4-7 : back plane
-                motor::math::vec3f_t points[ 8 ] ;
-
-                if ( gcam->is_perspective() )
-                {
-                    auto const frust = gcam->get_frustum() ;
-
-                    //auto const nf = cam->get_near_far() ;
-                    auto const nf = motor::math::vec2f_t( 50.0f, 1000.0f ) ;
-
-                    auto const cs = gcam->near_far_plane_half_dims( nf ) ;
-                    {
-                        motor::math::vec3f_t const scale( cs.x(), cs.y(), nf.x() ) ;
-                        points[ 0 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale ;
-                        points[ 1 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale ;
-                        points[ 2 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale ;
-                        points[ 3 ] = motor::math::vec3f_t( +1.0f, -1.0f, 1.0f ) * scale ;
+                            return motor::gfx::line_render_3d::draw_line_data { v0, v1, color[ cidx ] } ;
+                        } ) ;
                     }
 
+                    // draw current position
                     {
-                        motor::math::vec3f_t const scale( cs.z(), cs.w(), nf.y() ) ;
-                        points[ 4 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale ;
-                        points[ 5 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale ;
-                        points[ 6 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale ;
-                        points[ 7 ] = motor::math::vec3f_t( +1.0f, -1.0f, 1.0f ) * scale ;
+                        pr.draw_circle( motor::math::mat3f_t::make_identity(), cam.kf_pos( time ), 10.0f,
+                            motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 1.0f ), motor::math::vec4f_t( 1.0f, 1.0f, 0.0f, 1.0f ), 20 ) ;
+                    }
+
+                    // draw control points
+                    {
+                        auto const points = spline.control_points() ;
+                        for ( size_t i = 0; i < points.size(); ++i )
+                        {
+                            auto const pos = points[ i ] ;
+                            pr.draw_circle( motor::math::mat3f_t::make_identity(), pos, 10.0f,
+                                motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ), motor::math::vec4f_t( 1.0f, 1.0f, 0.0f, 1.0f ), 20 ) ;
+                        }
                     }
                 }
 
-                for ( size_t i = 0; i < 8; ++i )
+                // draw frustum
                 {
-                    points[ i ] = ( gcam->get_transformation().get_transformation() * motor::math::vec4f_t( points[ i ], 1.0f ) ).xyz() ;
+                    motor::gfx::generic_camera_ptr_t gcam = &cd.cam ;
+
+                    // 0-3 : front plane
+                    // 4-7 : back plane
+                    motor::math::vec3f_t points[ 8 ] ;
+
+                    if ( gcam->is_perspective() )
+                    {
+                        auto const frust = gcam->get_frustum() ;
+
+                        //auto const nf = cam->get_near_far() ;
+                        auto const nf = motor::math::vec2f_t( 50.0f, 1000.0f ) ;
+
+                        auto const cs = gcam->near_far_plane_half_dims( nf ) ;
+                        {
+                            motor::math::vec3f_t const scale( cs.x(), cs.y(), nf.x() ) ;
+                            points[ 0 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale ;
+                            points[ 1 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale ;
+                            points[ 2 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale ;
+                            points[ 3 ] = motor::math::vec3f_t( +1.0f, -1.0f, 1.0f ) * scale ;
+                        }
+
+                        {
+                            motor::math::vec3f_t const scale( cs.z(), cs.w(), nf.y() ) ;
+                            points[ 4 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale ;
+                            points[ 5 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale ;
+                            points[ 6 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale ;
+                            points[ 7 ] = motor::math::vec3f_t( +1.0f, -1.0f, 1.0f ) * scale ;
+                        }
+                    }
+
+                    for ( size_t i = 0; i < 8; ++i )
+                    {
+                        points[ i ] = ( gcam->get_transformation().get_transformation() * motor::math::vec4f_t( points[ i ], 1.0f ) ).xyz() ;
+                    }
+
+                    motor::math::vec4f_t const color[] =
+                    {
+                        motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 0.5f ),
+                        motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f )
+                    } ;
+
+                    size_t const cidx = idx == s.s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
+
+                    // front
+                    for ( size_t i = 0; i < 4; ++i )
+                    {
+                        size_t const i0 = i + 0 ;
+                        size_t const i1 = ( i + 1 ) % 4 ;
+                        pr.draw_line( points[ i0 ], points[ i1 ], color[ cidx ] ) ;
+                    }
+
+                    // back
+                    for ( size_t i = 0; i < 4; ++i )
+                    {
+                        size_t const i0 = ( i + 0 ) + 4;
+                        size_t const i1 = ( ( i + 1 ) % 4 ) + 4 ;
+                        pr.draw_line( points[ i0 ], points[ i1 ], color[ cidx ] ) ;
+                    }
+
+                    // sides
+                    for ( size_t i = 0; i < 4; ++i )
+                    {
+                        size_t const i0 = ( i + 0 ) ;
+                        size_t const i1 = ( i + 4 ) % 8 ;
+                        pr.draw_line( points[ i0 ], points[ i1 ], color[ cidx ] ) ;
+                    }
                 }
-
-                motor::math::vec4f_t const color[] =
-                {
-                    motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 0.5f ),
-                    motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f )
-                } ;
-
-                size_t const cidx = idx == s.s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
-
-                // front
-                for ( size_t i = 0; i < 4; ++i )
-                {
-                    size_t const i0 = i + 0 ;
-                    size_t const i1 = ( i + 1 ) % 4 ;
-                    pr.draw_line( points[ i0 ], points[ i1 ], color[ cidx ] ) ;
-                }
-
-                // back
-                for ( size_t i = 0; i < 4; ++i )
-                {
-                    size_t const i0 = ( i + 0 ) + 4;
-                    size_t const i1 = ( ( i + 1 ) % 4 ) + 4 ;
-                    pr.draw_line( points[ i0 ], points[ i1 ], color[ cidx ] ) ;
-                }
-
-                // sides
-                for ( size_t i = 0; i < 4; ++i )
-                {
-                    size_t const i0 = ( i + 0 ) ;
-                    size_t const i1 = ( i + 4 ) % 8 ;
-                    pr.draw_line( points[ i0 ], points[ i1 ], color[ cidx ] ) ;
-                }
-            }
-        } ) ;
+            } ) ;
+        }
     }
 
     // change gbuffer textue
@@ -189,7 +193,6 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
     }
 
     // scene on_graphcis
-    #if 1
     {
         for( auto & s : _scenes ) 
         {
@@ -202,5 +205,4 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
             } ) ;
         }
     }
-    #endif
 }

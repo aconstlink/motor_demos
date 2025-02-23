@@ -74,7 +74,7 @@ namespace demos
         motor::audio::capture_object_t _co ;
         demos::audio_analysis _aanl ;
 
-        #if 1//PRODUCTION_MODE
+        #if 0//PRODUCTION_MODE
         demos::demo_mode const _dm = demos::demo_mode::production ;
         #else
         demos::demo_mode const _dm = demos::demo_mode::tool ;
@@ -181,7 +181,6 @@ namespace demos
         
 
     private: // free camera 
-      
 
         bool_t _use_free_camera = true ;
         motor::gfx::generic_camera_t _camera ;
@@ -194,6 +193,9 @@ namespace demos
         motor::tool::player_controller_t pc ;
         motor::tool::timeline_t tl = motor::tool::timeline_t( "my timeline" ) ;
         bool_t _space_bar_pressed = false ;
+
+        // could be used in production
+        bool_t _need_tool_view = false ;
 
     private: // time control
 

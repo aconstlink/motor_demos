@@ -372,7 +372,6 @@ void_t the_app::on_init( void_t ) noexcept
                 motor::shared( demos::scene_0( "scene_0", _dm ) ) } ) ;
         }
         
-        #if 0 
         {
             auto const s = motor::math::time::to_milli( 0, 27, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 70, 0 ) ;
@@ -380,7 +379,7 @@ void_t the_app::on_init( void_t ) noexcept
                 { /*false,*/ demos::scene_state::raw, demos::graphics_state::raw, demos::graphics_state::raw,
                 motor::shared( demos::scene_1( "scene_1", _dm ) ) } ) ;
         }
-        #endif
+
         for( auto & s : _scenes )
         {
             s.s->on_init_cameras() ;
@@ -465,7 +464,11 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
             
         }
 
-        if ( keyboard.get_state( key_t::f3 ) ==
+        if ( keyboard.get_state( key_t::f2 ) == motor::controls::components::key_state::released )
+        {
+            _need_tool_view = !_need_tool_view ;
+        }
+        else if ( keyboard.get_state( key_t::f3 ) ==
             motor::controls::components::key_state::released )
         {
             if( _rwid == size_t(-1) )

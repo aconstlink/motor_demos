@@ -6,7 +6,7 @@ using namespace demos ;
 //******************************************************************************************************
 bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app::tool_data_ref_t td ) noexcept 
 { 
-    if( wid != _twid ) return false ;
+    if( wid != _twid && !_need_tool_view ) return false ;
 
     auto slider_int_fn = [&] ( char const * name, size_t & io_value, size_t const min, size_t const max )
     {

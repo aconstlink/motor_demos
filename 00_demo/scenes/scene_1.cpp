@@ -620,13 +620,16 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
-        //fe->configure< motor::graphics::state_object_t>( &_scene_final_rs ) ;
-        fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
-        fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
+        if( this_t::is_tool_mode() )
+        {
+            //fe->configure< motor::graphics::state_object_t>( &_scene_final_rs ) ;
+            fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
+            fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
 
-        fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
-        fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
-        fe->configure<motor::graphics::msl_object>( _cubes_final_msl ) ;
+            fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
+            fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
+            fe->configure<motor::graphics::msl_object>( _cubes_final_msl ) ;
+        }
     }
 }
 
