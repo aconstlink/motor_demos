@@ -1,4 +1,4 @@
-config cubes_1_debug
+config cubes_1_final
 {
     vertex_shader
     {

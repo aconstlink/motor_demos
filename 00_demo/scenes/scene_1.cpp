@@ -46,23 +46,23 @@ void_t scene_1::on_init_cameras( void_t ) noexcept
 
             cd.cam.perspective_fov() ;
 
-            auto const tr = this_t::get_time_range() ;
+            size_t const st = this_t::camera_manager().get_camera_selector()[0].get_time() ;
 
             {
                 using kfs_t = demos::camera_data::keyframe_sequencef_t ;
                 kfs_t kf ;
-                kf.insert( kfs_t::keyframe_t( tr.first + 0, motor::math::vec3f_t( 0, 0, 0 ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( tr.first + 1000, motor::math::vec3f_t( 1000, 500, 80 ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( tr.first + 3000, motor::math::vec3f_t( 0, 800, 0 ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( st + 0,  motor::math::vec3f_t(103.128769f, 260.683929f, -436.706238f) ) ) ;
+                kf.insert( kfs_t::keyframe_t( st + 3000,  motor::math::vec3f_t(2206.015381f, 221.563141f, -569.994934f) ) ) ;
+                kf.insert( kfs_t::keyframe_t( st + 9000,  motor::math::vec3f_t(3841.135742f, 168.907684f, 1006.196899f) ) ) ;
                 cd.kf_pos = std::move( kf ) ;
             }
 
             {
                 using kfs_t = demos::camera_data::keyframe_sequencef_t ;
                 kfs_t kf ;
-                kf.insert( kfs_t::keyframe_t( tr.first + 0, motor::math::vec3f_t( 0, -0, -0 ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( tr.first + 1000, motor::math::vec3f_t( 0, -0, -0 ) ) ) ;
-                kf.insert( kfs_t::keyframe_t( tr.first + 3000, motor::math::vec3f_t( 0, 0, -0 ) ) ) ;
+                kf.insert( kfs_t::keyframe_t( st + 0,  motor::math::vec3f_t(108.288315f, 256.223969f, -417.905518f) ) ) ;
+                kf.insert( kfs_t::keyframe_t( st + 3000,  motor::math::vec3f_t(2206.478760f, 218.731476f, -550.202393f) ) ) ;
+                kf.insert( kfs_t::keyframe_t( st + 9000,  motor::math::vec3f_t(3839.556885f, 167.649338f, 1026.094116f) ) ) ;
 
                 cd.kf_lookat = std::move( kf ) ;
             }
@@ -70,7 +70,6 @@ void_t scene_1::on_init_cameras( void_t ) noexcept
             this_t::camera_manager().add_camera( std::move( cd ) ) ;
         }
 
-        #if 0
         // camera 2
         {
             demos::camera_data cd ;
@@ -82,17 +81,18 @@ void_t scene_1::on_init_cameras( void_t ) noexcept
                 motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
             //cd.cam.perspective_fov() ;
 
+            size_t const st = this_t::camera_manager().get_camera_selector()[1].get_time() ;
+
             {
                 auto const start = motor::math::vec3f_t( 1000.0f, 100.0f, 500.0f ) ;
-                size_t const start_milli = 8000 ;
 
                 using kfs_t = demos::camera_data::keyframe_sequencef_t ;
                 kfs_t kf_pos ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli, start ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 1000, start + motor::math::vec3f_t( 100.0f, 100.0f, -100.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 2000, start + motor::math::vec3f_t( -400.0f, -500.0f, 1000.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 3000, start + motor::math::vec3f_t( 0.0f, -100.0f, 0.0f ) ) ) ;
-                kf_pos.insert( kfs_t::keyframe_t( start_milli + 4000, start ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( st, start ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( st + 1000, start + motor::math::vec3f_t( 100.0f, 100.0f, -100.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( st + 2000, start + motor::math::vec3f_t( -400.0f, -500.0f, 1000.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( st + 3000, start + motor::math::vec3f_t( 0.0f, -100.0f, 0.0f ) ) ) ;
+                kf_pos.insert( kfs_t::keyframe_t( st + 4000, start ) ) ;
                 cd.kf_pos = std::move( kf_pos ) ;
             }
 
@@ -108,7 +108,7 @@ void_t scene_1::on_init_cameras( void_t ) noexcept
 
             this_t::camera_manager().add_camera( std::move( cd ) ) ;
         }
-        #endif
+
         // test : REMOVE IF NOT USED
         #if 0
         {
@@ -313,7 +313,7 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
             struct vertex { motor::math::vec3f_t pos ; motor::math::vec3f_t nrm ; motor::math::vec2f_t tx ; } ;
 
             motor::geometry::cube_t::input_params ip ;
-            ip.scale = motor::math::vec3f_t( 1.0f ) ;
+            ip.scale = motor::math::vec3f_t( 2.0f ) ;
             ip.tess = 0 ;
 
             motor::geometry::tri_mesh_t tm ;
@@ -377,6 +377,24 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
                 .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 );
 
             _cubes_data = motor::graphics::array_object_t( this_t::name() + ".cubes_data", std::move( db_ ) ) ;
+        }
+
+        // load common cubes shader libraries
+        {
+            motor::graphics::msl_object_t mslo;//("scene.1.library") ;
+            auto const res = db->load( motor::io::location_t( "shaders.scene_1.cubes.lib.msl" ) ).wait_for_operation(
+                    [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
+            {
+                if ( loading_res != motor::io::result::ok )
+                {
+                    assert( false ) ;
+                }
+
+                mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
+            } ) ;
+            _cubes_lib_msl = motor::shared( std::move( mslo ) ) ;
+            _reconfigs_debug.emplace_back( _cubes_lib_msl ) ;
+            _reconfigs_prod.emplace_back( _cubes_lib_msl ) ;
         }
 
         // msl objects
@@ -486,6 +504,14 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
             for( size_t i=0; i<_random_numbers.size(); ++i ) 
                 _random_numbers[i] = float_t(std::rand() % 2000) / 2000.0f ;
         }
+
+        this_t::randomize_lift_points() ;
+    }
+
+    {
+        _db = motor::share( db ) ;
+        _mon = motor::shared( motor::io::monitor_t() ) ;
+        _db->attach( motor::share( _mon ) ) ;
     }
 }
 
@@ -497,6 +523,10 @@ void_t scene_1::on_release( void_t ) noexcept
     motor::release( motor::move( _dummy_geo ) ) ;
     motor::release( motor::move( _cubes_debug_msl ) ) ;
     motor::release( motor::move( _cubes_final_msl ) ) ;
+
+    _db->detach( _mon ) ;
+    motor::release( motor::move( _mon ) ) ;
+    motor::release( motor::move( _db ) ) ;
 }
 
 //*******************************************************************************
@@ -517,6 +547,38 @@ void_t scene_1::on_update( size_t const cur_time ) noexcept
     this_t::update_time( cur_time ) ;
     // there the camera index is also updated
     this_t::camera_manager().update_camera( cur_time ) ;
+
+    this_t::set_num_objects( _width * _depth ) ;
+
+    _mon->for_each_and_swap( [&]( motor::io::location_cref_t loc, motor::io::monitor_t::notify const n )
+    {
+        motor::log::global::status<2048>( "[scene.1] : Got %s for %s", motor::io::monitor_t::to_string(n), loc.as_string().c_str() ) ;
+
+        if( loc == motor::io::location_t("shaders.scene_1.cubes_debug.msl") )
+        {
+            motor::string_t shd ;
+            _db->load( loc ).wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const ) 
+            { 
+                shd = motor::string_t( data, sib ) ;
+            } ) ;
+
+            _cubes_debug_msl->clear_shaders().add( motor::graphics::msl_api_type::msl_4_0, shd ) ;
+
+            _reconfigs_debug.emplace_back( _cubes_debug_msl ) ;
+        }
+        else if( loc == motor::io::location_t("shaders.scene_1.cubes.lib.msl") )
+        {
+            motor::string_t shd ;
+            _db->load( loc ).wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const ) 
+            { 
+                shd = motor::string_t( data, sib ) ;
+            } ) ;
+
+            _cubes_lib_msl->clear_shaders().add( motor::graphics::msl_api_type::msl_4_0, shd ) ;
+            _reconfigs_debug.emplace_back( _cubes_lib_msl ) ;
+            _reconfigs_prod.emplace_back( _cubes_lib_msl ) ;
+        }
+    }) ;
 }
 
 //*******************************************************************************
@@ -576,7 +638,6 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
         } ) ;
     }
 
-    // set camera for final render shader
     if ( this_t::is_in_time_range() && this_t::is_tool_mode() )
     {
         auto * cam = this_t::camera_manager().borrow_final_camera() ;
@@ -603,11 +664,61 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
             #endif
         } ) ;
     }
+
+    {
+        auto * cam = this_t::camera_manager().borrow_final_camera() ;
+
+        auto const view = cam->mat_view() ;
+        auto const proj = cam->mat_proj() ;
+
+        _cubes_final_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+        {
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
+                var->set( view ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
+                var->set( proj ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "world" ) ;
+                var->set( motor::math::mat4f_t::make_identity() ) ;
+            }
+
+            #if 0
+            {
+                auto * var = vs->data_variable<float_t>( "kick" ) ;
+                var->set( _aanl.asys.kick ) ;
+            }
+            #endif
+        } ) ;
+    }
 }
 
 //*******************************************************************************
 void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
+    // load library shaders first
+    {
+        for ( auto * obj : _reconfigs_debug )
+        {
+            fe->configure<motor::graphics::msl_object_t>( obj ) ;
+        }
+        _reconfigs_debug.clear() ;
+    }
+
+    // load library shaders first
+    {
+        for ( auto * obj : _reconfigs_prod )
+        {
+            fe->configure<motor::graphics::msl_object_t>( obj ) ;
+        }
+        _reconfigs_prod.clear() ;
+    }
+
     if ( rm == demos::iscene::render_mode::tool )
     {
         fe->configure< motor::graphics::state_object_t>( &_debug_rs ) ;
@@ -625,75 +736,65 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
             //fe->configure< motor::graphics::state_object_t>( &_scene_final_rs ) ;
             fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
             fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
-
-            fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
-            fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
-            fe->configure<motor::graphics::msl_object>( _cubes_final_msl ) ;
         }
+
+        fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
+        fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
+        fe->configure<motor::graphics::msl_object>( _cubes_final_msl ) ;
     }
 }
 
 //*******************************************************************************
 void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
+
+    //fe->release( motor::move( &_cubes_data ) ) ;
+    //fe->release( motor::move( &_cubes_geo ) ) ;
+    fe->release( motor::move( _cubes_final_msl ) ) ;
+
     if ( rm == demos::iscene::render_mode::tool )
     {
         fe->release( motor::move( _dummy_debug_msl ) ) ;
         fe->release( motor::move( _dummy_geo ) ) ;
-        fe->fence( [&] ( void_t )
-        {
-            //motor::release( motor::move( _dummy_debug_msl )  ) ;
-            //motor::release( motor::move( _dummy_geo ) ) ;
-        } ) ;
-
-        //_dummy_debug_msl = nullptr ;
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
-        motor::release( motor::move( _dummy_render_msl ) ) ;
-
-        #ifdef PRODUCTION_MODE
-        fe->release( motor::move( _dummy_geo ) ) ;
-
-        #endif
-
-        fe->fence( [=] ( void_t )
+        // production window but tool mode
+        if( this_t::is_tool_mode() )
         {
-
-
-        } ) ;
-        _dummy_debug_msl = nullptr ;
+            motor::release( motor::move( _dummy_render_msl ) ) ;
+        }
     }
 }
 
 //*******************************************************************************
 void_t scene_1::on_render_debug( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    //fe->update( &_cubes_data ) ;
+    {
+        for ( auto * obj : _reconfigs_debug )
+        {
+            fe->configure<motor::graphics::msl_object_t>( obj ) ;
+        }
+        _reconfigs_debug.clear() ;
+    }
+
+    fe->update( &_cubes_data ) ;
 
     fe->push( &_debug_rs ) ;
-
-    #if 1
-    // render dummy
-    {
-        motor::graphics::gen4::backend::render_detail_t det ;
-        fe->render( _dummy_debug_msl, det ) ;
-    }
-    #else
+    
     // render cubes
     {
         motor::graphics::gen4::backend_t::render_detail_t detail ;
         detail.start = 0 ;
         detail.num_elems = this_t::num_objects() * 36 ;
         detail.varset = 0 ;
-        fe->render( &_cubes_debug_msl, detail ) ;
+        fe->render( _cubes_debug_msl, detail ) ;
     }
     // render dummy
     {
         motor::graphics::gen4::backend::render_detail_t det ;
         fe->render( _dummy_debug_msl, det ) ;
     }
-    #endif
 
     fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
 }
@@ -701,19 +802,26 @@ void_t scene_1::on_render_debug( motor::graphics::gen4::frontend_ptr_t fe ) noex
 //*******************************************************************************
 void_t scene_1::on_render_final( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    #if 0
+    {
+        for ( auto * obj : _reconfigs_prod )
+        {
+            fe->configure<motor::graphics::msl_object_t>( obj ) ;
+        }
+        _reconfigs_prod.clear() ;
+    }
+
     fe->update( &_cubes_data ) ;
-    #endif
+    
     // render scene
     {
-        #if 0
+        #if 1
         // render cubes
         {
             motor::graphics::gen4::backend_t::render_detail_t detail ;
             detail.start = 0 ;
             detail.num_elems = this_t::num_objects() * 36 ;
             detail.varset = 0 ;
-            fe->render( &_cubes_final_msl, detail ) ;
+            fe->render( _cubes_final_msl, detail ) ;
         }
         #endif
         //fe->push( &_scene_final_rs ) ;
@@ -731,13 +839,60 @@ void_t scene_1::on_tool( void_t ) noexcept
     auto slider_int_fn = [&]( char const * name, size_t & io_value, size_t const min, size_t const max )
     {
         int_t v = int_t( io_value ) ;
-        ImGui::SliderInt( name, &v, int_t(min), int_t( max ) ) ;
-        io_value = size_t( v ) ;
+        if( ImGui::SliderInt( name, &v, int_t(min), int_t( max ) ) )
+        {
+            io_value = size_t( v ) ;
+            return true ;
+        }
+        return false ;
     } ;
 
     if( ImGui::Begin( this_t::name().c_str() ) )
     {
-        
+        ImGui::Text( "%d:%d", this_t::num_objects(), _max_objects ) ;
+
+        if( slider_int_fn( "Width##scene.1", _width, 10, 400 ) )
+        {
+            this_t::randomize_lift_points() ;
+        }
+
+        if( slider_int_fn( "Depth##scene.1", _depth, 10, 400 ) )
+        {
+            this_t::randomize_lift_points() ;
+        }
+
+        ImGui::SliderFloat( "Cube Scale##scene.1", &_cube_scale, 1.0f, 50.0f ) ;
+        ImGui::SliderFloat( "Width Offset##scene.1", &_offset_width, 1.0f, 200.0f ) ;
+        ImGui::SliderFloat( "Depth Offset##scene.1", &_offset_depth, 1.0f, 200.0f ) ;
+
+        // select poi
+        {
+            ImGui::Text( "Point of interest"); ImGui::SameLine() ; ImGui::Separator() ;
+            if( ImGui::Checkbox( "Enable##poi.scene.1", &_enable_poi ) ) {}
+            ImGui::SliderFloat( "x##poi.scene.1", &_poi_x, 1, float_t(_width) ) ;
+            ImGui::SliderFloat( "z##poi.scene.1", &_poi_z, 1, float_t(_depth) ) ;
+            ImGui::SliderFloat( "falloff##poi.scene.1", &_falloff_poi, 1, 20 ) ;
+        }
+
+        // wave props
+        {
+            ImGui::Text( "Wave"); ImGui::SameLine() ; ImGui::Separator() ;
+            if( ImGui::Checkbox( "Enable##wave.scene.1", &_enable_wave ) ) {}
+            ImGui::SliderFloat( "Amplitude##wave.scene.1", &_wave_amp, 1.0f, 200.0f ) ;
+            ImGui::SliderFloat( "Frequency##wave.scene.1", &_wave_freq, 1.0f, 50.0f ) ;
+            ImGui::SliderFloat( "Phase##wave.scene.1", &_wave_phase, 1.0f, 100.0f ) ;
+        }
+
+        // wave props
+        {
+            ImGui::Text( "Lift Points"); ImGui::SameLine() ; ImGui::Separator() ;
+            if( ImGui::Checkbox( "Enable##liftpoints.scene.1", &_enable_lift_points ) ) {}
+
+            ImGui::SliderFloat( "Falloff##liftpoints.scene.1", &_lp_falloff_thres, 1.0f, 10.0f ) ;
+
+        }
+
+        ImGui::Separator() ;
     }
     ImGui::End() ;
 }

@@ -197,6 +197,12 @@ namespace demos
         // could be used in production
         bool_t _need_tool_view = false ;
 
+        #if 1
+        size_t _jump_to_scene = 1 ;
+        #else
+        size_t _jump_to_scene = size_t(-1) ;
+        #endif
+
     private: // time control
 
         size_t _max_time_milli = motor::math::time::to_milli( 3, 11, 10 ) ;

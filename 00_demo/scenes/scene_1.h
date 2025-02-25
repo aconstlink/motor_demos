@@ -14,16 +14,21 @@ namespace demos
 
     private: // general
 
-        bool_t _is_render_init = false ;
+        motor::io::database_mtr_t _db = nullptr ;
+        motor::io::monitor_mtr_t _mon = nullptr ;
+
+        motor::vector< motor::graphics::msl_object_ptr_t > _reconfigs_debug ;
+        motor::vector< motor::graphics::msl_object_ptr_t > _reconfigs_prod ;
 
     private: // cubes
 
-        size_t _max_objects = 50000 ;
-        size_t _num_objects = 0 ;
+        size_t _max_objects = 150000 ;
+        size_t _num_objects = 1 ;
 
         motor::graphics::geometry_object_t _cubes_geo ;
         motor::graphics::array_object_t _cubes_data ;
 
+        motor::graphics::msl_object_mtr_t _cubes_lib_msl = nullptr ;
         motor::graphics::msl_object_mtr_t _cubes_debug_msl = nullptr ;
         motor::graphics::msl_object_mtr_t _cubes_final_msl = nullptr ;
 
@@ -110,8 +115,51 @@ namespace demos
             motor::math::vec4f_t frame_z ;
         };
 
-    private:
+    private: // general properties
 
+        size_t _width = 250 ;
+        size_t _depth = 250 ;
+        float_t _offset_width = 50.0f ;
+        float_t _offset_depth = 50.0f ;
+        float_t _cube_scale = 50.0f ;
+
+    private: // point of interest properties
+
+        bool_t _enable_poi = false ;
+        float_t _poi_x = 0.0f ;
+        float_t _poi_z = 0.0f ;
+        float_t _falloff_poi = 10.0f ;
+
+    private: // line lift properties 
+
+        bool_t _x_line_lift_enable = false ;
+        int_t _x_line_lift = 0 ;
+        
+    private: // wave properties 
+
+        bool_t _enable_wave = true ;
+        float_t _wave_freq = 1.0f ;
+        float_t _wave_phase = 0.0f ;
+        float_t _wave_amp = 1.0f ;
+
+    private: // lift point properties 
+
+        bool_t _enable_lift_points = false ;
+        float_t _lp_falloff_thres = 5.0f ;
+
+        motor::vector< motor::math::vec2f_t > _lift_points ;
+        void_t randomize_lift_points( void_t ) noexcept 
+        {
+            _lift_points.resize( 20 ) ;
+            for( size_t i=0; i<_lift_points.size(); ++i )
+            {
+                _lift_points[i] = motor::math::vec2f_t( 
+                    this_t::rand(i*3+1), this_t::rand(i*2+1) ) *
+                    motor::math::vec2f_t( float_t(_width), float_t(_depth) ) ;
+            }
+        }
+
+        #if 0
         size_t _num_rings = 10 ;
         size_t _cubes_per_ring = 60 ;
         float_t _cube_radius = 10.0f ;
@@ -135,16 +183,20 @@ namespace demos
         size_t _ring_to_lift_range = size_t( 0 ) ;
         float_t _ring_lift_radius = 0.0f ;
 
-        std::array< float_t, 1024 > _random_numbers ;
+        size_t num_rings( void_t ) const noexcept { return _num_rings ; }
+        #endif
+
+        
 
         typedef motor::concurrent::range_1d<size_t> range_t ;
 
-        // coreo_0 not used! Keeping just for copy and pasting
         void_t coreo_0( demos::iscene::on_graphics_data_in_t ) noexcept ;
 
         void_t coreo_1( demos::iscene::on_graphics_data_in_t ) noexcept ;
 
-        size_t num_rings( void_t ) const noexcept { return _num_rings ; }
+    private: // random numbers
+
+        std::array< float_t, 1024 > _random_numbers ;
         float_t rand( size_t const i ) const noexcept
         {
             return _random_numbers[ i % _random_numbers.size() ] ;

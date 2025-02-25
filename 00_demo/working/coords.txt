@@ -4,19 +4,20 @@ Scene 0
 Position:
 using kfs_t = demos::camera_data::keyframe_sequencef_t ;
 kfs_t kf ;
-kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(1050.910278f, -0.800429f, -182.960831f) ) ) ;
-kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(534.924927f, -64.362190f, -130.895432f) ) ) ;
-kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(328.392639f, 198.827835f, -395.404388f) ) ) ;
-kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(-205.188736f, -52.714512f, -109.579094f) ) ) ;
-kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(-908.151306f, 206.600845f, 28.690346f) ) ) ;
-kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(-1576.810669f, -12.273022f, 308.882080f) ) ) ;
 Lookat:
 using kfs_t = demos::camera_data::keyframe_sequencef_t ;
 kfs_t kf ;
-kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(1031.214111f, -0.796436f, -179.487778f) ) ) ;
- kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(515.552063f, -59.720646f, -132.669312f) ) ) ;
- kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(312.900757f, 190.665634f, -385.741302f) ) ) ;
- kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(-224.431519f, -47.709923f, -107.419807f) ) ) ;
- kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(-927.006409f, 203.097549f, 34.364937f) ) ) ;
- kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(-1594.317627f, -2.607837f, 308.598633f) ) ) ;
+Scene 1
+Position:
+using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+kfs_t kf ;
+kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(103.128769f, 260.683929f, -436.706238f) ) ) ;
+kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(2206.015381f, 221.563141f, -569.994934f) ) ) ;
+kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(3841.135742f, 168.907684f, 1006.196899f) ) ) ;
+Lookat:
+using kfs_t = demos::camera_data::keyframe_sequencef_t ;
+kfs_t kf ;
+kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(108.288315f, 256.223969f, -417.905518f) ) ) ;
+ kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(2206.478760f, 218.731476f, -550.202393f) ) ) ;
+ kf.insert( kfs_t::keyframe_t( 123456,  motor::math::vec3f_t(3839.556885f, 167.649338f, 1026.094116f) ) ) ;
  

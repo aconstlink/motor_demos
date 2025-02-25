@@ -551,6 +551,13 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 {
     if ( _proceed_time ) _cur_time += ud.milli_dt ;
 
+    if( this_t::is_tool_mode() && _jump_to_scene != size_t(-1) )
+    {
+        auto const kf = _scenes[_jump_to_scene].s->camera_manager().get_camera_selector().front() ;
+        _cur_time = kf.get_time() ;
+        _jump_to_scene = size_t(-1) ;
+    }
+
     // check for every scene is it is in preload range
     // if so init or release the scene
     {
@@ -624,81 +631,6 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
                     }
                 }
             }
-            
-            #if 0
-            if( in_range && sd.ss_dbg == demos::scene_state::raw )
-            {
-                sd.ss_dbg = demos::scene_state::in_transit ;
-
-                auto the_task = motor::shared( motor::concurrent::task_t( 
-                    [=] ( motor::concurrent::task_t::task_funk_param const & )
-                {
-                    size_t const idx = i ;
-                    this->_scenes[ idx ].s->on_init( _db ) ;
-                    this->_scenes[ idx ].ss_dbg = demos::scene_state::init ;
-                    this->_scenes[ idx ].ss_prod = demos::scene_state::init ;
-                } ) ) ;
-
-                motor::concurrent::global::schedule( motor::move( the_task ),
-                    motor::concurrent::schedule_type::loose ) ;
-            }
-            else if( !in_range )
-            {
-                {
-                    if( sd.ss_dbg == demos::scene_state::ready )
-                        sd.ss_dbg = demos::scene_state::render_deinit_trigger ;
-
-                    if( sd.ss_prod == demos::scene_state::ready )
-                        sd.ss_prod = demos::scene_state::render_deinit_trigger ;
-                }
-
-                if( this_t::is_tool_mode() )
-                {
-                    bool_t const cond =
-                        sd.ss_dbg == demos::scene_state::render_deinit ||
-                        sd.ss_dbg == demos::scene_state::init ;
-
-                    if ( cond )
-                    {
-                        sd.ss_dbg = demos::scene_state::in_transit ;
-
-                        auto the_task = motor::shared( motor::concurrent::task_t(
-                            [=] ( motor::concurrent::task_t::task_funk_param const & )
-                        {
-                            size_t const idx = i ;
-                            this->_scenes[ idx ].s->on_release() ;
-                            this->_scenes[ idx ].ss_dbg = demos::scene_state::raw ;
-                            this->_scenes[ idx ].ss_prod = demos::scene_state::raw ;
-                        } ) ) ;
-
-                        motor::concurrent::global::schedule( motor::move( the_task ),
-                            motor::concurrent::schedule_type::loose ) ;
-                    }
-                }
-                else
-                {
-                    bool_t const cond =
-                        sd.ss_prod == demos::scene_state::render_deinit ||
-                        sd.ss_prod == demos::scene_state::init ;
-
-                    if ( cond )
-                    {
-                        sd.ss_prod = demos::scene_state::in_transit ;
-
-                        auto the_task = motor::shared( motor::concurrent::task_t(
-                            [=] ( motor::concurrent::task_t::task_funk_param const & )
-                        {
-                            size_t const idx = i ;
-                            this->_scenes[ idx ].s->on_release() ;
-                            this->_scenes[ idx ].ss_prod = demos::scene_state::raw ;
-                        } ) ) ;
-
-                        motor::concurrent::global::schedule( motor::move( the_task ),
-                            motor::concurrent::schedule_type::loose ) ;
-                    }
-                }
-            }
-            #endif
         } 
     }
 

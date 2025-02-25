@@ -710,7 +710,6 @@ void_t scene_0::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
             #endif
         } ) ;
     }
-
     this_t::set_num_objects( _num_rings * _cubes_per_ring ) ;
 }
 

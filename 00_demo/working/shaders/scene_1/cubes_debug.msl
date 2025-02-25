@@ -31,15 +31,23 @@ config cubes_1_debug
             vec3_t fy = vec3_t( x.y, y.y, z.y ) ;
             vec3_t fz = vec3_t( x.z, y.z, z.z ) ;
 
-            vec3_t pos = in.pos ;
-            pos.x = dot( fx.xyz, in.pos ) ;
-            pos.y = dot( fy.xyz, in.pos ) ;
-            pos.z = dot( fz.xyz, in.pos ) ;
+            /*
+            vec3_t pos = ( in.pos ) ;
+            pos.xz *= 0.5 ;
+            pos.y = pos.y * 0.5 + 0.5 ;
+            
+            //pos.x = dot( fx.xyz, in.pos ) ;
+            //pos.y = dot( fy.xyz, in.pos ) ;
+            //pos.z = dot( fz.xyz, in.pos ) ;
 
+            pos.y *= 19.0 ;
             vec4_t pos_ = vec4_t( pos ' as_vec3( pos_scl.w ), 1.0 ) ;
             pos_ = pos_ + vec4_t( pos_scl.xyz, 0.0 ) ;
+            */
+            vec3_t pos = msl.cubes.transform_position( 
+                  in.pos, vec3_t(pos_scl.w), pos_scl.xyz ) ;
 
-            out.pos = proj * view * pos_ ;
+            out.pos = proj * view * vec4_t( pos, 1.0 ) ; 
 
             out.tx = in.tx ;
             out.nrm = normalize( world * vec4_t(in.nrm, 0.0 ) ).xyz ;

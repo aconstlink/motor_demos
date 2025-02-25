@@ -1,0 +1,25 @@
+
+
+
+library cubes
+{
+    vec2_t xyz( in vec2_t vin ) {
+        return vin ;
+    }
+
+    vec3_t xyz( in vec3_t vin ) {
+        return vin + vec3_t( -0.1, -0.1, 0.0) ; 
+    }
+
+    vec4_t to_vec4( in vec3_t vin ) {
+        return vec4_t( msl.math.xyz( vin ), 1.0 ) ;
+    }
+
+    vec3_t transform_position( vec3_t pos_in, vec3_t scale, vec3_t trans ) 
+    {
+        //pos_in.x += 10.0 ; 
+        //pos_in.xz *= 0.5 ;  
+        pos_in.y = pos_in.y * 0.5 + 0.5 ;
+        return pos_in ' scale + trans ;
+    }
+}

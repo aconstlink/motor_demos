@@ -56,7 +56,7 @@ void_t scene_0::coreo_0( demos::iscene::on_graphics_data_in_t gd ) noexcept
 
                 {
                     auto const v0 = this_t::pos_funk( t0 ) ;
-                    auto const v1 = this_t::pos_funk( t1 )  ;
+                    auto const v1 = this_t::pos_funk( t1 ) ;
 
                     auto dir = ( v1 - v0 ).normalized() ;
                     auto const up = motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ) ;

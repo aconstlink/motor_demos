@@ -165,6 +165,16 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
                 std::snprintf( buffer, 4096, "##scene_state_%s", s.s->name().c_str() ) ;
                 ImGui::ColorButton( buffer, color ) ;
             }
+
+            {
+                ImGui::SameLine() ;
+                std::memset( buffer, 0, sizeof(buffer) ) ;
+                std::snprintf( buffer, 4096, "jump##jump_to_scene_%s", s.s->name().c_str() ) ;
+                if( ImGui::Button( buffer ) )
+                {
+                    _jump_to_scene = i ;
+                }
+            }
         }
     }
     ImGui::End() ;

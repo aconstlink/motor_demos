@@ -46,7 +46,11 @@ void_t the_app::on_audio( motor::audio::frontend_ptr_t fptr, audio_data_in_t ad 
 
     // [0,1] : kick frequencies
     // [2,3] : mid low frequencies
+    #if 1
+    std::array< size_t, 4 > const bands = 
+    #else
     motor::vector< size_t > const bands =
+    #endif
     {
         size_t( _aanl.asys.kick_start ),
         size_t( _aanl.asys.kick_start + _aanl.asys.kick_band ),

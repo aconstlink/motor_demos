@@ -79,6 +79,11 @@ namespace demos
             _cam_selector = std::move( kfs ) ;
         }
 
+        camera_kfs_t const & get_camera_selector( void_t ) const noexcept
+        {
+            return _cam_selector ;
+        }
+
         bool_t camera_selector_range(std::pair< size_t, size_t > & range ) const noexcept
         {
             if( _cam_selector.get_num_keyframes() == 0 ) return false ;
