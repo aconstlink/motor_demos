@@ -165,7 +165,7 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
         } ) ;
 
         _dummy_geo = motor::shared( motor::graphics::geometry_object_t( this_t::name() + ".dummy_object",
-            motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ) ;
+            motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ), "dummy geo" ) ;
     }
 
     // dummy shader debug
@@ -203,7 +203,7 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
             mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set 1" ) ) ;
         }
 
-        _dummy_debug_msl = motor::shared( std::move( mslo ) ) ;
+        _dummy_debug_msl = motor::shared( std::move( mslo ), "msl dummy" ) ;
     }
 
     // dummy shader
@@ -241,7 +241,7 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
             mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set 1" ) ) ;
         }
 
-        _dummy_render_msl = motor::shared( std::move( mslo ) ) ;
+        _dummy_render_msl = motor::shared( std::move( mslo ), "dummy_render_msl" ) ;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -420,7 +420,7 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
 
             mslo.add_variable_set( motor::shared( std::move( vars ) ) ) ;
 
-            _cubes_debug_msl = motor::shared( std::move( mslo ) ) ;
+            _cubes_debug_msl = motor::shared( std::move( mslo ), "cubes msl debug" ) ;
         }
 
         // cubes final shader
@@ -461,9 +461,9 @@ void_t scene_0::on_init( motor::io::database_mtr_t db ) noexcept
                 var->set( this_t::name() + ".cubes_data" ) ;
             }
 
-            mslo.add_variable_set( motor::shared( std::move( vars ) ) ) ;
+            mslo.add_variable_set( motor::shared( std::move( vars ), "varset" ) ) ;
 
-            _cubes_final_msl = motor::shared( std::move( mslo ) ) ;
+            _cubes_final_msl = motor::shared( std::move( mslo ), "cubes final" ) ;
         }
     }
 

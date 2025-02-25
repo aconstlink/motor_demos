@@ -523,6 +523,7 @@ void_t scene_1::on_release( void_t ) noexcept
     motor::release( motor::move( _dummy_geo ) ) ;
     motor::release( motor::move( _cubes_debug_msl ) ) ;
     motor::release( motor::move( _cubes_final_msl ) ) ;
+    motor::release( motor::move( _cubes_lib_msl ) ) ;
 
     _db->detach( _mon ) ;
     motor::release( motor::move( _mon ) ) ;

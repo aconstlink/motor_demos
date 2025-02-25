@@ -156,7 +156,7 @@ void_t the_app::on_init( void_t ) noexcept
         } ) ;
 
         _post_quad = motor::shared( motor::graphics::geometry_object_t( "post_quad",
-            motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ) ;
+            motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ), "post quad" ) ;
     }
 
     // post shader
@@ -192,7 +192,7 @@ void_t the_app::on_init( void_t ) noexcept
             mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set" ) ) ;
         }
 
-        _post_msl = motor::shared( std::move( mslo ) ) ;
+        _post_msl = motor::shared( std::move( mslo ), "post msl" ) ;
     }
 
     // post shader
@@ -238,7 +238,7 @@ void_t the_app::on_init( void_t ) noexcept
             mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set" ) ) ;
         }
 
-        _post_xfade_msl = motor::shared( std::move( mslo ) ) ;
+        _post_xfade_msl = motor::shared( std::move( mslo ), "post xfade" ) ;
     }
 
     {
@@ -369,16 +369,18 @@ void_t the_app::on_init( void_t ) noexcept
             auto const e = motor::math::time::to_milli( 0, 30, 0 ) ;
             _scenes.emplace_back( this_t::scene_data
                 { /*true,*/ demos::scene_state::raw, demos::graphics_state::raw, demos::graphics_state::raw, 
-                motor::shared( demos::scene_0( "scene_0", _dm ) ) } ) ;
+                motor::shared( demos::scene_0( "scene_0", _dm ), "demo 0" ) } ) ;
         }
         
+        #if 1
         {
             auto const s = motor::math::time::to_milli( 0, 27, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 70, 0 ) ;
             _scenes.emplace_back( this_t::scene_data
                 { /*false,*/ demos::scene_state::raw, demos::graphics_state::raw, demos::graphics_state::raw,
-                motor::shared( demos::scene_1( "scene_1", _dm ) ) } ) ;
+                motor::shared( demos::scene_1( "scene_1", _dm ), "demo 1" ) } ) ;
         }
+        #endif
 
         for( auto & s : _scenes )
         {
@@ -553,6 +555,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 
     if( this_t::is_tool_mode() && _jump_to_scene != size_t(-1) )
     {
+        _jump_to_scene = std::min( _jump_to_scene, _scenes.size() - 1 ) ;
         auto const kf = _scenes[_jump_to_scene].s->camera_manager().get_camera_selector().front() ;
         _cur_time = kf.get_time() ;
         _jump_to_scene = size_t(-1) ;
