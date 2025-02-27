@@ -17,8 +17,9 @@ library cubes
 
     vec3_t transform_position( vec3_t pos_in, vec3_t scale, vec3_t trans ) 
     {
-        //pos_in.x += 10.0 ; 
-        //pos_in.xz *= 0.5 ;  
+        pos_in.x += 10.0 ; 
+        pos_in.y *= 0.4 ; 
+        pos_in.xz *= 0.5 ;  
         pos_in.y = pos_in.y * 0.5 + 0.5 ;
         return pos_in ' scale + trans ;
     }

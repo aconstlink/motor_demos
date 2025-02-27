@@ -25,8 +25,8 @@ namespace demos
         size_t _max_objects = 150000 ;
         size_t _num_objects = 1 ;
 
-        motor::graphics::geometry_object_t _cubes_geo ;
-        motor::graphics::array_object_t _cubes_data ;
+        motor::graphics::geometry_object_mtr_t _cubes_geo = nullptr ;
+        motor::graphics::array_object_mtr_t _cubes_data = nullptr ;
 
         motor::graphics::msl_object_mtr_t _cubes_lib_msl = nullptr ;
         motor::graphics::msl_object_mtr_t _cubes_debug_msl = nullptr ;

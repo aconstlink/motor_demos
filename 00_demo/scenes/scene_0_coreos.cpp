@@ -147,7 +147,7 @@ void_t scene_0::coreo_1( demos::iscene::on_graphics_data_in_t gd ) noexcept
                 size_t const nxt_ring = ( e / cubes_per_ring ) + 1 ;
 
                 // the ring the time is on.
-                size_t const cur_ring_time = ( gd.cur_time / _per_ring_milli ) % num_rings ;
+                size_t const cur_ring_time = ( gd.cur_time / _per_ring_milli ) % std::max( num_rings, size_t(1) ) ;
 
                 float_t final_radius = _center_radius ;
                 // radius computation

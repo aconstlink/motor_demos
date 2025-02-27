@@ -11,7 +11,7 @@ using namespace demos ;
 //*****************************************************************************************
 void_t scene_1::coreo_0( demos::iscene::on_graphics_data_in_t gd ) noexcept
 {
-    _cubes_data.data_buffer().resize( this_t::num_objects() ).
+    _cubes_data->data_buffer().resize( this_t::num_objects() ).
         update< the_data >( [&] ( the_data * array, size_t const ne )
     {
         typedef motor::concurrent::range_1d<size_t> range_t ;
@@ -82,7 +82,7 @@ void_t scene_1::coreo_0( demos::iscene::on_graphics_data_in_t gd ) noexcept
 //*****************************************************************************************
 void_t scene_1::coreo_1( demos::iscene::on_graphics_data_in_t gd ) noexcept
 {
-    _cubes_data.data_buffer().resize( this_t::num_objects() ).
+    _cubes_data->data_buffer().resize( this_t::num_objects() ).
         update< the_data >( [&] ( the_data * array, size_t const ne )
     {
         typedef motor::concurrent::range_1d<size_t> range_t ;

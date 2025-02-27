@@ -363,8 +363,8 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
                 } ) ;
             } ) ;
 
-            _cubes_geo = motor::graphics::geometry_object_t( this_t::name() + ".cubes",
-                motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ;
+            _cubes_geo = motor::shared( motor::graphics::geometry_object_t( this_t::name() + ".cubes",
+                motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ) ;
         }
 
         // cubes data array
@@ -376,7 +376,8 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
                 .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
                 .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 );
 
-            _cubes_data = motor::graphics::array_object_t( this_t::name() + ".cubes_data", std::move( db_ ) ) ;
+            _cubes_data = motor::shared( motor::graphics::array_object_t( 
+                this_t::name() + ".cubes_data", std::move( db_ ) ) ) ;
         }
 
         // load common cubes shader libraries
@@ -524,6 +525,8 @@ void_t scene_1::on_release( void_t ) noexcept
     motor::release( motor::move( _cubes_debug_msl ) ) ;
     motor::release( motor::move( _cubes_final_msl ) ) ;
     motor::release( motor::move( _cubes_lib_msl ) ) ;
+    motor::release( motor::move( _cubes_geo ) ) ;
+    motor::release( motor::move( _cubes_data ) ) ;
 
     _db->detach( _mon ) ;
     motor::release( motor::move( _mon ) ) ;
@@ -702,36 +705,36 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 //*******************************************************************************
 void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
-    // load library shaders first
-    {
-        for ( auto * obj : _reconfigs_debug )
-        {
-            fe->configure<motor::graphics::msl_object_t>( obj ) ;
-        }
-        _reconfigs_debug.clear() ;
-    }
-
-    // load library shaders first
-    {
-        for ( auto * obj : _reconfigs_prod )
-        {
-            fe->configure<motor::graphics::msl_object_t>( obj ) ;
-        }
-        _reconfigs_prod.clear() ;
-    }
-
     if ( rm == demos::iscene::render_mode::tool )
     {
+        // load library shaders first
+        {
+            for ( auto * obj : _reconfigs_debug )
+            {
+                fe->configure<motor::graphics::msl_object_t>( obj ) ;
+            }
+            _reconfigs_debug.clear() ;
+        }
+
         fe->configure< motor::graphics::state_object_t>( &_debug_rs ) ;
         fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
         fe->configure<motor::graphics::msl_object>( _dummy_debug_msl ) ;
 
-        fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
-        fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
+        fe->configure<motor::graphics::array_object>( _cubes_data ) ;
+        fe->configure<motor::graphics::geometry_object>( _cubes_geo ) ;
         fe->configure<motor::graphics::msl_object>( _cubes_debug_msl ) ;
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
+        // load library shaders first
+        {
+            for ( auto * obj : _reconfigs_prod )
+            {
+                fe->configure<motor::graphics::msl_object_t>( obj ) ;
+            }
+            _reconfigs_prod.clear() ;
+        }
+
         if( this_t::is_tool_mode() )
         {
             //fe->configure< motor::graphics::state_object_t>( &_scene_final_rs ) ;
@@ -739,8 +742,8 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
             fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
         }
 
-        fe->configure<motor::graphics::array_object>( &_cubes_data ) ;
-        fe->configure<motor::graphics::geometry_object>( &_cubes_geo ) ;
+        fe->configure<motor::graphics::array_object>( _cubes_data ) ;
+        fe->configure<motor::graphics::geometry_object>( _cubes_geo ) ;
         fe->configure<motor::graphics::msl_object>( _cubes_final_msl ) ;
     }
 }
@@ -748,9 +751,8 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
 //*******************************************************************************
 void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
-
-    //fe->release( motor::move( &_cubes_data ) ) ;
-    //fe->release( motor::move( &_cubes_geo ) ) ;
+    fe->release( motor::move( _cubes_data ) ) ;
+    fe->release( motor::move( _cubes_geo ) ) ;
     fe->release( motor::move( _cubes_final_msl ) ) ;
 
     if ( rm == demos::iscene::render_mode::tool )
@@ -779,7 +781,7 @@ void_t scene_1::on_render_debug( motor::graphics::gen4::frontend_ptr_t fe ) noex
         _reconfigs_debug.clear() ;
     }
 
-    fe->update( &_cubes_data ) ;
+    fe->update( _cubes_data ) ;
 
     fe->push( &_debug_rs ) ;
     
@@ -811,7 +813,7 @@ void_t scene_1::on_render_final( motor::graphics::gen4::frontend_ptr_t fe ) noex
         _reconfigs_prod.clear() ;
     }
 
-    fe->update( &_cubes_data ) ;
+    fe->update( _cubes_data ) ;
     
     // render scene
     {

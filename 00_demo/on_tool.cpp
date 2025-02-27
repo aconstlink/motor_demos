@@ -181,12 +181,6 @@ bool_t the_app::on_tool( this_t::window_id_t const wid, motor::application::app:
 
     if ( ImGui::Begin( "Global Settings" ) )
     {
-        {
-            ImGui::Text( "Select Scene" ) ;
-            slider_int_fn( "Select Scene##main", _sel_scene, 0, _scenes.size()-1 ) ; 
-            ImGui::Checkbox( "Select by time progression", &_prog_sel_scene_by_time ) ;
-        }
-
         ImGui::Text("Primitive Renderer") ;
         _pr_rs.access_render_state( 0, [&]( motor::graphics::render_state_sets_ref_t rs )
         {

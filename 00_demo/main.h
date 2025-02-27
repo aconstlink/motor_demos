@@ -87,23 +87,13 @@ namespace demos
         motor::io::monitor_mtr_t _mon = nullptr ; // motor::memory::create_ptr( motor::io::monitor_t() ) ;
         motor::io::database_mtr_t _db = nullptr ;
 
-
     private: // scenes
-
-        size_t _sel_scene = 0 ;
-        
-        // if time goes on, the scene selection 
-        // will changed if true. Otherwise the selected 
-        // scene will stay put.
-        bool_t _prog_sel_scene_by_time = true ;
-
 
         // this function is only used in debug mode.
         // dont use for production
         demos::iscene_mtr_t get_current_scene( void_t ) noexcept ;
 
         bool_t call_for_current_scene( std::function< void_t ( demos::iscene_mtr_t ) > ) noexcept  ;
-        
 
         // determined during on_update
         size_t _cur_scene_idx = size_t( -1 ) ;

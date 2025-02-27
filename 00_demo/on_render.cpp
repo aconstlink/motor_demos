@@ -92,17 +92,22 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         size_t const cur_scene = tmp.first ;
         size_t const nxt_scene = tmp.second ;
         
-        if ( cur_scene != size_t( -1 ) )
+        auto rnd_funk = [&]( size_t const id )
         {
-            auto & s = _scenes[ cur_scene ] ;
+            if( id == size_t(-1) ) return ;
+
+            auto & s = _scenes[ id ] ;
 
             if( s.ss_dbg == demos::graphics_state::ready )
             {
-                fe->push( &_dv_rs ) ;
                 s.s->on_render_debug( fe ) ;
-                fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
             }
-        }
+        } ;
+
+        fe->push( &_dv_rs ) ;
+        rnd_funk( cur_scene ) ;
+        rnd_funk( nxt_scene ) ;
+        fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
 
         // do the primitive renderer
         {
