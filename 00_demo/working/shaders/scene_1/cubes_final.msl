@@ -4,6 +4,12 @@ config cubes_1_final
     {
         uint_t vid : vertex_id ;
         data_buffer_t u_data ;
+        
+        vec2_t u_field ;
+
+        vec2_t u_wave_amp ;
+        vec2_t u_wave_freq ;
+        vec2_t u_wave_phase ;
 
         mat4_t proj : projection ;
         mat4_t view : view ;
@@ -20,22 +26,22 @@ config cubes_1_final
 
         void main()
         {
-            int_t idx = vid / 24 ;
-            vec4_t pos_scl = fetch_data( u_data, (idx *5)+0 ) ;
-            out.col = fetch_data( u_data, (idx*5)+1 ) ;
-            vec4_t x = fetch_data( u_data, (idx*5)+2 ) ;
-            vec4_t y = fetch_data( u_data, (idx*5)+3 ) ;
-            vec4_t z = fetch_data( u_data, (idx*5)+4 ) ;
+            int_t idx = msl.cubes.make_idx( vid ) ;
+            vec4_t pos_scl = msl.cubes.extract_position_scale( idx, u_data ) ;
+            vec4_t color = msl.cubes.extract_color( idx, u_data ) ;
 
-            vec3_t fx = vec3_t( x.x, y.x, z.x ) ;
-            vec3_t fy = vec3_t( x.y, y.y, z.y ) ;
-            vec3_t fz = vec3_t( x.z, y.z, z.z ) ;
+            vec3_t pos = msl.cubes.transform_position( in.pos ) ;
 
-            vec3_t pos = msl.cubes.transform_position( 
-                  in.pos, as_vec3(pos_scl.w), pos_scl.xyz ) ;
+            vec2_t field_pos = msl.cubes.field_pos( float_t(idx), u_field ) ;
+            pos.y = pos.y * msl.cubes.wave_y( 
+                    field_pos/u_field, 
+                    u_wave_amp,
+                    u_wave_freq,
+                    u_wave_phase ) ;
 
-            out.pos = proj * view * vec4_t( pos, 1.0 ) ;
-
+            pos = pos ' vec3_t( pos_scl.w, 30.0, pos_scl.w )+ pos_scl.xyz ;
+            out.pos = proj * view * vec4_t( pos, 1.0 ) ; 
+            out.col = color ;
             out.tx = in.tx ;
             out.nrm = normalize( world * vec4_t(in.nrm, 0.0 ) ).xyz ;
         }

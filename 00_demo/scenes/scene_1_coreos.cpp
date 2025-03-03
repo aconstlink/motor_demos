@@ -44,8 +44,16 @@ void_t scene_1::coreo_0( demos::iscene::on_graphics_data_in_t gd ) noexcept
 
                 if( _enable_wave )
                 {
-                    float_t const f = float_t(idx_x) / float_t( _width ) ;
-                    y += _wave_amp * motor::math::fn<float_t>::sin( _wave_freq * f * circle + _wave_phase ) ;
+                    {
+                        //float_t const amp_rand = this_t::rand( idx_x / 2 ) * 2.0f - 1.0f ;
+                        float_t const f = float_t(idx_x) / float_t( _width ) ;
+                        //y += _wave_amp * motor::math::fn<float_t>::sin( _wave_freq * f * circle + _wave_phase ) ;
+                    }
+
+                    {
+                        float_t const f = float_t(idx_z) / float_t( _depth ) ;
+                        //y += _wave_amp * motor::math::fn<float_t>::cos( _wave_freq * f * circle + _wave_phase ) ;
+                    }
                 }
 
                 if( _enable_lift_points )

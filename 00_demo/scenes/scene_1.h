@@ -20,10 +20,18 @@ namespace demos
         motor::vector< motor::graphics::msl_object_ptr_t > _reconfigs_debug ;
         motor::vector< motor::graphics::msl_object_ptr_t > _reconfigs_prod ;
 
-    private: // cubes
+    private: // 
 
         size_t _max_objects = 150000 ;
         size_t _num_objects = 1 ;
+
+        size_t num_objects( void_t ) const noexcept { return _num_objects ; }
+        void_t set_num_objects( size_t const no ) noexcept
+        {
+            _num_objects = std::min( no, _max_objects ) ;
+        }
+
+    private: // cubes
 
         motor::graphics::geometry_object_mtr_t _cubes_geo = nullptr ;
         motor::graphics::array_object_mtr_t _cubes_data = nullptr ;
@@ -31,25 +39,6 @@ namespace demos
         motor::graphics::msl_object_mtr_t _cubes_lib_msl = nullptr ;
         motor::graphics::msl_object_mtr_t _cubes_debug_msl = nullptr ;
         motor::graphics::msl_object_mtr_t _cubes_final_msl = nullptr ;
-
-        typedef motor::math::cubic_hermit_spline< motor::math::vec3f_t > vec3splinef_t ;
-        typedef motor::math::keyframe_sequence< vec3splinef_t > keyframe_sequencef_t ;
-        keyframe_sequencef_t _worm_pos ;
-        vec3splinef_t _worm_pos_spline ;
-
-        size_t _cur_pos_funk = 0 ;
-        motor::vector< pos_funk_t > _pos_funks ;
-
-        motor::math::vec3f_t pos_funk( float_t const t ) const noexcept
-        {
-            return _pos_funks[ _cur_pos_funk ]( t ) ;
-        }
-
-        size_t num_objects( void_t ) const noexcept { return _num_objects ; }
-        void_t set_num_objects( size_t const no ) noexcept
-        {
-            _num_objects = std::min( no, _max_objects ) ;
-        }
 
     private:// debug view
 

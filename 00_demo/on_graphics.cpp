@@ -60,7 +60,7 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
                     size_t const cidx = idx == s.s->camera_manager().get_final_camera_idx() ? 1 : 0 ;
 
                     using splinef_t = demos::camera_data::splinef_t ;
-                    splinef_t spline = cam.kf_pos.get_spline() ;
+                    splinef_t const & spline = cam.kf_pos.get_spline() ;
 
                     {
                         size_t const num_steps = 300 ;

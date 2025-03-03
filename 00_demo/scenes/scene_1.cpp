@@ -277,37 +277,6 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
             _debug_rs = std::move( so ) ;
         }
 
-        ///////////////////////////////////////////////////////////////////////////////
-        // Cubes section : Worm
-        ///////////////////////////////////////////////////////////////////////////////
-        {
-            auto const start = motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ;
-            size_t const start_milli = 0 ;
-
-            using kfs_t = demos::camera_data::keyframe_sequencef_t ;
-            kfs_t kf_pos ;
-            kf_pos.insert( kfs_t::keyframe_t( start_milli, start ) ) ;
-            kf_pos.insert( kfs_t::keyframe_t( start_milli + 1000, start + motor::math::vec3f_t( -1000.0f, 0.0f, 500.0f ) ) ) ;
-            kf_pos.insert( kfs_t::keyframe_t( start_milli + 2000, start + motor::math::vec3f_t( -2000.0f, 0.0f, 0.0f ) ) ) ;
-            kf_pos.insert( kfs_t::keyframe_t( start_milli + 3000, start + motor::math::vec3f_t( -2000.0f, 0.0f, 1000.0f ) ) ) ;
-            kf_pos.insert( kfs_t::keyframe_t( start_milli + 4000, start + motor::math::vec3f_t( 2000.0f, 0.0f, 1000.0f ) ) ) ;
-            kf_pos.insert( kfs_t::keyframe_t( start_milli + 5000, start + motor::math::vec3f_t( 2000.0f, 0.0f, 0.0f ) ) ) ;
-            kf_pos.insert( kfs_t::keyframe_t( start_milli + 6000, start ) ) ;
-            _worm_pos = std::move( kf_pos ) ;
-        }
-
-        {
-            auto sp = this_t::vec3splinef_t() ;
-            sp.append( motor::math::vec3f_t( -2000.0f, 0.0f, 300.0f ) ) ;
-            sp.append( motor::math::vec3f_t( -1000.0f, 200.0f, 100.0f ) ) ;
-            sp.append( motor::math::vec3f_t( -500.0f, -50.0f, -100.0f ) ) ;
-            sp.append( motor::math::vec3f_t( 100.0f, 50.0f, -300.0f ) ) ;
-            sp.append( motor::math::vec3f_t( 500.0f, -100.0f, -100.0f ) ) ;
-            sp.append( motor::math::vec3f_t( 1000.0f, 0.0f, -100.0f ) ) ;
-
-            _worm_pos_spline = std::move( sp ) ;
-        }
-
         // cubes geometry
         {
             struct vertex { motor::math::vec3f_t pos ; motor::math::vec3f_t nrm ; motor::math::vec2f_t tx ; } ;
@@ -489,16 +458,6 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
         }
 
         ///////////////////////////////////////////////////////////////////////////////
-        // Position section : position functions
-        ///////////////////////////////////////////////////////////////////////////////
-        {
-            _pos_funks.emplace_back( [&]( float_t const t )
-            {
-                return _worm_pos_spline(t) ;
-            } ) ;
-        }
-
-        ///////////////////////////////////////////////////////////////////////////////
         // Create Random Numbers
         ///////////////////////////////////////////////////////////////////////////////
         {
@@ -615,6 +574,7 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
                 var->set( proj ) ;
             }
+            
             #if 0
             {
                 auto * var = vs->data_variable<float_t>( "kick" ) ;
@@ -638,6 +598,31 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "world" ) ;
                 var->set( motor::math::mat4f_t::make_identity() ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_field") ;
+                var->set( motor::math::vec2f_t( float_t( _width ) , float_t( _depth ) ) ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_amp") ;
+                var->set( _wave_amp ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_freq") ;
+                var->set( _wave_freq ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_phase") ;
+                var->set( _wave_phase ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_poi") ;
+                var->set( motor::math::vec2f_t( _poi_x, _poi_z ) ) ;
             }
         } ) ;
     }
@@ -690,6 +675,26 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "world" ) ;
                 var->set( motor::math::mat4f_t::make_identity() ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_field") ;
+                var->set( motor::math::vec2f_t( float_t( _width ) , float_t( _depth ) ) ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_amp") ;
+                var->set( _wave_amp ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_freq") ;
+                var->set( _wave_freq ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_phase") ;
+                var->set( _wave_phase ) ;
             }
 
             #if 0
@@ -883,7 +888,7 @@ void_t scene_1::on_tool( void_t ) noexcept
             if( ImGui::Checkbox( "Enable##wave.scene.1", &_enable_wave ) ) {}
             ImGui::SliderFloat( "Amplitude##wave.scene.1", &_wave_amp, 1.0f, 200.0f ) ;
             ImGui::SliderFloat( "Frequency##wave.scene.1", &_wave_freq, 1.0f, 50.0f ) ;
-            ImGui::SliderFloat( "Phase##wave.scene.1", &_wave_phase, 1.0f, 100.0f ) ;
+            ImGui::SliderFloat( "Phase##wave.scene.1", &_wave_phase, 0.0f, 100.0f ) ;
         }
 
         // wave props
