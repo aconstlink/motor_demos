@@ -123,6 +123,7 @@ void_t scene_1::on_init_cameras( void_t ) noexcept
 //*******************************************************************************
 void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept 
 {
+    #if 0
     {
         ///////////////////////////////////////////////////////////////////////////////
         // Dummy cube section
@@ -245,6 +246,10 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
             _dummy_render_msl = motor::shared( std::move( mslo ) ) ;
         }
 
+    }
+    #endif
+
+    {
         ///////////////////////////////////////////////////////////////////////////////
         // Render States section
         ///////////////////////////////////////////////////////////////////////////////
@@ -478,9 +483,6 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
 //*******************************************************************************
 void_t scene_1::on_release( void_t ) noexcept
 {
-    motor::release( motor::move( _dummy_render_msl ) ) ;
-    motor::release( motor::move( _dummy_debug_msl ) ) ;
-    motor::release( motor::move( _dummy_geo ) ) ;
     motor::release( motor::move( _cubes_debug_msl ) ) ;
     motor::release( motor::move( _cubes_final_msl ) ) ;
     motor::release( motor::move( _cubes_lib_msl ) ) ;
@@ -563,26 +565,6 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
         auto const view = gd.dbg_cam != nullptr ? gd.dbg_cam->mat_view() : cam->mat_view() ;
         auto const proj = gd.dbg_cam != nullptr ? gd.dbg_cam->mat_proj() : cam->mat_proj() ;
 
-        _dummy_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
-        {
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( view ) ;
-            }
-
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( proj ) ;
-            }
-            
-            #if 0
-            {
-                auto * var = vs->data_variable<float_t>( "kick" ) ;
-                var->set( _aanl.asys.kick ) ;
-            }
-            #endif
-        } ) ;
-
         _cubes_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
             {
@@ -627,31 +609,13 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
         } ) ;
     }
 
-    if ( this_t::is_in_time_range() && this_t::is_tool_mode() )
+    if ( this_t::is_tool_mode() )
     {
         auto * cam = this_t::camera_manager().borrow_final_camera() ;
 
         auto const view = cam->mat_view() ;
         auto const proj = cam->mat_proj() ;
-
-        _dummy_render_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
-        {
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
-                var->set( view ) ;
-            }
-
-            {
-                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
-                var->set( proj ) ;
-            }
-            #if 0
-            {
-                auto * var = vs->data_variable<float_t>( "kick" ) ;
-                var->set( _aanl.asys.kick ) ;
-            }
-            #endif
-        } ) ;
+        
     }
 
     {
@@ -722,8 +686,7 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
         }
 
         fe->configure< motor::graphics::state_object_t>( &_debug_rs ) ;
-        fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
-        fe->configure<motor::graphics::msl_object>( _dummy_debug_msl ) ;
+        //fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
 
         fe->configure<motor::graphics::array_object>( _cubes_data ) ;
         fe->configure<motor::graphics::geometry_object>( _cubes_geo ) ;
@@ -743,8 +706,7 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
         if( this_t::is_tool_mode() )
         {
             //fe->configure< motor::graphics::state_object_t>( &_scene_final_rs ) ;
-            fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
-            fe->configure<motor::graphics::msl_object>( _dummy_render_msl ) ;
+            //fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
         }
 
         fe->configure<motor::graphics::array_object>( _cubes_data ) ;
@@ -762,15 +724,14 @@ void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::gr
 
     if ( rm == demos::iscene::render_mode::tool )
     {
-        fe->release( motor::move( _dummy_debug_msl ) ) ;
-        fe->release( motor::move( _dummy_geo ) ) ;
+        
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
         // production window but tool mode
         if( this_t::is_tool_mode() )
         {
-            motor::release( motor::move( _dummy_render_msl ) ) ;
+            
         }
     }
 }
@@ -801,7 +762,7 @@ void_t scene_1::on_render_debug( motor::graphics::gen4::frontend_ptr_t fe ) noex
     // render dummy
     {
         motor::graphics::gen4::backend::render_detail_t det ;
-        fe->render( _dummy_debug_msl, det ) ;
+        //fe->render( _dummy_debug_msl, det ) ;
     }
 
     fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
@@ -835,7 +796,7 @@ void_t scene_1::on_render_final( motor::graphics::gen4::frontend_ptr_t fe ) noex
         //fe->push( &_scene_final_rs ) ;
         {
             motor::graphics::gen4::backend::render_detail_t det ;
-            fe->render( _dummy_render_msl, det ) ;
+            //fe->render( _dummy_render_msl, det ) ;
         }
         //fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }

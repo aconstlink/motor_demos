@@ -43,7 +43,6 @@ namespace demos
     private:// debug view
 
         motor::graphics::state_object_t _debug_rs ;
-        motor::graphics::msl_object_mtr_t _dummy_debug_msl = nullptr ;
 
         // I think this is not needed.
         // always taking the dims from the render window
@@ -52,8 +51,6 @@ namespace demos
     private: // final render
 
         motor::graphics::state_object_t _scene_final_rs ;
-        motor::graphics::msl_object_mtr_t _dummy_render_msl = nullptr ;
-        motor::graphics::geometry_object_mtr_t _dummy_geo = nullptr ;
         motor::math::vec2ui_t _rnd_dims ;
 
     public:
@@ -64,9 +61,9 @@ namespace demos
         }
 
         scene_1 ( this_rref_t rhv ) noexcept : iscene( std::move( rhv ) ),
-            _debug_rs( std::move( rhv._debug_rs ) ), _dummy_debug_msl( motor::move( rhv._dummy_debug_msl ) ),
-            _scene_final_rs( std::move( rhv._scene_final_rs ) ), _dummy_render_msl( motor::move( rhv._dummy_render_msl ) ),
-            _dummy_geo( motor::move( rhv._dummy_geo ) )
+            _debug_rs( std::move( rhv._debug_rs ) ), 
+            _scene_final_rs( std::move( rhv._scene_final_rs ) )
+            
         {
         }
 
