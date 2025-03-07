@@ -31,6 +31,17 @@ namespace demos
             _num_objects = std::min( no, _max_objects ) ;
         }
 
+        size_t _num_sphere_cubes = 1 ;
+        size_t num_sphere_cubes( void_t ) const noexcept
+        {
+            return _num_sphere_cubes ;
+        }
+
+        void_t set_num_sphere_cubes( size_t const s ) noexcept
+        {
+            _num_sphere_cubes = std::min( s, _max_objects ) ; ;
+        }
+
     private: // cubes
 
         motor::graphics::geometry_object_mtr_t _cubes_geo = nullptr ;
@@ -39,6 +50,14 @@ namespace demos
         motor::graphics::msl_object_mtr_t _cubes_lib_msl = nullptr ;
         motor::graphics::msl_object_mtr_t _cubes_debug_msl = nullptr ;
         motor::graphics::msl_object_mtr_t _cubes_final_msl = nullptr ;
+
+    private: // sphere
+
+        motor::graphics::array_object_mtr_t _sphere_data = nullptr ;
+
+        motor::graphics::msl_object_mtr_t _sphere_lib_msl = nullptr ;
+        motor::graphics::msl_object_mtr_t _sphere_debug_msl = nullptr ;
+        motor::graphics::msl_object_mtr_t _sphere_final_msl = nullptr ;
 
     private:// debug view
 
@@ -100,6 +119,12 @@ namespace demos
             motor::math::vec4f_t frame_y ;
             motor::math::vec4f_t frame_z ;
         };
+
+        typedef struct
+        {
+            // x: sphere cube idx
+            motor::math::vec4f_t idx ;
+        } sphere_data_t ;
 
     private: // general properties
 

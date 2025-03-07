@@ -354,6 +354,15 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
                 this_t::name() + ".cubes_data", std::move( db_ ) ) ) ;
         }
 
+        // spheres data array
+        {
+            motor::graphics::data_buffer_t db_ = motor::graphics::data_buffer_t()
+                .add_layout_element( motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 ) ;
+
+            _sphere_data = motor::shared( motor::graphics::array_object_t( 
+                this_t::name() + ".sphere_data", std::move( db_ ) ) ) ;
+        }
+
         // load common cubes shader libraries
         {
             motor::graphics::msl_object_t mslo;//("scene.1.library") ;
@@ -372,7 +381,25 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
             _reconfigs_prod.emplace_back( _cubes_lib_msl ) ;
         }
 
-        // msl objects
+        // load common sphere shader libraries
+        {
+            motor::graphics::msl_object_t mslo;//("scene.1.library") ;
+            auto const res = db->load( motor::io::location_t( "shaders.scene_1.sphere.lib.msl" ) ).wait_for_operation(
+                    [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
+            {
+                if ( loading_res != motor::io::result::ok )
+                {
+                    assert( false ) ;
+                }
+
+                mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
+            } ) ;
+            _sphere_lib_msl = motor::shared( std::move( mslo ) ) ;
+            _reconfigs_debug.emplace_back( _sphere_lib_msl ) ;
+            _reconfigs_prod.emplace_back( _sphere_lib_msl ) ;
+        }
+
+        // msl objects for the cubes
         {
             // cubes debug shader
             if( this_t::is_tool_mode() )
@@ -462,6 +489,96 @@ void_t scene_1::on_init( motor::io::database_ptr_t db ) noexcept
             }
         }
 
+        // msl objects for the sphere
+        {
+            // debug shader
+            if( this_t::is_tool_mode() )
+            {
+                motor::graphics::msl_object_t mslo( this_t::name() + ".sphere_debug" ) ;
+
+                auto const res = db->load( motor::io::location_t( "shaders.scene_1.sphere_debug.msl" ) ).wait_for_operation(
+                    [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
+                {
+                    if ( loading_res != motor::io::result::ok )
+                    {
+                        assert( false ) ;
+                    }
+
+                    mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
+                } ) ;
+
+                mslo.link_geometry( { this_t::name() + ".cubes" } ) ;
+        
+                motor::graphics::variable_set_t vars = motor::graphics::variable_set_t() ;
+                {
+                    auto * var = vars.data_variable< motor::math::vec4f_t >( "color" ) ;
+                    var->set( motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ) ) ;
+                }
+
+                {
+                    auto * var = vars.data_variable< float_t >( "u_time" ) ;
+                    var->set( 0.0f ) ;
+                }
+
+                {
+                    auto * var = vars.texture_variable( "tex" ) ;
+                    var->set( "checker_board" ) ;
+                }
+
+                {
+                    auto * var = vars.array_variable( "u_data" ) ;
+                    var->set( this_t::name() + ".sphere_data" ) ;
+                }
+
+                mslo.add_variable_set( motor::shared( std::move( vars ), "scene 1: variable set" ) ) ;
+
+                _sphere_debug_msl = motor::shared( std::move( mslo ) ) ;
+            }
+
+            // cubes final shader
+            {
+                motor::graphics::msl_object_t mslo( this_t::name() + ".sphere_final" ) ;
+
+                auto const res = db->load( motor::io::location_t( "shaders.scene_1.sphere_final.msl" ) ).wait_for_operation(
+                    [&] ( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
+                {
+                    if ( loading_res != motor::io::result::ok )
+                    {
+                        assert( false ) ;
+                    }
+
+                    mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) ) ;
+                } ) ;
+
+                mslo.link_geometry( { this_t::name() + ".cubes" } ) ;
+
+                motor::graphics::variable_set_t vars = motor::graphics::variable_set_t() ;
+                {
+                    auto * var = vars.data_variable< motor::math::vec4f_t >( "color" ) ;
+                    var->set( motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ) ) ;
+                }
+
+                {
+                    auto * var = vars.data_variable< float_t >( "u_time" ) ;
+                    var->set( 0.0f ) ;
+                }
+
+                {
+                    auto * var = vars.texture_variable( "tex" ) ;
+                    var->set( "checker_board" ) ;
+                }
+
+                {
+                    auto * var = vars.array_variable( "u_data" ) ;
+                    var->set( this_t::name() + ".sphere_data" ) ;
+                }
+
+                mslo.add_variable_set( motor::shared( std::move( vars ) ) ) ;
+
+                _sphere_final_msl = motor::shared( std::move( mslo ) ) ;
+            }
+        }
+
         ///////////////////////////////////////////////////////////////////////////////
         // Create Random Numbers
         ///////////////////////////////////////////////////////////////////////////////
@@ -519,29 +636,42 @@ void_t scene_1::on_update( size_t const cur_time ) noexcept
     {
         motor::log::global::status<2048>( "[scene.1] : Got %s for %s", motor::io::monitor_t::to_string(n), loc.as_string().c_str() ) ;
 
-        if( loc == motor::io::location_t("shaders.scene_1.cubes_debug.msl") )
+        bool_t const a = loc == motor::io::location_t("shaders.scene_1.cubes_debug.msl") ; 
+        bool_t const b = loc == motor::io::location_t("shaders.scene_1.cubes.lib.msl") ;
+        bool_t const c = loc == motor::io::location_t("shaders.scene_1.sphere.lib.msl") ;
+        bool_t const d = loc == motor::io::location_t("shaders.scene_1.sphere_debug.msl") ; 
+
+        motor::string_t shd ;
+
+        if( a || b || c || d )
         {
-            motor::string_t shd ;
             _db->load( loc ).wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const ) 
             { 
                 shd = motor::string_t( data, sib ) ;
             } ) ;
+        }
 
+        if( a )
+        {
             _cubes_debug_msl->clear_shaders().add( motor::graphics::msl_api_type::msl_4_0, shd ) ;
-
             _reconfigs_debug.emplace_back( _cubes_debug_msl ) ;
         }
-        else if( loc == motor::io::location_t("shaders.scene_1.cubes.lib.msl") )
+        else if( b )
         {
-            motor::string_t shd ;
-            _db->load( loc ).wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const ) 
-            { 
-                shd = motor::string_t( data, sib ) ;
-            } ) ;
-
             _cubes_lib_msl->clear_shaders().add( motor::graphics::msl_api_type::msl_4_0, shd ) ;
             _reconfigs_debug.emplace_back( _cubes_lib_msl ) ;
             _reconfigs_prod.emplace_back( _cubes_lib_msl ) ;
+        }
+        else if( c )
+        {
+            _sphere_lib_msl->clear_shaders().add( motor::graphics::msl_api_type::msl_4_0, shd ) ;
+            _reconfigs_debug.emplace_back( _sphere_lib_msl ) ;
+            _reconfigs_prod.emplace_back( _sphere_lib_msl ) ;
+        }
+        else if( d )
+        {
+            _sphere_debug_msl->clear_shaders().add( motor::graphics::msl_api_type::msl_4_0, shd ) ;
+            _reconfigs_debug.emplace_back( _sphere_debug_msl ) ;
         }
     }) ;
 }
@@ -566,6 +696,49 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
         auto const proj = gd.dbg_cam != nullptr ? gd.dbg_cam->mat_proj() : cam->mat_proj() ;
 
         _cubes_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+        {
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
+                var->set( view ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "proj" ) ;
+                var->set( proj ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::mat4f_t>( "world" ) ;
+                var->set( motor::math::mat4f_t::make_identity() ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_field") ;
+                var->set( motor::math::vec2f_t( float_t( _width ) , float_t( _depth ) ) ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_amp") ;
+                var->set( _wave_amp ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_freq") ;
+                var->set( _wave_freq ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_wave_phase") ;
+                var->set( _wave_phase ) ;
+            }
+
+            {
+                auto * var = vs->data_variable<motor::math::vec2f_t>("u_poi") ;
+                var->set( motor::math::vec2f_t( _poi_x, _poi_z ) ) ;
+            }
+        } ) ;
+
+        _sphere_debug_msl->for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
         {
             {
                 auto * var = vs->data_variable<motor::math::mat4f_t>( "view" ) ;
@@ -674,6 +847,10 @@ void_t scene_1::on_graphics( demos::iscene::on_graphics_data_in_t gd ) noexcept
 //*******************************************************************************
 void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
+    fe->configure<motor::graphics::array_object>( _cubes_data ) ;
+    fe->configure<motor::graphics::geometry_object>( _cubes_geo ) ;
+    fe->configure<motor::graphics::array_object>( _sphere_data ) ;
+
     if ( rm == demos::iscene::render_mode::tool )
     {
         // load library shaders first
@@ -688,9 +865,8 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
         fe->configure< motor::graphics::state_object_t>( &_debug_rs ) ;
         //fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
 
-        fe->configure<motor::graphics::array_object>( _cubes_data ) ;
-        fe->configure<motor::graphics::geometry_object>( _cubes_geo ) ;
         fe->configure<motor::graphics::msl_object>( _cubes_debug_msl ) ;
+        fe->configure<motor::graphics::msl_object>( _sphere_debug_msl ) ;
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
@@ -709,8 +885,6 @@ void_t scene_1::on_render_init( demos::iscene::render_mode const rm, motor::grap
             //fe->configure<motor::graphics::geometry_object>( _dummy_geo ) ;
         }
 
-        fe->configure<motor::graphics::array_object>( _cubes_data ) ;
-        fe->configure<motor::graphics::geometry_object>( _cubes_geo ) ;
         fe->configure<motor::graphics::msl_object>( _cubes_final_msl ) ;
     }
 }
@@ -720,11 +894,12 @@ void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::gr
 {
     fe->release( motor::move( _cubes_data ) ) ;
     fe->release( motor::move( _cubes_geo ) ) ;
-    fe->release( motor::move( _cubes_final_msl ) ) ;
+    
 
     if ( rm == demos::iscene::render_mode::tool )
     {
-        
+        fe->configure<motor::graphics::msl_object>( _cubes_debug_msl ) ;
+        fe->configure<motor::graphics::msl_object>( _sphere_debug_msl ) ;
     }
     else if ( rm == demos::iscene::render_mode::production )
     {
@@ -733,6 +908,8 @@ void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::gr
         {
             
         }
+
+        fe->release( motor::move( _cubes_final_msl ) ) ;
     }
 }
 
@@ -748,6 +925,7 @@ void_t scene_1::on_render_debug( motor::graphics::gen4::frontend_ptr_t fe ) noex
     }
 
     fe->update( _cubes_data ) ;
+    fe->update( _sphere_data ) ;
 
     fe->push( &_debug_rs ) ;
     
@@ -758,6 +936,14 @@ void_t scene_1::on_render_debug( motor::graphics::gen4::frontend_ptr_t fe ) noex
         detail.num_elems = this_t::num_objects() * 36 ;
         detail.varset = 0 ;
         fe->render( _cubes_debug_msl, detail ) ;
+    }
+    // render sphere
+    {
+        motor::graphics::gen4::backend_t::render_detail_t detail ;
+        detail.start = 0 ;
+        detail.num_elems = this_t::num_sphere_cubes() * 36 ;
+        detail.varset = 0 ;
+        fe->render( _sphere_debug_msl, detail ) ;
     }
     // render dummy
     {
