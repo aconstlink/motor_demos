@@ -898,8 +898,10 @@ void_t scene_1::on_render_deinit( demos::iscene::render_mode const rm, motor::gr
 
     if ( rm == demos::iscene::render_mode::tool )
     {
-        fe->configure<motor::graphics::msl_object>( _cubes_debug_msl ) ;
-        fe->configure<motor::graphics::msl_object>( _sphere_debug_msl ) ;
+        //fe->configure<motor::graphics::msl_object>( _cubes_debug_msl ) ;
+        //fe->configure<motor::graphics::msl_object>( _sphere_debug_msl ) ;
+        fe->release( motor::move(_cubes_debug_msl) ) ;
+        fe->release( motor::move(_sphere_debug_msl) ) ;
     }
     else if ( rm == demos::iscene::render_mode::production )
     {

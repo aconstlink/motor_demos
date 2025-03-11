@@ -743,6 +743,7 @@ void_t scene_0::on_render_deinit( demos::iscene::render_mode const rm, motor::gr
 {
     if ( rm == demos::iscene::render_mode::tool )
     {
+        fe->release( motor::move( _cubes_debug_msl ) ) ;
         fe->release( motor::move( _dummy_debug_msl ) ) ;
         fe->release( motor::move( _dummy_geo  ) ) ;
         fe->fence( [&]( void_t )

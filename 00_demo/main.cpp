@@ -364,6 +364,7 @@ void_t the_app::on_init( void_t ) noexcept
 
     // init scenes
     {
+        #if 1
         {
             auto const s = motor::math::time::to_milli( 0, 0, 0 ) ;
             auto const e = motor::math::time::to_milli( 0, 30, 0 ) ;
@@ -371,6 +372,7 @@ void_t the_app::on_init( void_t ) noexcept
                 { /*true,*/ demos::scene_state::raw, demos::graphics_state::raw, demos::graphics_state::raw, 
                 motor::shared( demos::scene_0( "scene_0", _dm ), "demo 0" ) } ) ;
         }
+        #endif
         
         #if 1
         {

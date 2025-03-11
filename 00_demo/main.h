@@ -188,7 +188,7 @@ namespace demos
         bool_t _need_tool_view = false ;
 
         #if 1
-        size_t _jump_to_scene = 1 ;
+        size_t _jump_to_scene = 0 ;
         #else
         size_t _jump_to_scene = size_t(-1) ;
         #endif
