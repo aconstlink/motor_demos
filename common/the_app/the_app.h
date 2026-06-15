@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "../scene/scene_manager.h"
 #include "../audio_analysis.h"
 #include "../types.hpp"
 
@@ -10,7 +11,6 @@
 #include <motor/tool/imgui/timeline.h>
 #include <motor/tool/imgui/player_controller.h>
 
-
 #include <motor/io/monitor.hpp>
 #include <motor/io/database.h>
 #include <motor/io/global.h>
@@ -19,7 +19,6 @@
 #include <motor/log/global.h>
 #include <motor/memory/global.h>
 #include <motor/concurrent/global.h>
-
 
 #include <motor/math/utility/time.hpp>
 
@@ -54,11 +53,12 @@ class the_app : public motor::application::app
 
   private: // file
 
-    motor::io::monitor_mtr_t _mon =
-        nullptr; // motor::memory::create_ptr( motor::io::monitor_t() ) ;
+    motor::io::monitor_mtr_t _mon = nullptr;
     motor::io::database_mtr_t _db = nullptr;
 
   private: // scenes
+
+    demos::scene_manager_mtr_t _sm = nullptr;
 
   private: // free camera
 
@@ -70,7 +70,6 @@ class the_app : public motor::application::app
 #endif
 
   private: // tool ui
-
 
     size_t _twid = size_t( -1 );
     motor::tool::player_controller_t pc;
@@ -86,15 +85,11 @@ class the_app : public motor::application::app
     size_t _jump_to_scene = size_t( -1 );
 #endif
 
-
   private: // time control
-
 
     size_t _max_time_milli = motor::math::time::to_milli( 3, 11, 10 );
     bool_t _proceed_time = false;
     size_t _cur_time = 0;
-
-
 
   private: // final render stuff
 
@@ -138,7 +133,7 @@ class the_app : public motor::application::app
 
   public:
 
-    the_app( void_t ) noexcept;
+    the_app( demos::scene_manager_mtr_safe_t ) noexcept;
     the_app( this_rref_t ) noexcept;
     virtual ~the_app( void_t ) noexcept;
 };

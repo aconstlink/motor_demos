@@ -7,15 +7,16 @@ using namespace demos;
 bool_t the_app::on_tool( this_t::window_id_t const wid,
                          motor::application::app::tool_data_ref_t td ) noexcept
 {
-#if 0
-    if( wid != _twid && !_need_tool_view ) return false ;
 
-    auto slider_int_fn = [&] ( char const * name, size_t & io_value, size_t const min, size_t const max )
+    if( wid != _twid && !_need_tool_view ) return false;
+
+    auto slider_int_fn =
+        [ & ]( char const * name, size_t & io_value, size_t const min, size_t const max )
     {
-        int_t v = int_t( io_value ) ;
-        ImGui::SliderInt( name, &v, int_t( min ), int_t( max ) ) ;
-        io_value = size_t( v ) ;
-    } ;
+        int_t v = int_t( io_value );
+        ImGui::SliderInt( name, &v, int_t( min ), int_t( max ) );
+        io_value = size_t( v );
+    };
 
 #if 0 
     // this only works if the scene is rendered in the 
@@ -28,22 +29,19 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
 #endif
 
     {
-        for( auto & s : _scenes ) 
-        {
-            s.s->on_tool() ;
-        }
+        _sm->on_tool() ;
     }
 
-    if ( ImGui::Begin( "Keyboard Info" ) )
+    if( ImGui::Begin( "Keyboard Info" ) )
     {
         {
-            ImGui::Text("F3 will open a gen4_auto window") ;
-            ImGui::Text("F4 will make the render window fullscreen") ;
-            ImGui::Separator() ;
+            ImGui::Text( "F3 will open a gen4_auto window" );
+            ImGui::Text( "F4 will make the render window fullscreen" );
+            ImGui::Separator();
 
-            ImGui::Text("c will capture a camera pos and lookat coordinate") ;
-            ImGui::Text("c + ctrl will clear the captured camera data") ;
-            ImGui::Text("p will print the camera storage per scene in a file") ;
+            ImGui::Text( "c will capture a camera pos and lookat coordinate" );
+            ImGui::Text( "c + ctrl will clear the captured camera data" );
+            ImGui::Text( "p will print the camera storage per scene in a file" );
         }
 #if 0
         {
@@ -53,8 +51,9 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
         }
 #endif
     }
-    ImGui::End() ;
+    ImGui::End();
 
+#if 0
     if ( ImGui::Begin( "Render Window" ) )
     {
         int_t sel = int_t(_gbuffer_selection) ;

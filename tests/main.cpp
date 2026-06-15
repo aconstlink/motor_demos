@@ -5,6 +5,8 @@
 #include "scenes/scene_0.h"
 #include "scenes/scene_1.h"
 
+#include "../common/scene/dummy_scene.hpp"
+
 #include <motor/application/carrier.h>
 #include <motor/platform/global.h>
 
@@ -17,40 +19,38 @@ int main( int argc, char ** argv )
 
     using namespace motor::core::types;
 
-    #if 0
+    demos::scene_manager_t sm ;
+
     // init scenes
     {
 #if 1
         {
-            auto const s = motor::math::time::to_milli( 0, 0, 0 );
-            auto const e = motor::math::time::to_milli( 0, 30, 0 );
-            _scenes.emplace_back(
-                this_t::scene_data{ /*true,*/ demos::scene_state::raw, demos::graphics_state::raw,
-                                    demos::graphics_state::raw,
-                                    motor::shared( demos::scene_0( "scene_0", _dm ), "demo 0" ) } );
+            demos::scene_manager_t::add_scene_data asd ;
+
+            asd.start = motor::math::time::to_milli( 0, 0, 0 );
+            asd.end = motor::math::time::to_milli( 0, 30, 0 );
+            asd.sptr = motor::shared( demos::dummy_scene( "dummy scene 1") ) ;
+
+            sm.add_scene( std::move( asd ) ) ;
+
         }
 #endif
 
 #if 1
         {
-            auto const s = motor::math::time::to_milli( 0, 27, 0 );
-            auto const e = motor::math::time::to_milli( 0, 70, 0 );
-            _scenes.emplace_back(
-                this_t::scene_data{ /*false,*/ demos::scene_state::raw, demos::graphics_state::raw,
-                                    demos::graphics_state::raw,
-                                    motor::shared( demos::scene_1( "scene_1", _dm ), "demo 1" ) } );
+            demos::scene_manager_t::add_scene_data asd ;
+
+            asd.start = motor::math::time::to_milli( 0, 27, 0 );
+            asd.end = motor::math::time::to_milli( 0, 70, 0 );
+            asd.sptr = motor::shared( demos::dummy_scene( "dummy scene 2") ) ;
+
+            sm.add_scene( std::move( asd ) ) ;
         }
 #endif
-
-        for( auto & s : _scenes )
-        {
-            s.s->on_init_cameras();
-        }
     }
-    #endif
 
     motor::application::carrier_mtr_t carrier =
-        motor::platform::global_t::create_carrier( motor::shared( demos::the_app() ) );
+        motor::platform::global_t::create_carrier( motor::shared( demos::the_app( motor::shared( std::move( sm ) ) ) ) );
 
     auto const ret = carrier->exec();
 

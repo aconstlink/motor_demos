@@ -4,7 +4,7 @@ set( app_name 00_demo )
 set( sources
     "../common/audio_analysis.h"
     "../common/audio_analysis.cpp"
-    "../common/iscene.h"
+    "../common/scene/iscene.h"
     "../common/camera_manager.h"
     "../common/camera_manager.cpp"
 

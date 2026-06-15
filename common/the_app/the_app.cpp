@@ -4,10 +4,10 @@
 using namespace demos;
 
 //******************************************************************************************************
-the_app::the_app( void_t ) noexcept {}
+the_app::the_app( demos::scene_manager_mtr_safe_t sm ) noexcept : _sm( motor::move( sm ) ) {}
 
 //******************************************************************************************************
-the_app::the_app( this_rref_t rhv ) noexcept
+the_app::the_app( this_rref_t rhv ) noexcept : _sm( motor::move( rhv._sm ) )
 {
     _gbuffer_selection = rhv._gbuffer_selection;
     _max_time_milli = rhv._max_time_milli;
@@ -380,6 +380,11 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 //******************************************************************************************************
 void_t the_app::on_shutdown( void_t ) noexcept
 {
+    {
+        if( _sm ) _sm->on_shutdown() ;
+        motor::release( motor::move( _sm ) );
+    }
+
     motor::release( motor::move( _post_quad ) );
     motor::release( motor::move( _post_msl ) );
     motor::release( motor::move( _post_xfade_msl ) );
