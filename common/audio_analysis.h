@@ -1,4 +1,6 @@
 
+#pragma once 
+
 #include <motor/base/types.hpp>
 #include <motor/std/vector>
 

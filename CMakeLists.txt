@@ -26,7 +26,8 @@ else()
 add_definitions( -DDEBUG_MODE )
 endif()
 
-add_subdirectory( "00_demo" )
+add_subdirectory( "tests" )
+add_subdirectory( "xx_demo" )
 
 
 

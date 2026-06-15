@@ -1,7 +1,7 @@
 
 #pragma once
 
-
+#include "types.hpp"
 
 #include "camera_manager.h"
 
@@ -12,12 +12,6 @@
 namespace demos
 {
     using namespace motor::core::types ;
-
-    enum class demo_mode
-    {
-        tool,
-        production
-    };
 
     //**********************************************************
     // Base scene
