@@ -1,0 +1,64 @@
+config sphere_debug
+{
+    vertex_shader
+    {
+        uint_t vid : vertex_id ;
+        data_buffer_t u_data ;
+
+        vec2_t u_field ;
+        
+        vec2_t u_wave_amp ;
+        vec2_t u_wave_freq ;
+        vec2_t u_wave_phase ;
+
+        vec2_t u_poi ;
+
+        mat4_t proj : projection ;
+        mat4_t view : view ;
+        mat4_t world : world ;
+
+        in vec3_t nrm : normal ;
+        in vec2_t tx : texcoord ; 
+        in vec3_t pos : position ;
+
+        out vec4_t pos : position ;
+        out vec2_t tx : texcoord ;
+        out vec3_t nrm : normal ;
+        out vec4_t col : color ;
+
+        void main()
+        {
+            int_t idx = msl.sphere.make_idx( vid ) ;
+            vec3_t ijk = msl.sphere.extract_position( idx, u_data ) ;
+
+            vec3_t pos = ijk ;//' as_vec3(50.0);//vec3_t(100.0, 100.0, 100.0 ) ;
+            pos = in.pos ' as_vec3(4.5) + pos ' as_vec3(1.0) + vec3_t(100.0, 0.0, 0.0) ;
+            out.pos = proj * view * vec4_t( pos, 1.0 ) ;  
+            //out.col = color ;//* (poi_dist) ;
+            out.tx = in.tx ;
+            out.nrm = normalize( world * vec4_t(in.nrm, 0.0 ) ).xyz ;
+        }
+    }
+
+    pixel_shader
+    {
+        tex2d_t tex ;
+        vec4_t color ;
+
+        in vec2_t tx : texcoord ;
+        in vec3_t nrm : normal ;
+        in vec4_t col : color ;
+
+        out vec4_t color : color0 ;
+        //out vec4_t color1 : color1 ;
+        //out vec4_t color2 : color2 ;
+
+        void main()
+        {
+            vec3_t light_pos = vec3_t( 1.0, 1.0, 1.0 ) ;
+            float_t ndl = dot( in.nrm, normalize( light_pos ) ) ;
+            
+            out.color = vec4_t( as_vec3(ndl), 1.0) ;//' in.col ; //' texture( tex, in.tx ) ' in.col ;
+        }
+    }
+}

@@ -1,24 +1,202 @@
 #pragma once
 
 #include "iscene.h"
+#include "../camera_collector.hpp"
+
+#include <motor/scene/node/logic_group.h>
+#include <motor/scene/component/name_component.hpp>
+#include <motor/scene/component/render_settings_component.h>
+#include <motor/scene/component/trafo3d_component.h>
+
+#include <motor/graphics/state/render_states.h>
+
+#include <motor/tool/imgui/node_kit/imgui_node_visitor.h>
+
+#include <motor/format/global.h>
+#include <motor/log/global.h>
+#include <motor/memory/global.h>
+#include <motor/concurrent/global.h>
 
 namespace demos
 {
 class dummy_scene : public iscene
 {
+    motor_this_typedefs( dummy_scene );
+
+  private:
+
+    motor::io::location_t _asset_location;
+
+    using os_float_t = motor::wire::output_slot< float_t >;
+    using os_trafo_t = motor::wire::output_slot< motor::math::m3d::trafof_t >;
+
+    os_float_t * _time = motor::shared( os_float_t( 0.0f ) );
+    os_trafo_t * _scale_os = motor::shared( os_trafo_t() );
+
+    motor::wire::time_node_mtr_t _time_node = nullptr; // from the importer
+    motor::wire::inode_mtr_t _merger = nullptr;        // from the importer
+
+    motor::scene::node_mtr_t _root = nullptr;
+
+    size_t _cam_id = size_t( -1 );
+    motor::vector< motor::gfx::generic_camera_mtr_t > _cameras;
+
+    motor::gfx::generic_camera_mtr_t _selected_cam = nullptr;
+
+    motor::scene::node_mtr_t _selected_node = nullptr;
 
   public:
 
-    dummy_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
+    dummy_scene( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
+        : iscene( name ), _asset_location( loc )
+    {
+    }
     dummy_scene( dummy_scene const & ) = delete;
-    dummy_scene( dummy_scene && rhv ) noexcept : iscene( std::move( rhv ) ){}
-    virtual ~dummy_scene( void_t ) noexcept {}
+    dummy_scene( dummy_scene && rhv ) noexcept
+        : iscene( std::move( rhv ) ), _asset_location( std::move( rhv._asset_location ) )
+    {
+    }
+    virtual ~dummy_scene( void_t ) noexcept
+    {
+        motor::wire::release( motor::move( _time ) );
+        motor::wire::release( motor::move( _scale_os ) );
+
+        motor::release( motor::move( _root ) );
+        motor::release( motor::move( _time_node ) );
+        motor::release( motor::move( _merger ) );
+
+        for( auto * ptr : _cameras )
+        {
+            motor::release( motor::move( ptr ) );
+        }
+        motor::release( motor::move( _selected_cam ) );
+        motor::release( motor::move( _selected_node ) ) ;
+    }
 
   public:
 
     virtual void_t on_init_cameras( void_t ) noexcept {}
-    virtual void_t on_init( motor::io::database_ptr_t ) noexcept {}
-    virtual void_t on_release( void_t ) noexcept {}
+    virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
+    {
+        motor::graphics::state_object_mtr_t root_so;
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "root_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.9f, 0.5f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+                so.add_render_state_set( rss );
+            }
+
+            root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        // #3 : init scene tree
+        {
+            motor::scene::logic_group_t root;
+            root.add_component( motor::shared( motor::scene::name_component_t( "my root name" ) ) );
+
+            // add imported scene
+            {
+                motor::scene::node_mtr_t imported_node = nullptr;
+
+                auto rs = motor::shared( motor::scene::logic_group_t() );
+                {
+                    auto rsc = motor::scene::render_settings_component_t( motor::move( root_so ) );
+
+                    rs->add_component( motor::shared( std::move( rsc ) ) );
+
+                    rs->add_component(
+                        motor::shared( motor::scene::name_component_t( "Render Settings" ) ) );
+                }
+
+                // make importer ready
+                {
+                    motor::format::module_registry_mtr_t mod_reg =
+                        motor::format::global::register_default_modules(
+                            motor::shared( motor::format::module_registry_t(), "mod registry" ) );
+
+                    // import the gltf asset.
+                    {
+                        auto item = mod_reg->import_from( _asset_location, db );
+                        auto * ret_item = item.get();
+
+                        // test scene with visitor
+                        if( auto * scene_item =
+                                dynamic_cast< motor::format::scene_item_ptr_t >( ret_item );
+                            scene_item != nullptr )
+                        {
+                            imported_node = motor::move( scene_item->root );
+                            _time_node = motor::move( scene_item->start_node );
+                            _merger = motor::move( scene_item->merger_node );
+
+                            _time_node->borrow_time_is()->connect( motor::share( _time ) );
+                        }
+                        else
+                        {
+                            motor::log::global_t::critical( "Failed to load gltf file." );
+                            std::exit( 1 );
+                        }
+
+                        motor::release( motor::move( ret_item ) );
+                    }
+
+                    motor::release( motor::move( mod_reg ) );
+                }
+
+                // test and scale whole imported tree with
+                // only one trafo component.
+                {
+                    motor::math::m3d::trafof_t t;
+                    t.set_scale( motor::math::vec3f_t( 1.0f ) );
+
+                    motor::scene::trafo3d_component_t comp;
+                    comp.set_trafo( t );
+
+                    {
+                        motor::wire::inputs_t inputs;
+                        comp.inputs( inputs );
+                        inputs.connect( "trafo", motor::share( _scale_os ) );
+                    }
+
+                    imported_node->add_component( motor::shared( std::move( comp ) ) );
+                }
+                rs->add_child( motor::move( imported_node ) );
+                root.add_child( motor::move( rs ) );
+            }
+
+            _root = motor::shared( std::move( root ) );
+        }
+    }
+
+    virtual void_t on_release( void_t ) noexcept
+    {
+        motor::wire::release( motor::move( _time ) );
+        motor::wire::release( motor::move( _scale_os ) );
+
+        motor::release( motor::move( _time_node ) );
+        motor::release( motor::move( _merger ) );
+
+        motor::release( motor::move( _selected_node ) );
+        motor::release( motor::move( _root ) ) ;
+    }
 
     virtual void_t on_update( size_t const cur_time ) noexcept {}
 
@@ -27,17 +205,98 @@ class dummy_scene : public iscene
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
 
-    virtual void_t on_render_init( demos::iscene::render_mode const,
-                                   motor::graphics::gen4::frontend_ptr_t ) noexcept
+    virtual void_t on_render_init(
+        demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept
     {
     }
-    virtual void_t on_render_deinit( demos::iscene::render_mode const,
-                                     motor::graphics::gen4::frontend_ptr_t ) noexcept
+    virtual void_t on_render_deinit(
+        demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept
     {
     }
     virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
     virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
 
-    virtual void_t on_tool( void_t ) noexcept {}
+    virtual void_t on_tool( void_t ) noexcept
+    {
+        if( ImGui::Begin( this_t::name().c_str() ) )
+        {
+            // SECTION: cameras
+            {
+                // choose camera from scene
+                {
+                    demos::camera_collector_t cc;
+                    motor::scene::node_t::traverser( _root ).apply( &cc );
+
+                    auto cams = cc.get_cameras();
+
+                    if( cams.size() > 0 )
+                    {
+                        size_t i = 0;
+                        static ImGuiComboFlags flags = 0;
+                        motor::vector< char const * > items( cams.size() );
+                        for( auto const & e : cams )
+                        {
+                            items[ i++ ] = e.first.c_str();
+                        }
+
+                        motor::string_t combo_name = "Scene Camera##" + this_t::name();
+
+                        int item_selected_idx = _cam_id != size_t( -1 ) ? int_t( _cam_id ) : 0;
+                        const char * combo_preview_value = items[ item_selected_idx ];
+                        if( ImGui::BeginCombo( combo_name.c_str(), combo_preview_value, flags ) )
+                        {
+                            for( int n = 0; n < items.size(); n++ )
+                            {
+                                const bool is_selected = ( item_selected_idx == n );
+                                if( ImGui::Selectable( items[ n ], is_selected ) )
+                                    item_selected_idx = n;
+
+                                // Set the initial focus when opening the combo (scrolling +
+                                // keyboard navigation focus)
+                                if( is_selected ) ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+
+                            {
+                                motor::release( motor::move( _selected_cam ) );
+                                if( item_selected_idx != 0 )
+                                    _selected_cam =
+                                        motor::move( cams[ item_selected_idx - 1 ].second );
+                            }
+                        }
+                    }
+
+                    for( auto e : cams )
+                    {
+                        motor::release( motor::move( e.second ) );
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
+            // SECTION: Scene Graph
+            {
+                auto t = _scale_os->get_value();
+                float_t f = t.get_scale().x();
+                if( ImGui::SliderFloat( "Scene Scale small", &f, 0.1f, 30.0f ) )
+                {
+                    _scale_os->set_and_exchange( t.set_scale( f ) );
+                }
+
+                if( ImGui::SliderFloat( "Scene Scale large", &f, 30.0f, 300.0f ) )
+                {
+                    _scale_os->set_and_exchange( t.set_scale( f ) );
+                }
+
+                {
+                    motor::tool::imgui_node_visitor_t v( motor::move( _selected_node ) );
+                    motor::scene::node_t::traverser( _root ).apply( &v );
+                    _selected_node = v.move_selected();
+                }
+            }
+        }
+        ImGui::End();
+    }
 };
 } // namespace demos

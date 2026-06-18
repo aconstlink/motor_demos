@@ -30,12 +30,16 @@ class the_app : public motor::application::app
 {
     motor_this_typedefs( the_app );
 
+  private: // graphics
+
     // debug renderer
     motor::gfx::primitive_render_3d_t pr;
     motor::graphics::state_object_t _pr_rs;
 
     // debug view root render states
     motor::graphics::state_object_t _dv_rs;
+
+  private: // audio
 
     motor::audio::capture_object_t _co;
     demos::audio_analysis _aanl;
@@ -58,7 +62,7 @@ class the_app : public motor::application::app
 
   private: // scenes
 
-    demos::scene_manager_mtr_t _sm = nullptr;
+    demos::scene_manager_t _sm;
 
   private: // free camera
 
@@ -72,10 +76,13 @@ class the_app : public motor::application::app
   private: // tool ui
 
     size_t _twid = size_t( -1 );
+
+#if 0
+    
     motor::tool::player_controller_t pc;
     motor::tool::timeline_t tl = motor::tool::timeline_t( "my timeline" );
     bool_t _space_bar_pressed = false;
-
+#endif
     // could be used in production
     bool_t _need_tool_view = false;
 
@@ -90,6 +97,7 @@ class the_app : public motor::application::app
     size_t _max_time_milli = motor::math::time::to_milli( 3, 11, 10 );
     bool_t _proceed_time = false;
     size_t _cur_time = 0;
+    size_t _cont_time = 0;
 
   private: // final render stuff
 
@@ -133,9 +141,11 @@ class the_app : public motor::application::app
 
   public:
 
-    the_app( demos::scene_manager_mtr_safe_t ) noexcept;
+    the_app( void_t ) noexcept {}
+    the_app( demos::scene_manager_rref_t ) noexcept;
     the_app( this_rref_t ) noexcept;
     virtual ~the_app( void_t ) noexcept;
 };
+motor_typedef( the_app );
 
 } // namespace demos

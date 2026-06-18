@@ -29,11 +29,12 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
 #endif
 
     {
-        _sm->on_tool() ;
+        _sm.on_tool();
     }
 
     if( ImGui::Begin( "Keyboard Info" ) )
     {
+#if 0
         {
             ImGui::Text( "F3 will open a gen4_auto window" );
             ImGui::Text( "F4 will make the render window fullscreen" );
@@ -43,6 +44,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
             ImGui::Text( "c + ctrl will clear the captured camera data" );
             ImGui::Text( "p will print the camera storage per scene in a file" );
         }
+#endif
 #if 0
         {
             int used_cam = int_t( _final_cam_idx ) ;

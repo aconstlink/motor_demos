@@ -58,9 +58,7 @@ class iscene
 
   public:
 
-    iscene( motor::string_in_t name ) noexcept : _name( name )
-    {
-    }
+    iscene( motor::string_in_t name ) noexcept : _name( name ) {}
 
     iscene( this_cref_t ) = delete;
     iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ), _dm( rhv._dm ) {}
@@ -78,13 +76,6 @@ class iscene
     std::pair< size_t, size_t > get_time_range( void_t ) const noexcept
     {
         return _cm.camera_selector_range();
-    }
-
-    bool_t is_in_time_range( size_t const milli ) const noexcept
-    {
-        std::pair< size_t, size_t > range;
-        if( !_cm.camera_selector_range( range ) ) return false;
-        return milli >= range.first && milli <= range.second;
     }
 
     motor::string_cref_t name( void_t ) const noexcept
@@ -108,11 +99,6 @@ class iscene
     }
 
   protected:
-
-    void_t update_time( size_t const cur_time ) noexcept
-    {
-        _scene_is_on = this_t::is_in_time_range( cur_time );
-    }
 
     bool_t is_production_mode( void_t ) const noexcept
     {

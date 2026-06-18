@@ -1,13 +1,15 @@
 
 #include "the_app.h"
 
+#include <motor/tool/imgui/player_controller.h>
+
 using namespace demos;
 
 //******************************************************************************************************
-the_app::the_app( demos::scene_manager_mtr_safe_t sm ) noexcept : _sm( motor::move( sm ) ) {}
+the_app::the_app( demos::scene_manager_rref_t sm ) noexcept : _sm( std::move( sm ) ) {}
 
 //******************************************************************************************************
-the_app::the_app( this_rref_t rhv ) noexcept : _sm( motor::move( rhv._sm ) )
+the_app::the_app( this_rref_t rhv ) noexcept : _sm( std::move( rhv._sm ) )
 {
     _gbuffer_selection = rhv._gbuffer_selection;
     _max_time_milli = rhv._max_time_milli;
@@ -16,7 +18,11 @@ the_app::the_app( this_rref_t rhv ) noexcept : _sm( motor::move( rhv._sm ) )
 }
 
 //******************************************************************************************************
-the_app::~the_app( void_t ) noexcept {}
+the_app::~the_app( void_t ) noexcept
+{
+    motor::release( motor::move( _db ) );
+    motor::release( motor::move( _mon ) );
+}
 
 //******************************************************************************************************
 void_t the_app::on_init( void_t ) noexcept
@@ -91,7 +97,6 @@ void_t the_app::on_init( void_t ) noexcept
             motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
     }
 #endif
-
     // post quad vertex/index buffer
     {
         struct vertex
@@ -131,7 +136,7 @@ void_t the_app::on_init( void_t ) noexcept
                                         std::move( vb ), std::move( ib ) ),
                                     "post quad" );
     }
-
+    
     // post shader
     {
         motor::graphics::msl_object_t mslo( "color_to_screen" );
@@ -335,6 +340,9 @@ void_t the_app::on_init( void_t ) noexcept
                 .resize( size_t( fb_dims.z() ), size_t( fb_dims.w() ) );
         }
     }
+    // init scene manager
+    {
+    }
 }
 
 //******************************************************************************************************
@@ -375,14 +383,24 @@ the_app::on_event( window_id_t const wid,
 void_t the_app::on_device( device_data_in_t dd ) noexcept {}
 
 //******************************************************************************************************
-void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept {}
+void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept
+{
+    _cont_time = ( _cont_time + ud.milli_dt ) % motor::math::time_ms_t( 10000 );
+
+    {
+        demos::scene_manager_t::update_data sud;
+        sud.demo_time = _cur_time;
+        sud.cont_time = _cont_time;
+        sud.db = _db ;
+        _sm.on_scene_update( sud );
+    }
+}
 
 //******************************************************************************************************
 void_t the_app::on_shutdown( void_t ) noexcept
 {
     {
-        if( _sm ) _sm->on_shutdown() ;
-        motor::release( motor::move( _sm ) );
+        _sm.on_shutdown();        
     }
 
     motor::release( motor::move( _post_quad ) );
