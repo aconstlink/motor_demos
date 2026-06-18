@@ -92,6 +92,7 @@ void_t scene_manager::on_tool( void_t ) noexcept
 
     for( auto & sd : _scenes )
     {
+        if( sd.ss != demos::scene_state::init ) continue ;
         sd.s->on_tool();
     }
 }
@@ -137,8 +138,8 @@ void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
                 auto the_task = motor::shared( motor::concurrent::task_t(
                     [ = ]( motor::concurrent::task_t::task_funk_param const & )
                 {
-                    this->_scenes[ cur ].s->on_release();
-                    this->_scenes[ cur ].ss = demos::scene_state::init;
+                    this->_scenes[ i ].s->on_release();
+                    this->_scenes[ i ].ss = demos::scene_state::raw;
                 } ) );
                 motor::concurrent::global::schedule(
                     motor::move( the_task ), motor::concurrent::schedule_type::loose );
@@ -189,7 +190,7 @@ void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
         }
     }
 
-    this_t::commit_scene_index( std::make_pair( cur, nxt ) ) ;
+    this_t::commit_scene_index( std::make_pair( cur, nxt ) );
 }
 
 //******************************************************************************************************
@@ -280,7 +281,10 @@ demos::scene_id_pair_t scene_manager::determine_scene_index( void_t ) noexcept
             if( this_t::is_in_time_range( _scenes[ cur_scene ], _cur_time ) ) break;
         }
 
-        if( cur_scene == _scenes.size() ) cur_scene = size_t( -1 );
+        if( cur_scene == _scenes.size() ) 
+        {
+            return std::make_pair( demos::invalid_scene_id, demos::invalid_scene_id );
+        }
 
         if( ( cur_scene + 1 ) < _scenes.size() &&
             this_t::is_in_time_range( _scenes[ cur_scene ], _cur_time ) )

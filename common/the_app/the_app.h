@@ -76,13 +76,11 @@ class the_app : public motor::application::app
   private: // tool ui
 
     size_t _twid = size_t( -1 );
-
-#if 0
     
     motor::tool::player_controller_t pc;
     motor::tool::timeline_t tl = motor::tool::timeline_t( "my timeline" );
     bool_t _space_bar_pressed = false;
-#endif
+
     // could be used in production
     bool_t _need_tool_view = false;
 

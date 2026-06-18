@@ -10,6 +10,10 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
 
     if( wid != _twid && !_need_tool_view ) return false;
 
+    {
+        _sm.on_tool();
+    }
+
     auto slider_int_fn =
         [ & ]( char const * name, size_t & io_value, size_t const min, size_t const max )
     {
@@ -17,6 +21,55 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
         ImGui::SliderInt( name, &v, int_t( min ), int_t( max ) );
         io_value = size_t( v );
     };
+
+    {
+        motor::tool::time_info_t ti 
+        { 
+            _max_time_milli, _cur_time 
+        } ;
+
+        if( ImGui::Begin("Timeline") )
+        {
+            // the timeline stores some state, so it 
+            // is defined further above
+            {
+                tl.begin( ti ) ;
+                tl.end() ;
+                _cur_time = ti.cur_milli ;
+            }
+        
+            // the player_controller stores some state, 
+            // so it is defined further above
+            {
+                auto const s = pc.do_tool( "Player", _space_bar_pressed  ) ;
+                if ( s == motor::tool::player_controller_t::player_state::stop )
+                {
+                    _cur_time = 0  ;
+                    _proceed_time = false ;
+                }
+                else if ( s == motor::tool::player_controller_t::player_state::play )
+                {
+                    _proceed_time = true ;
+                    if ( ti.cur_milli >= ti.max_milli )
+                    {
+                        _cur_time = 0 ;
+                    }
+                }
+                else if( s == motor::tool::player_controller_t::player_state::pause )
+                {
+                    _proceed_time = false ;
+                }
+
+                if ( _cur_time > ti.max_milli )
+                {
+                    _cur_time = ti.max_milli ;
+                    pc.set_stop() ;
+                }
+                _space_bar_pressed = false ;
+            }
+        }
+        ImGui::End() ;
+    }
 
 #if 0 
     // this only works if the scene is rendered in the 
@@ -28,9 +81,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
     ImGui::End() ;
 #endif
 
-    {
-        _sm.on_tool();
-    }
+    
 
     if( ImGui::Begin( "Keyboard Info" ) )
     {
@@ -221,54 +272,7 @@ bool_t the_app::on_tool( this_t::window_id_t const wid,
     }
     ImGui::End() ;
     
-    {
-        motor::tool::time_info_t ti 
-        { 
-            _max_time_milli, _cur_time 
-        } ;
-
-        if( ImGui::Begin("Timeline") )
-        {
-            // the timeline stores some state, so it 
-            // is defined further above
-            {
-                tl.begin( ti ) ;
-                tl.end() ;
-                _cur_time = ti.cur_milli ;
-            }
-        
-            // the player_controller stores some state, 
-            // so it is defined further above
-            {
-                auto const s = pc.do_tool( "Player", _space_bar_pressed  ) ;
-                if ( s == motor::tool::player_controller_t::player_state::stop )
-                {
-                    _cur_time = 0  ;
-                    _proceed_time = false ;
-                }
-                else if ( s == motor::tool::player_controller_t::player_state::play )
-                {
-                    _proceed_time = true ;
-                    if ( ti.cur_milli >= ti.max_milli )
-                    {
-                        _cur_time = 0 ;
-                    }
-                }
-                else if( s == motor::tool::player_controller_t::player_state::pause )
-                {
-                    _proceed_time = false ;
-                }
-
-                if ( _cur_time > ti.max_milli )
-                {
-                    _cur_time = ti.max_milli ;
-                    pc.set_stop() ;
-                }
-                _space_bar_pressed = false ;
-            }
-        }
-        ImGui::End() ;
-    }
+    
 
     // audio stuff
     {

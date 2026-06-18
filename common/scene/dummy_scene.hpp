@@ -30,8 +30,8 @@ class dummy_scene : public iscene
     using os_float_t = motor::wire::output_slot< float_t >;
     using os_trafo_t = motor::wire::output_slot< motor::math::m3d::trafof_t >;
 
-    os_float_t * _time = motor::shared( os_float_t( 0.0f ) );
-    os_trafo_t * _scale_os = motor::shared( os_trafo_t() );
+    os_float_t * _time = nullptr;
+    os_trafo_t * _scale_os = nullptr;
 
     motor::wire::time_node_mtr_t _time_node = nullptr; // from the importer
     motor::wire::inode_mtr_t _merger = nullptr;        // from the importer
@@ -58,19 +58,7 @@ class dummy_scene : public iscene
     }
     virtual ~dummy_scene( void_t ) noexcept
     {
-        motor::wire::release( motor::move( _time ) );
-        motor::wire::release( motor::move( _scale_os ) );
-
-        motor::release( motor::move( _root ) );
-        motor::release( motor::move( _time_node ) );
-        motor::release( motor::move( _merger ) );
-
-        for( auto * ptr : _cameras )
-        {
-            motor::release( motor::move( ptr ) );
-        }
-        motor::release( motor::move( _selected_cam ) );
-        motor::release( motor::move( _selected_node ) ) ;
+        this_t::release_all_objects();
     }
 
   public:
@@ -78,6 +66,11 @@ class dummy_scene : public iscene
     virtual void_t on_init_cameras( void_t ) noexcept {}
     virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
     {
+        {
+            _time = motor::shared( os_float_t( 0.0f ) );
+            _scale_os = motor::shared( os_trafo_t() );
+        }
+
         motor::graphics::state_object_mtr_t root_so;
 
         {
@@ -188,14 +181,7 @@ class dummy_scene : public iscene
 
     virtual void_t on_release( void_t ) noexcept
     {
-        motor::wire::release( motor::move( _time ) );
-        motor::wire::release( motor::move( _scale_os ) );
-
-        motor::release( motor::move( _time_node ) );
-        motor::release( motor::move( _merger ) );
-
-        motor::release( motor::move( _selected_node ) );
-        motor::release( motor::move( _root ) ) ;
+        this_t::release_all_objects();
     }
 
     virtual void_t on_update( size_t const cur_time ) noexcept {}
@@ -297,6 +283,25 @@ class dummy_scene : public iscene
             }
         }
         ImGui::End();
+    }
+
+  private:
+
+    void_t release_all_objects( void_t ) noexcept
+    {
+        motor::wire::release( motor::move( _time ) );
+        motor::wire::release( motor::move( _scale_os ) );
+
+        motor::release( motor::move( _root ) );
+        motor::release( motor::move( _time_node ) );
+        motor::release( motor::move( _merger ) );
+
+        for( auto * ptr : _cameras )
+        {
+            motor::release( motor::move( ptr ) );
+        }
+        motor::release( motor::move( _selected_cam ) );
+        motor::release( motor::move( _selected_node ) );
     }
 };
 } // namespace demos
