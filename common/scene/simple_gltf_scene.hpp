@@ -7,6 +7,9 @@
 #include <motor/scene/component/name_component.hpp>
 #include <motor/scene/component/render_settings_component.h>
 #include <motor/scene/component/trafo3d_component.h>
+#include <motor/scene/visitor/trafo_visitor.h>
+#include <motor/scene/visitor/render_visitor.h>
+#include <motor/scene/visitor/variable_update_visitor.h>
 
 #include <motor/graphics/state/render_states.h>
 
@@ -45,6 +48,10 @@ class simple_gltf_scene : public iscene
 
     motor::scene::node_mtr_t _selected_node = nullptr;
 
+    demos::camera_collector_t _cc;
+
+    motor::graphics::state_object_mtr_t _root_so = nullptr;
+
   public:
 
     simple_gltf_scene( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
@@ -71,8 +78,6 @@ class simple_gltf_scene : public iscene
             _scale_os = motor::shared( os_trafo_t() );
         }
 
-        motor::graphics::state_object_mtr_t root_so;
-
         {
             motor::graphics::state_object_t so =
                 motor::graphics::state_object_t( "root_render_states" );
@@ -88,7 +93,7 @@ class simple_gltf_scene : public iscene
                 rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
                 rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
                 rss.clear_s.do_change = true;
-                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.9f, 0.5f, 1.0f );
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
                 rss.clear_s.ss.do_activate = true;
                 rss.clear_s.ss.do_color_clear = true;
                 rss.clear_s.ss.do_depth_clear = true;
@@ -98,7 +103,7 @@ class simple_gltf_scene : public iscene
                 so.add_render_state_set( rss );
             }
 
-            root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+            _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
         }
 
         // #3 : init scene tree
@@ -112,7 +117,8 @@ class simple_gltf_scene : public iscene
 
                 auto rs = motor::shared( motor::scene::logic_group_t() );
                 {
-                    auto rsc = motor::scene::render_settings_component_t( motor::move( root_so ) );
+                    auto rsc =
+                        motor::scene::render_settings_component_t( motor::share( _root_so ) );
 
                     rs->add_component( motor::shared( std::move( rsc ) ) );
 
@@ -178,7 +184,25 @@ class simple_gltf_scene : public iscene
             _root = motor::shared( std::move( root ) );
         }
 
-        std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
+        {
+            motor::scene::node_t::traverser( _root ).apply( &_cc );
+            auto cams = _cc.get_cameras();
+
+            if( cams.size() > 0 )
+            {
+                size_t i = 0;
+                _cameras.resize( cams.size() );
+                for( auto & c : cams )
+                {
+                    _cameras[ i++ ] = motor::share( c.second );
+                }
+                _cam_id = 0;
+            }
+            else
+            {
+                motor::log::global_t::error( "gltf file has no cameras." );
+            }
+        }
     }
 
     virtual void_t on_release( void_t ) noexcept
@@ -186,7 +210,18 @@ class simple_gltf_scene : public iscene
         this_t::release_all_objects();
     }
 
-    virtual void_t on_update( size_t const cur_time ) noexcept {}
+    virtual void_t on_update( size_t const cur_time ) noexcept
+    {
+        {
+            motor::scene::variable_update_visitor_t v;
+            motor::scene::node_t::traverser( _root ).apply( &v );
+        }
+
+        {
+            motor::scene::trafo_visitor_t v;
+            motor::scene::node_t::traverser( _root ).apply( &v );
+        }
+    }
 
     virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept {}
     virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept {}
@@ -197,38 +232,33 @@ class simple_gltf_scene : public iscene
         motor::graphics::gen4::frontend_ptr_t fe,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        auto the_task = motor::shared(
-            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
-        {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
-            funk();
-        } ) );
-
-        motor::concurrent::global::schedule(
-            motor::move( the_task ), motor::concurrent::schedule_type::loose );
-
-        // fe->fence( funk );
+        fe->configure< motor::graphics::state_object_t >( _root_so );
+        fe->fence( funk );
     }
 
     virtual void_t on_render_deinit( demos::window_type const,
-        motor::graphics::gen4::frontend_ptr_t,
+        motor::graphics::gen4::frontend_ptr_t fe,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        auto the_task = motor::shared(
-            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
-        {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
-            funk();
-        } ) );
-
-        motor::concurrent::global::schedule(
-            motor::move( the_task ), motor::concurrent::schedule_type::loose );
-
-        // fe->fence( funk );
+        fe->fence( funk );
     }
 
-    virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
-    virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
+    virtual void_t on_render_debug(
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    {
+        if( _cam_id != size_t( -1 ) )
+        {
+            motor::gfx::generic_camera_mtr_t cam =
+                _selected_cam == nullptr ? _cameras[ _cam_id ] : _selected_cam;
+            // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
+            motor::scene::render_visitor_t vis( wid, fe, cam );
+            motor::scene::node_t::traverser( _root ).apply( &vis );
+        }
+    }
+    virtual void_t on_render_final(
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
+    {
+    }
 
     virtual void_t on_tool( void_t ) noexcept
     {
@@ -238,10 +268,8 @@ class simple_gltf_scene : public iscene
             {
                 // choose camera from scene
                 {
-                    demos::camera_collector_t cc;
-                    motor::scene::node_t::traverser( _root ).apply( &cc );
 
-                    auto cams = cc.get_cameras();
+                    auto cams = _cc.get_cameras();
 
                     if( cams.size() > 0 )
                     {
@@ -279,11 +307,6 @@ class simple_gltf_scene : public iscene
                             }
                         }
                     }
-
-                    for( auto e : cams )
-                    {
-                        motor::release( motor::move( e.second ) );
-                    }
                 }
             }
 
@@ -305,9 +328,13 @@ class simple_gltf_scene : public iscene
 
     void_t release_all_objects( void_t ) noexcept
     {
+        _cc.release() ;
+        
+
         motor::wire::release( motor::move( _time ) );
         motor::wire::release( motor::move( _scale_os ) );
 
+        motor::release( motor::move( _root_so ) );
         motor::release( motor::move( _root ) );
         motor::release( motor::move( _time_node ) );
         motor::release( motor::move( _merger ) );

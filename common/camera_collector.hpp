@@ -50,8 +50,8 @@ class camera_collector : public motor::scene::default_visitor
         return motor::scene::result::ok;
     }
 
-    virtual motor::scene::result post_visit( motor::scene::node_ptr_t nptr,
-                                             motor::scene::result const res ) noexcept
+    virtual motor::scene::result post_visit(
+        motor::scene::node_ptr_t nptr, motor::scene::result const res ) noexcept
     {
         return motor::scene::result::ok;
     }
@@ -62,7 +62,16 @@ class camera_collector : public motor::scene::default_visitor
     {
         return _cameras;
     }
+
+    void_t release( void_t ) noexcept
+    {
+        for( auto e : _cameras )
+        {
+            motor::release( motor::move( e.second ) );
+        }
+        _cameras.clear();
+    }
 };
-motor_typedef( camera_collector )  ;
+motor_typedef( camera_collector );
 
 } // namespace demos

@@ -19,43 +19,18 @@
 
 namespace demos
 {
+
+// purely tests based on time
+// but could also provide a nice starting point
 class dummy_scene : public iscene
 {
     motor_this_typedefs( dummy_scene );
 
-  private:
-
-    motor::io::location_t _asset_location;
-
-    using os_float_t = motor::wire::output_slot< float_t >;
-    using os_trafo_t = motor::wire::output_slot< motor::math::m3d::trafof_t >;
-
-    os_float_t * _time = nullptr;
-    os_trafo_t * _scale_os = nullptr;
-
-    motor::wire::time_node_mtr_t _time_node = nullptr; // from the importer
-    motor::wire::inode_mtr_t _merger = nullptr;        // from the importer
-
-    motor::scene::node_mtr_t _root = nullptr;
-
-    size_t _cam_id = size_t( -1 );
-    motor::vector< motor::gfx::generic_camera_mtr_t > _cameras;
-
-    motor::gfx::generic_camera_mtr_t _selected_cam = nullptr;
-
-    motor::scene::node_mtr_t _selected_node = nullptr;
-
   public:
 
-    dummy_scene( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
-        : iscene( name ), _asset_location( loc )
-    {
-    }
+    dummy_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
     dummy_scene( dummy_scene const & ) = delete;
-    dummy_scene( dummy_scene && rhv ) noexcept
-        : iscene( std::move( rhv ) ), _asset_location( std::move( rhv._asset_location ) )
-    {
-    }
+    dummy_scene( dummy_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
     virtual ~dummy_scene( void_t ) noexcept
     {
         this_t::release_all_objects();
@@ -68,11 +43,6 @@ class dummy_scene : public iscene
     //************************************************************************************
     virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
     {
-        {
-            _time = motor::shared( os_float_t( 0.0f ) );
-            _scale_os = motor::shared( os_trafo_t() );
-        }
-
         std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
     }
 
@@ -135,97 +105,26 @@ class dummy_scene : public iscene
     }
 
     //************************************************************************************
-    virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
-    virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
+    virtual void_t on_render_debug(
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
+    {
+    }
+    virtual void_t on_render_final(
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
+    {
+    }
 
     virtual void_t on_tool( void_t ) noexcept
     {
         if( ImGui::Begin( this_t::name().c_str() ) )
         {
-            // SECTION: cameras
-            {
-                // choose camera from scene
-                {
-                    demos::camera_collector_t cc;
-                    motor::scene::node_t::traverser( _root ).apply( &cc );
-
-                    auto cams = cc.get_cameras();
-
-                    if( cams.size() > 0 )
-                    {
-                        size_t i = 0;
-                        static ImGuiComboFlags flags = 0;
-                        motor::vector< char const * > items( cams.size() );
-                        for( auto const & e : cams )
-                        {
-                            items[ i++ ] = e.first.c_str();
-                        }
-
-                        motor::string_t combo_name = "Scene Camera##" + this_t::name();
-
-                        int item_selected_idx = _cam_id != size_t( -1 ) ? int_t( _cam_id ) : 0;
-                        const char * combo_preview_value = items[ item_selected_idx ];
-                        if( ImGui::BeginCombo( combo_name.c_str(), combo_preview_value, flags ) )
-                        {
-                            for( int n = 0; n < items.size(); n++ )
-                            {
-                                const bool is_selected = ( item_selected_idx == n );
-                                if( ImGui::Selectable( items[ n ], is_selected ) )
-                                    item_selected_idx = n;
-
-                                // Set the initial focus when opening the combo (scrolling +
-                                // keyboard navigation focus)
-                                if( is_selected ) ImGui::SetItemDefaultFocus();
-                            }
-                            ImGui::EndCombo();
-
-                            {
-                                motor::release( motor::move( _selected_cam ) );
-                                if( item_selected_idx != 0 )
-                                    _selected_cam =
-                                        motor::move( cams[ item_selected_idx - 1 ].second );
-                            }
-                        }
-                    }
-
-                    for( auto e : cams )
-                    {
-                        motor::release( motor::move( e.second ) );
-                    }
-                }
-            }
-
-            ImGui::Separator();
-
-            // SECTION: Scene Graph
-            {
-                {
-                    motor::tool::imgui_node_visitor_t v( motor::move( _selected_node ) );
-                    motor::scene::node_t::traverser( _root ).apply( &v );
-                    _selected_node = v.move_selected();
-                }
-            }
+            ImGui::Text( "nothing to see here. no tools are added for the dummy_scene." );
         }
         ImGui::End();
     }
 
   private:
 
-    void_t release_all_objects( void_t ) noexcept
-    {
-        motor::wire::release( motor::move( _time ) );
-        motor::wire::release( motor::move( _scale_os ) );
-
-        motor::release( motor::move( _root ) );
-        motor::release( motor::move( _time_node ) );
-        motor::release( motor::move( _merger ) );
-
-        for( auto * ptr : _cameras )
-        {
-            motor::release( motor::move( ptr ) );
-        }
-        motor::release( motor::move( _selected_cam ) );
-        motor::release( motor::move( _selected_node ) );
-    }
+    void_t release_all_objects( void_t ) noexcept {}
 };
 } // namespace demos

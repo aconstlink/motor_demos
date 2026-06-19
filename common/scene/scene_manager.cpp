@@ -170,9 +170,9 @@ void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
     }
 
     {
-        auto scene_handle_funk = [=]( demos::scene_id_t const id )
+        auto scene_handle_funk = [ = ]( demos::scene_id_t const id )
         {
-            if( demos::is_invalid( id ) ) return ;
+            if( demos::is_invalid( id ) ) return;
 
             auto & scene = _scenes[ id ];
             switch( scene.ss )
@@ -196,22 +196,31 @@ void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
             case demos::process_state::in_transit:
                 break;
             }
-        } ;
+        };
 
         // state handle current scene
-        scene_handle_funk( cur ) ;
+        scene_handle_funk( cur );
 
         // state handle next scene
-        scene_handle_funk( nxt ) ;
+        scene_handle_funk( nxt );
     }
 
     // lock in the scene ids for subsequence logic
     this_t::commit_scene_index( std::make_pair( cur, nxt ) );
+
+    if( demos::is_valid( cur  ) )
+    {
+        auto & scene = _scenes[cur] ;
+        scene.s->on_update( _cur_time ) ;
+    }
 }
 
 //******************************************************************************************************
 void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
 {
+    if( rd.wt == demos::window_type::invalid ) return ;
+    if( rd.wt == demos::window_type::tool ) return ;
+
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
 
@@ -221,6 +230,15 @@ void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
     this_t::approach_raw_state_graphics( rd.wt, rd.fe );
     this_t::handle_state_graphics( cur, rd.wt, rd.fe );
     this_t::handle_state_graphics( nxt, rd.wt, rd.fe );
+
+    // render current scene
+    if( demos::is_valid( cur ) )
+    {
+        if( rd.wt == demos::window_type::debug )
+            _scenes[ cur ].s->on_render_debug( rd.wid, rd.fe );
+        else if( rd.wt == demos::window_type::production )
+            _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
+    }
 }
 
 //******************************************************************************************************

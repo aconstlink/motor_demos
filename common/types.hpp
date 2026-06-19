@@ -15,6 +15,8 @@ enum class demo_mode
 
 enum class window_type
 {
+    invalid,
+    tool,
     debug,
     production
 };

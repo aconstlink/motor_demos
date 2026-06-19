@@ -36,8 +36,9 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         demos::scene_manager_t::render_data_t urd;
         urd.fe = fe;
         urd.wid = wid;
-        urd.wt = demos::window_type::debug;
+        urd.wt = demos::window_type::invalid;
 
+        urd.wt = wid == _twid ? demos::window_type::tool : urd.wt;
         urd.wt = wid == _dwid ? demos::window_type::debug : urd.wt;
         urd.wt = wid == _rwid ? demos::window_type::production : urd.wt;
 

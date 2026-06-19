@@ -68,8 +68,8 @@ class iscene
         motor::graphics::gen4::frontend_ptr_t,
         motor::graphics::gen4::frontend::fence_funk_t ) noexcept = 0;
 
-    virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
-    virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_debug( size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_final( size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
 
     virtual void_t on_tool( void_t ) noexcept = 0;
 };

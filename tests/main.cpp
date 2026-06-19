@@ -6,6 +6,7 @@
 #include "scenes/scene_1.h"
 
 #include "../common/scene/dummy_scene.hpp"
+#include "../common/scene/simple_gltf_scene.hpp"
 
 #include <motor/application/carrier.h>
 #include <motor/platform/global.h>
@@ -27,12 +28,10 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-            
 
-                asd.start = motor::math::time::to_milli( 0, 0, 0 );
+            asd.start = motor::math::time::to_milli( 0, 0, 0 );
             asd.end = motor::math::time::to_milli( 0, 30, 0 );
-            asd.sptr = motor::shared(
-                demos::dummy_scene( "dummy scene 1", motor::io::location_t( "scene1.gltf" ) ) );
+            asd.sptr = motor::shared( demos::dummy_scene( "scene 1" ) );
 
             sm.add_scene( std::move( asd ) );
         }
@@ -45,7 +44,20 @@ int main( int argc, char ** argv )
             asd.start = motor::math::time::to_milli( 0, 27, 0 );
             asd.end = motor::math::time::to_milli( 0, 70, 0 );
             asd.sptr = motor::shared(
-                demos::dummy_scene( "dummy scene 2", motor::io::location_t( "scene2.gltf" ) ) );
+                demos::simple_gltf_scene( "scene 2", motor::io::location_t( "scene1.gltf" ) ) );
+
+            sm.add_scene( std::move( asd ) );
+        }
+#endif
+
+#if 1
+        {
+            demos::scene_manager_t::add_scene_data asd;
+
+            asd.start = motor::math::time::to_milli( 0, 67, 0 );
+            asd.end = motor::math::time::to_milli( 1, 50, 0 );
+            asd.sptr = motor::shared(
+                demos::simple_gltf_scene( "scene 3", motor::io::location_t( "scene2.gltf" ) ) );
 
             sm.add_scene( std::move( asd ) );
         }
@@ -54,7 +66,8 @@ int main( int argc, char ** argv )
         app = motor::shared( demos::the_app( std::move( sm ) ) );
     }
 
-    motor::application::carrier_mtr_t carrier = motor::platform::global_t::create_carrier( motor::move( app ) ) ;
+    motor::application::carrier_mtr_t carrier =
+        motor::platform::global_t::create_carrier( motor::move( app ) );
 
     auto const ret = carrier->exec();
 
@@ -63,7 +76,7 @@ int main( int argc, char ** argv )
     motor::io::global::deinit();
     motor::concurrent::global::deinit();
     motor::log::global::deinit();
-    
+
     motor::memory::global::dump_to_std();
 
     return ret;
