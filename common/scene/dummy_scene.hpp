@@ -177,6 +177,8 @@ class dummy_scene : public iscene
 
             _root = motor::shared( std::move( root ) );
         }
+
+        std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
     }
 
     virtual void_t on_release( void_t ) noexcept
@@ -191,13 +193,37 @@ class dummy_scene : public iscene
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
 
-    virtual void_t on_render_init(
-        demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept
+    virtual void_t on_render_init( demos::window_type const,
+        motor::graphics::gen4::frontend_ptr_t fe,
+        motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
+        auto the_task = motor::shared(
+            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
+        {
+            std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
+            funk();
+        } ) );
+
+        motor::concurrent::global::schedule(
+            motor::move( the_task ), motor::concurrent::schedule_type::loose );
+
+        // fe->fence( funk );
     }
-    virtual void_t on_render_deinit(
-        demos::iscene::render_mode const, motor::graphics::gen4::frontend_ptr_t ) noexcept
+    virtual void_t on_render_deinit( demos::window_type const,
+        motor::graphics::gen4::frontend_ptr_t,
+        motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
+        auto the_task = motor::shared(
+            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
+        {
+            std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
+            funk();
+        } ) );
+
+        motor::concurrent::global::schedule(
+            motor::move( the_task ), motor::concurrent::schedule_type::loose );
+
+        // fe->fence( funk );
     }
     virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
     virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
@@ -263,18 +289,6 @@ class dummy_scene : public iscene
 
             // SECTION: Scene Graph
             {
-                auto t = _scale_os->get_value();
-                float_t f = t.get_scale().x();
-                if( ImGui::SliderFloat( "Scene Scale small", &f, 0.1f, 30.0f ) )
-                {
-                    _scale_os->set_and_exchange( t.set_scale( f ) );
-                }
-
-                if( ImGui::SliderFloat( "Scene Scale large", &f, 30.0f, 300.0f ) )
-                {
-                    _scale_os->set_and_exchange( t.set_scale( f ) );
-                }
-
                 {
                     motor::tool::imgui_node_visitor_t v( motor::move( _selected_node ) );
                     motor::scene::node_t::traverser( _root ).apply( &v );

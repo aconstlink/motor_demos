@@ -20,14 +20,6 @@ class iscene
 
   public:
 
-    enum class render_mode
-    {
-        tool,
-        production
-    };
-
-  public:
-
     struct on_graphics_data
     {
         size_t const cur_time;
@@ -123,10 +115,12 @@ class iscene
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept = 0;
 
-    virtual void_t on_render_init( demos::iscene::render_mode const,
-                                   motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
-    virtual void_t on_render_deinit( demos::iscene::render_mode const,
-                                     motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_init( demos::window_type const, motor::graphics::gen4::frontend_ptr_t,
+        motor::graphics::gen4::frontend::fence_funk_t ) noexcept = 0;
+    virtual void_t on_render_deinit( demos::window_type const,
+        motor::graphics::gen4::frontend_ptr_t,
+        motor::graphics::gen4::frontend::fence_funk_t ) noexcept = 0;
+
     virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
     virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
 

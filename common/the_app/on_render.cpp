@@ -4,9 +4,8 @@ using namespace demos;
 
 //******************************************************************************************************
 void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
-                           motor::application::app::render_data_in_t rd ) noexcept
+    motor::application::app::render_data_in_t rd ) noexcept
 {
-#if 0
     if( rd.first_frame )
     {
         // init debug window rendering objects
@@ -30,6 +29,22 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         }
     }
 
+    /////////////////////////////////////////////////////////////////////
+    // handle render scene states
+    /////////////////////////////////////////////////////////////////////
+    {
+        demos::scene_manager_t::render_data_t urd;
+        urd.fe = fe;
+        urd.wid = wid;
+        urd.wt = demos::window_type::debug;
+
+        urd.wt = wid == _dwid ? demos::window_type::debug : urd.wt;
+        urd.wt = wid == _rwid ? demos::window_type::production : urd.wt;
+
+        _sm.on_scene_render( urd );
+    }
+
+#if 0
     /////////////////////////////////////////////////////////////////////
     // handle render scene states
     /////////////////////////////////////////////////////////////////////

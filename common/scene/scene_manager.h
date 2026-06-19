@@ -20,18 +20,17 @@ class scene_manager
         // debug window?
         // bool_t render_in_debug = false ;
 
-        demos::scene_state ss;
-        demos::graphics_state ss_dbg;
-        demos::graphics_state ss_prod;
+        demos::process_state ss = demos::process_state::raw;
+        demos::process_state gfx_dbg = demos::process_state::raw;
+        demos::process_state gfx_prod = demos::process_state::raw;
 
         motor::math::time_ms_t start;
         motor::math::time_ms_t end;
 
         demos::iscene_mtr_t s;
 
-
-        std::pair< motor::math::time_ms_t, motor::math::time_ms_t >
-        get_time_range( void_t ) const noexcept
+        std::pair< motor::math::time_ms_t, motor::math::time_ms_t > get_time_range(
+            void_t ) const noexcept
         {
             return std::make_pair( start, end );
         }
@@ -41,8 +40,8 @@ class scene_manager
     motor::vector< scene_data_t > _scenes;
 
     // determined during on_update
-    demos::scene_id_t _cur_scene_idx = demos::invalid_scene_id ;
-    demos::scene_id_t _nxt_scene_idx = demos::invalid_scene_id ;
+    demos::scene_id_t _cur_scene_idx = demos::invalid_scene_id;
+    demos::scene_id_t _nxt_scene_idx = demos::invalid_scene_id;
 
     size_t _cur_time = 0;
 
@@ -69,7 +68,7 @@ class scene_manager
 
     struct update_data
     {
-        motor::io::database_ptr_t db ;
+        motor::io::database_ptr_t db;
 
         // the time the demo is in currently
         motor::math::time_ms_t demo_time;
@@ -83,6 +82,17 @@ class scene_manager
     // update the scenes state and call
     // scene callbacks appropriately
     void_t on_scene_update( update_data_cref_t ) noexcept;
+
+    struct render_data
+    {
+        size_t wid;
+        motor::graphics::gen4::frontend_mtr_t fe;
+
+        demos::window_type wt;
+    };
+    motor_typedef( render_data );
+
+    void_t on_scene_render( render_data_ref_t ) noexcept;
 
   public:
 
@@ -104,20 +114,18 @@ class scene_manager
 
     struct scene_info
     {
-        char_cptr_t name ;
-        demos::scene_state ss ;
+        char_cptr_t name;
+        demos::process_state ss;
     };
-    motor_typedef( scene_info ) ;
-    
-    bool_t get_current_scene_info( scene_info_out_t ) const noexcept ;
-    bool_t get_next_scene_info( scene_info_out_t ) const noexcept ;
+    motor_typedef( scene_info );
 
-
+    bool_t get_current_scene_info( scene_info_out_t ) const noexcept;
+    bool_t get_next_scene_info( scene_info_out_t ) const noexcept;
 
   private:
 
-    bool_t is_in_time_range( this_t::scene_data_cref_t,
-                             motor::math::time_ms_t const ) const noexcept;
+    bool_t is_in_time_range(
+        this_t::scene_data_cref_t, motor::math::time_ms_t const ) const noexcept;
 
     demos::scene_id_pair_t current_next_scene_idx( void_t ) const noexcept
     {
@@ -139,8 +147,7 @@ class scene_manager
 
     // called during on_update.
     demos::scene_id_pair_t determine_scene_index( void_t ) noexcept;
-    void_t commit_scene_index( demos::scene_id_pair_t const & ) noexcept ;
-
+    void_t commit_scene_index( demos::scene_id_pair_t const & ) noexcept;
 
     // returns true if two scenes are transitioning and
     // if so, overlap is set. Otherwise false is returned.
@@ -148,6 +155,13 @@ class scene_manager
 
     bool_t get_current_scene_data( this_t::scene_data & ) const noexcept;
     bool_t access_current_scene_data( std::function< void_t( scene_data & sd ) > ) noexcept;
+
+  private:
+
+    void_t approach_raw_state_graphics(
+        demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
+    void_t handle_state_graphics(
+        demos::scene_id_t const, demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
 };
 motor_typedef( scene_manager );
 

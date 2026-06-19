@@ -13,27 +13,20 @@ enum class demo_mode
     production
 };
 
+enum class window_type
+{
+    debug,
+    production
+};
+
 // per scene
-enum class scene_state
+enum class process_state
 {
     raw,
     in_transit,
     init,
+    init_and_graphics,
     ready,
-    num_states
-};
-
-// per scene and per window
-// possible state transitions
-// raw -> init_triggered -> init -> ready
-// ready/init -> deinit_triggered -> raw
-enum class graphics_state
-{
-    raw,
-    init_triggered,
-    init,
-    ready,
-    deinit_triggered,
     num_states
 };
 

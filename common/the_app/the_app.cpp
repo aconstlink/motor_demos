@@ -106,8 +106,7 @@ void_t the_app::on_init( void_t ) noexcept
 
         auto vb = motor::graphics::vertex_buffer_t()
                       .add_layout_element( motor::graphics::vertex_attribute::position,
-                                           motor::graphics::type::tfloat,
-                                           motor::graphics::type_struct::vec3 )
+                          motor::graphics::type::tfloat, motor::graphics::type_struct::vec3 )
                       .resize( 4 )
                       .update< vertex >( [ = ]( vertex * array, size_t const ne )
         {
@@ -131,12 +130,12 @@ void_t the_app::on_init( void_t ) noexcept
             array[ 5 ] = 3;
         } );
 
-        _post_quad = motor::shared( motor::graphics::geometry_object_t(
-                                        "post_quad", motor::graphics::primitive_type::triangles,
-                                        std::move( vb ), std::move( ib ) ),
-                                    "post quad" );
+        _post_quad = motor::shared(
+            motor::graphics::geometry_object_t( "post_quad",
+                motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ),
+            "post quad" );
     }
-    
+
     // post shader
     {
         motor::graphics::msl_object_t mslo( "color_to_screen" );
@@ -346,9 +345,8 @@ void_t the_app::on_init( void_t ) noexcept
 }
 
 //******************************************************************************************************
-void_t
-the_app::on_event( window_id_t const wid,
-                   motor::application::window_message_listener::state_vector_cref_t sv ) noexcept
+void_t the_app::on_event( window_id_t const wid,
+    motor::application::window_message_listener::state_vector_cref_t sv ) noexcept
 {
     if( sv.create_changed )
     {
@@ -391,7 +389,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
         demos::scene_manager_t::update_data sud;
         sud.demo_time = _cur_time;
         sud.cont_time = _cont_time;
-        sud.db = _db ;
+        sud.db = _db;
         _sm.on_scene_update( sud );
     }
 }
@@ -400,7 +398,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 void_t the_app::on_shutdown( void_t ) noexcept
 {
     {
-        _sm.on_shutdown();        
+        _sm.on_shutdown();
     }
 
     motor::release( motor::move( _post_quad ) );
