@@ -33,75 +33,22 @@ class iscene
 
     motor::string_t _name;
 
-    // final rendering
-    bool_t _scene_is_on = false;
-
-    demos::camera_manager _cm;
-
-    demos::demo_mode _dm;
-
-  public:
-
-    // camera manager
-    demos::camera_manager & camera_manager( void_t ) noexcept
-    {
-        return _cm;
-    }
-
   public:
 
     iscene( motor::string_in_t name ) noexcept : _name( name ) {}
 
     iscene( this_cref_t ) = delete;
-    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ), _dm( rhv._dm ) {}
+    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ){}
 
     virtual ~iscene( void_t ) noexcept {}
 
   public: //
-
-    // should be used for final rendition
-    bool_t is_in_time_range( void_t ) const noexcept
-    {
-        return _scene_is_on;
-    }
-
-    std::pair< size_t, size_t > get_time_range( void_t ) const noexcept
-    {
-        return _cm.camera_selector_range();
-    }
-
+  
     motor::string_cref_t name( void_t ) const noexcept
     {
         return _name;
     }
-
-  public: // preload time range
-
-    // should be used for final rendition
-    bool_t is_in_preload_time_range( size_t const cur_time ) const noexcept
-    {
-        size_t const preload_time = 2000;
-
-        auto tr = this_t::get_time_range();
-
-        auto const s = std::max( tr.first, size_t( preload_time ) ) - preload_time;
-        auto const e = tr.second + preload_time;
-
-        return s <= cur_time && cur_time <= e;
-    }
-
-  protected:
-
-    bool_t is_production_mode( void_t ) const noexcept
-    {
-        return _dm == demos::demo_mode::production;
-    }
-
-    bool_t is_tool_mode( void_t ) const noexcept
-    {
-        return _dm == demos::demo_mode::tool;
-    }
-
+    
   public: // interface
 
     virtual void_t on_init_cameras( void_t ) noexcept = 0;

@@ -25,16 +25,7 @@ enum class process_state
     raw,
     in_transit,
     init,
-    init_and_graphics,
-    ready,
     num_states
-};
-
-enum class tri_state
-{
-    initial,
-    running,
-    done
 };
 
 //

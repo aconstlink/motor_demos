@@ -19,9 +19,9 @@
 
 namespace demos
 {
-class dummy_scene : public iscene
+class simple_gltf_scene : public iscene
 {
-    motor_this_typedefs( dummy_scene );
+    motor_this_typedefs( simple_gltf_scene );
 
   private:
 
@@ -47,16 +47,16 @@ class dummy_scene : public iscene
 
   public:
 
-    dummy_scene( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
+    simple_gltf_scene( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
         : iscene( name ), _asset_location( loc )
     {
     }
-    dummy_scene( dummy_scene const & ) = delete;
-    dummy_scene( dummy_scene && rhv ) noexcept
+    simple_gltf_scene( simple_gltf_scene const & ) = delete;
+    simple_gltf_scene( simple_gltf_scene && rhv ) noexcept
         : iscene( std::move( rhv ) ), _asset_location( std::move( rhv._asset_location ) )
     {
     }
-    virtual ~dummy_scene( void_t ) noexcept
+    virtual ~simple_gltf_scene( void_t ) noexcept
     {
         this_t::release_all_objects();
     }
@@ -64,8 +64,6 @@ class dummy_scene : public iscene
   public:
 
     virtual void_t on_init_cameras( void_t ) noexcept {}
-
-    //************************************************************************************
     virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
     {
         {
@@ -73,28 +71,128 @@ class dummy_scene : public iscene
             _scale_os = motor::shared( os_trafo_t() );
         }
 
-        std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
+        motor::graphics::state_object_mtr_t root_so;
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "root_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.9f, 0.5f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+                so.add_render_state_set( rss );
+            }
+
+            root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        // #3 : init scene tree
+        {
+            motor::scene::logic_group_t root;
+            root.add_component( motor::shared( motor::scene::name_component_t( "my root name" ) ) );
+
+            // add imported scene
+            {
+                motor::scene::node_mtr_t imported_node = nullptr;
+
+                auto rs = motor::shared( motor::scene::logic_group_t() );
+                {
+                    auto rsc = motor::scene::render_settings_component_t( motor::move( root_so ) );
+
+                    rs->add_component( motor::shared( std::move( rsc ) ) );
+
+                    rs->add_component(
+                        motor::shared( motor::scene::name_component_t( "Render Settings" ) ) );
+                }
+
+                // make importer ready
+                {
+                    motor::format::module_registry_mtr_t mod_reg =
+                        motor::format::global::register_default_modules(
+                            motor::shared( motor::format::module_registry_t(), "mod registry" ) );
+
+                    // import the gltf asset.
+                    {
+                        auto item = mod_reg->import_from( _asset_location, db );
+                        auto * ret_item = item.get();
+
+                        // test scene with visitor
+                        if( auto * scene_item =
+                                dynamic_cast< motor::format::scene_item_ptr_t >( ret_item );
+                            scene_item != nullptr )
+                        {
+                            imported_node = motor::move( scene_item->root );
+                            _time_node = motor::move( scene_item->start_node );
+                            _merger = motor::move( scene_item->merger_node );
+
+                            _time_node->borrow_time_is()->connect( motor::share( _time ) );
+                        }
+                        else
+                        {
+                            motor::log::global_t::critical( "Failed to load gltf file." );
+                            std::exit( 1 );
+                        }
+
+                        motor::release( motor::move( ret_item ) );
+                    }
+
+                    motor::release( motor::move( mod_reg ) );
+                }
+
+                // test and scale whole imported tree with
+                // only one trafo component.
+                {
+                    motor::math::m3d::trafof_t t;
+                    t.set_scale( motor::math::vec3f_t( 1.0f ) );
+
+                    motor::scene::trafo3d_component_t comp;
+                    comp.set_trafo( t );
+
+                    {
+                        motor::wire::inputs_t inputs;
+                        comp.inputs( inputs );
+                        inputs.connect( "trafo", motor::share( _scale_os ) );
+                    }
+
+                    imported_node->add_component( motor::shared( std::move( comp ) ) );
+                }
+                rs->add_child( motor::move( imported_node ) );
+                root.add_child( motor::move( rs ) );
+            }
+
+            _root = motor::shared( std::move( root ) );
+        }
+
+        std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
     }
 
-    //************************************************************************************
     virtual void_t on_release( void_t ) noexcept
     {
         this_t::release_all_objects();
     }
 
-    //************************************************************************************
     virtual void_t on_update( size_t const cur_time ) noexcept {}
 
-    //************************************************************************************
     virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept {}
-
-    //************************************************************************************
     virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept {}
 
-    //************************************************************************************
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
 
-    //************************************************************************************
     virtual void_t on_render_init( demos::window_type const,
         motor::graphics::gen4::frontend_ptr_t fe,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
@@ -109,12 +207,9 @@ class dummy_scene : public iscene
         motor::concurrent::global::schedule(
             motor::move( the_task ), motor::concurrent::schedule_type::loose );
 
-        // the fence func is supposed to be sent to the
-        // rendering backend where it is called.
         // fe->fence( funk );
     }
 
-    //************************************************************************************
     virtual void_t on_render_deinit( demos::window_type const,
         motor::graphics::gen4::frontend_ptr_t,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
@@ -129,12 +224,9 @@ class dummy_scene : public iscene
         motor::concurrent::global::schedule(
             motor::move( the_task ), motor::concurrent::schedule_type::loose );
 
-        // the fence func is supposed to be sent to the
-        // rendering backend where it is called.
         // fe->fence( funk );
     }
 
-    //************************************************************************************
     virtual void_t on_render_debug( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
     virtual void_t on_render_final( motor::graphics::gen4::frontend_ptr_t ) noexcept {}
 
