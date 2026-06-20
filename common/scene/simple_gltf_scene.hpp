@@ -134,7 +134,10 @@ class simple_gltf_scene : public iscene
 
                     // import the gltf asset.
                     {
-                        auto item = mod_reg->import_from( _asset_location, db );
+                        motor::property::property_sheet_t ps ;
+                        ps.add_property<motor::string_t>( "base_name", this_t::name() ) ;
+
+                        auto item = mod_reg->import_from( _asset_location, db, motor::shared( std::move( ps ) ) );
                         auto * ret_item = item.get();
 
                         // test scene with visitor
