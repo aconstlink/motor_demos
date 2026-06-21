@@ -11,7 +11,7 @@
 				0,
 				1,
 				2,
-				4
+				5
 			]
 		}
 	],
@@ -60,8 +60,24 @@
 			]
 		},
 		{
+			"mesh":2,
+			"name":"Suzanne",
+			"rotation":[
+				-0.7142959237098694,
+				0,
+				0,
+				0.6998438835144043
+			],
+			"translation":[
+				7.1055707931518555,
+				0,
+				-3.072021007537842
+			]
+		},
+		{
 			"children":[
-				3
+				3,
+				4
 			],
 			"name":"Empty",
 			"translation":[
@@ -93,6 +109,27 @@
 			"type":"perspective"
 		}
 	],
+	"animations":[
+		{
+			"channels":[
+				{
+					"sampler":0,
+					"target":{
+						"node":4,
+						"path":"rotation"
+					}
+				}
+			],
+			"name":"SuzanneAction.001",
+			"samplers":[
+				{
+					"input":12,
+					"interpolation":"LINEAR",
+					"output":13
+				}
+			]
+		}
+	],
 	"meshes":[
 		{
 			"name":"Scene",
@@ -117,6 +154,19 @@
 						"TEXCOORD_0":6
 					},
 					"indices":7
+				}
+			]
+		},
+		{
+			"name":"Suzanne.001",
+			"primitives":[
+				{
+					"attributes":{
+						"POSITION":8,
+						"NORMAL":9,
+						"TEXCOORD_0":10
+					},
+					"indices":11
 				}
 			]
 		}
@@ -189,6 +239,58 @@
 			"componentType":5123,
 			"count":36,
 			"type":"SCALAR"
+		},
+		{
+			"bufferView":8,
+			"componentType":5126,
+			"count":1966,
+			"max":[
+				1.3671875,
+				0.984375,
+				0.8515625
+			],
+			"min":[
+				-1.3671875,
+				-0.984375,
+				-0.8515625
+			],
+			"type":"VEC3"
+		},
+		{
+			"bufferView":9,
+			"componentType":5126,
+			"count":1966,
+			"type":"VEC3"
+		},
+		{
+			"bufferView":10,
+			"componentType":5126,
+			"count":1966,
+			"type":"VEC2"
+		},
+		{
+			"bufferView":11,
+			"componentType":5123,
+			"count":2904,
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":12,
+			"componentType":5126,
+			"count":122,
+			"max":[
+				6.333333333333333
+			],
+			"min":[
+				1.2916666666666667
+			],
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":13,
+			"componentType":5126,
+			"count":122,
+			"type":"VEC4"
 		}
 	],
 	"bufferViews":[
@@ -239,11 +341,45 @@
 			"byteLength":72,
 			"byteOffset":22152,
 			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":23592,
+			"byteOffset":22224,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":23592,
+			"byteOffset":45816,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":15728,
+			"byteOffset":69408,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":5808,
+			"byteOffset":85136,
+			"target":34963
+		},
+		{
+			"buffer":0,
+			"byteLength":488,
+			"byteOffset":90944
+		},
+		{
+			"buffer":0,
+			"byteLength":1952,
+			"byteOffset":91432
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":22224,
+			"byteLength":93384,
 			"uri":"scene2.bin"
 		}
 	]

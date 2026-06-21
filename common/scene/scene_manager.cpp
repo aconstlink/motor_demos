@@ -122,7 +122,7 @@ void_t scene_manager::on_tool( void_t ) noexcept
             std::snprintf( buffer, 4096, "%s", sd.s->name().c_str() );
 
             if( ImGui::Begin( buffer ) )
-            {                
+            {
                 sd.s->on_tool();
             }
             ImGui::End();
@@ -221,7 +221,11 @@ void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
     if( demos::is_valid( cur ) )
     {
         auto & scene = _scenes[ cur ];
-        scene.s->on_update( _cur_time );
+
+        demos::iscene::update_data_t sud;
+        sud.absolute = _cur_time;
+        sud.relative = _cur_time - scene.start;
+        if( scene.ss == demos::process_state::init ) scene.s->on_update( sud );
     }
 }
 

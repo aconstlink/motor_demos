@@ -214,8 +214,20 @@ class simple_gltf_scene : public iscene
         this_t::release_all_objects();
     }
 
-    virtual void_t on_update( size_t const cur_time ) noexcept
+    virtual void_t on_update( demos::iscene::update_data_cref_t ud ) noexcept
     {
+        {
+            float_t const t = float_t( ud.relative ) / 1000.0f;
+            _time->set_and_exchange( t );
+        }
+
+        {
+            motor::concurrent::global_t::schedule(
+                _time_node->get_task(), motor::concurrent::schedule_type::pool );
+        }
+
+        // @todo do we have to sync here?
+
         {
             motor::scene::variable_update_visitor_t v;
             motor::scene::node_t::traverser( _root ).apply( &v );
@@ -252,7 +264,7 @@ class simple_gltf_scene : public iscene
     {
         if( _cam_id != size_t( -1 ) )
         {
-            motor::gfx::generic_camera_mtr_t cam =_cameras[ _cam_id ]  ;
+            motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ];
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
             motor::scene::render_visitor_t vis( wid, fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
@@ -296,7 +308,7 @@ class simple_gltf_scene : public iscene
                     }
                     ImGui::EndCombo();
 
-                    _cam_id = size_t(item_selected_idx) ;
+                    _cam_id = size_t( item_selected_idx );
                 }
             }
         }

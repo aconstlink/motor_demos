@@ -55,7 +55,7 @@ class iscene
     virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0;
     virtual void_t on_release( void_t ) noexcept = 0;
 
-    virtual void_t on_update( size_t const cur_time ) noexcept = 0;
+    
 
     virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept = 0;
     virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept = 0;
@@ -72,6 +72,16 @@ class iscene
     virtual void_t on_render_final( size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
 
     virtual void_t on_tool( void_t ) noexcept = 0;
+
+    public: // update interface
+
+    struct update_data
+    {
+        motor::math::time_ms_t absolute ;
+        motor::math::time_ms_t relative ;
+    };
+    motor_typedef( update_data ) ;
+    virtual void_t on_update( demos::iscene::update_data_cref_t  ) noexcept = 0;
 };
 motor_typedef( iscene );
 } // namespace demos
