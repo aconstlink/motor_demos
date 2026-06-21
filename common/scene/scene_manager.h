@@ -114,6 +114,10 @@ class scene_manager
     demos::scene_id_pair_t determine_scene_index( void_t ) noexcept;
     void_t commit_scene_index( demos::scene_id_pair_t const & ) noexcept;
 
+    // determine_scene_index must be used somewhere before in order to have a 
+    // proper scene index determination.
+    demos::scene_id_pair_t get_scene_index( void_t ) noexcept;
+
     void_t approach_raw_state_graphics(
         demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
     void_t handle_state_graphics(

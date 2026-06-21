@@ -116,11 +116,7 @@ class dummy_scene : public iscene
 
     virtual void_t on_tool( void_t ) noexcept
     {
-        if( ImGui::Begin( this_t::name().c_str() ) )
-        {
-            ImGui::Text( "nothing to see here. no tools are added for the dummy_scene." );
-        }
-        ImGui::End();
+        ImGui::Text( "nothing to see here. no tools are added for the dummy_scene." );        
     }
 
   private:

@@ -51,6 +51,8 @@ void_t scene_manager::on_shutdown( void_t ) noexcept
 //******************************************************************************************************
 void_t scene_manager::on_tool( void_t ) noexcept
 {
+    auto [ cur, nxt ] = this_t::get_scene_index();
+
     auto color_chooser_funk = [ & ]( demos::process_state const ps )
     {
         ImVec4 color( 0.0f, 0.0f, 0.0f, 1.0 );
@@ -72,8 +74,6 @@ void_t scene_manager::on_tool( void_t ) noexcept
 
     if( ImGui::Begin( "Scene Manager" ) )
     {
-        auto [ cur, nxt ] = this_t::determine_scene_index();
-
         for( size_t i = 0; i < _scenes.size(); ++i )
         {
             auto & s = _scenes[ i ];
@@ -113,10 +113,20 @@ void_t scene_manager::on_tool( void_t ) noexcept
     }
     ImGui::End();
 
-    for( auto & sd : _scenes )
     {
-        if( sd.ss != demos::process_state::init ) continue;
-        sd.s->on_tool();
+        for( auto & sd : _scenes )
+        {
+            if( sd.ss != demos::process_state::init ) continue;
+
+            char buffer[ 4096 ];
+            std::snprintf( buffer, 4096, "%s", sd.s->name().c_str() );
+
+            if( ImGui::Begin( buffer ) )
+            {                
+                sd.s->on_tool();
+            }
+            ImGui::End();
+        }
     }
 }
 
@@ -362,6 +372,12 @@ demos::scene_id_pair_t scene_manager::determine_scene_index( void_t ) noexcept
     }
 
     return std::make_pair( cur_scene, nxt_scene );
+}
+
+//******************************************************************************************************
+demos::scene_id_pair_t scene_manager::get_scene_index( void_t ) noexcept
+{
+    return std::make_pair( _cur_scene_idx, _nxt_scene_idx );
 }
 
 //******************************************************************************************************
