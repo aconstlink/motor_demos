@@ -56,6 +56,11 @@ class camera_collector : public motor::scene::default_visitor
         return motor::scene::result::ok;
     }
 
+    virtual void_t on_start( void_t ) noexcept 
+    {
+        this_t::release() ;
+    }
+
   public:
 
     cameras_t get_cameras( void_t ) noexcept

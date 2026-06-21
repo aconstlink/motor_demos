@@ -305,8 +305,7 @@ class simple_gltf_scene : public iscene
                             {
                                 motor::release( motor::move( _selected_cam ) );
                                 if( item_selected_idx != 0 )
-                                    _selected_cam =
-                                        motor::move( cams[ item_selected_idx - 1 ].second );
+                                    _selected_cam =cams[ item_selected_idx - 1 ].second ;
                             }
                         }
                     }
@@ -346,7 +345,7 @@ class simple_gltf_scene : public iscene
         {
             motor::release( motor::move( ptr ) );
         }
-        motor::release( motor::move( _selected_cam ) );
+        _cameras.clear() ;
         motor::release( motor::move( _selected_node ) );
     }
 };

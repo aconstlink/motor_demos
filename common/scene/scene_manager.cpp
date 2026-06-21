@@ -208,18 +208,18 @@ void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
     // lock in the scene ids for subsequence logic
     this_t::commit_scene_index( std::make_pair( cur, nxt ) );
 
-    if( demos::is_valid( cur  ) )
+    if( demos::is_valid( cur ) )
     {
-        auto & scene = _scenes[cur] ;
-        scene.s->on_update( _cur_time ) ;
+        auto & scene = _scenes[ cur ];
+        scene.s->on_update( _cur_time );
     }
 }
 
 //******************************************************************************************************
 void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
 {
-    if( rd.wt == demos::window_type::invalid ) return ;
-    if( rd.wt == demos::window_type::tool ) return ;
+    if( rd.wt == demos::window_type::invalid ) return;
+    if( rd.wt == demos::window_type::tool ) return;
 
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
@@ -234,10 +234,17 @@ void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
     // render current scene
     if( demos::is_valid( cur ) )
     {
-        if( rd.wt == demos::window_type::debug )
+        if( rd.wt == demos::window_type::debug &&
+            _scenes[ cur ].gfx_dbg == demos::process_state::init )
+        {
             _scenes[ cur ].s->on_render_debug( rd.wid, rd.fe );
-        else if( rd.wt == demos::window_type::production )
+        }
+
+        else if( rd.wt == demos::window_type::production &&
+                 _scenes[ cur ].gfx_prod == demos::process_state::init )
+        {
             _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
+        }
     }
 }
 
