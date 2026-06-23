@@ -50,6 +50,12 @@ class simple_gltf_scene : public iscene
 
     motor::graphics::state_object_mtr_t _root_so = nullptr;
 
+    // 0: can start parallel work
+    // 1: is in parallel work/has to wait for result
+    // 2: can do serial work after parallel is done
+    size_t _update_sync = 0;
+    motor::vector< motor::wire::inode_mtr_t > _node_dump;
+
   private: // tool variables
 
   public:
@@ -207,6 +213,14 @@ class simple_gltf_scene : public iscene
                 motor::log::global_t::error( "gltf file has no cameras." );
             }
         }
+
+        {
+            auto t = motor::shared( motor::wire::funk_node_t(
+                [ = ]( motor::wire::funk_node_ptr_t ) { this->_update_sync = 2; } ) );
+
+            _node_dump.emplace_back( motor::share( t ) );
+            _merger->then( motor::move( t ) );
+        }
     }
 
     virtual void_t on_release( void_t ) noexcept
@@ -214,19 +228,28 @@ class simple_gltf_scene : public iscene
         this_t::release_all_objects();
     }
 
-    virtual void_t on_update( demos::iscene::update_data_cref_t ud ) noexcept
+    // start parallel work
+    void_t on_update_stage1( demos::iscene::update_data_cref_t ud ) noexcept
     {
+        if( _update_sync != 0 ) return;
+        _update_sync = 1;
+
         {
             float_t const t = float_t( ud.relative ) / 1000.0f;
             _time->set_and_exchange( t );
         }
-
+        
         {
             motor::concurrent::global_t::schedule(
                 _time_node->get_task(), motor::concurrent::schedule_type::pool );
         }
+    }
 
-        // @todo do we have to sync here?
+    // do work after parallel work is done.
+    void_t on_update_stage2( demos::iscene::update_data_cref_t ud ) noexcept
+    {
+        if( _update_sync != 2 ) return;
+        _update_sync = 0;
 
         {
             motor::scene::variable_update_visitor_t v;
@@ -237,6 +260,12 @@ class simple_gltf_scene : public iscene
             motor::scene::trafo_visitor_t v;
             motor::scene::node_t::traverser( _root ).apply( &v );
         }
+    }
+
+    virtual void_t on_update( demos::iscene::update_data_cref_t ud ) noexcept
+    {
+        this_t::on_update_stage1( ud );
+        this_t::on_update_stage2( ud );
     }
 
     virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept {}
@@ -345,6 +374,13 @@ class simple_gltf_scene : public iscene
         }
         _cameras.clear();
         motor::release( motor::move( _selected_node ) );
+
+        for( auto * ptr : _node_dump )
+        {
+            ptr->disconnect();
+            motor::release( motor::move( ptr ) );
+        }
+        _node_dump.clear();
     }
 };
 } // namespace demos

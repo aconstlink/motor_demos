@@ -38,24 +38,22 @@ class iscene
     iscene( motor::string_in_t name ) noexcept : _name( name ) {}
 
     iscene( this_cref_t ) = delete;
-    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ){}
+    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ) {}
 
     virtual ~iscene( void_t ) noexcept {}
 
   public: //
-  
+
     motor::string_cref_t name( void_t ) const noexcept
     {
         return _name;
     }
-    
+
   public: // interface
 
     virtual void_t on_init_cameras( void_t ) noexcept = 0;
     virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0;
     virtual void_t on_release( void_t ) noexcept = 0;
-
-    
 
     virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept = 0;
     virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept = 0;
@@ -68,20 +66,23 @@ class iscene
         motor::graphics::gen4::frontend_ptr_t,
         motor::graphics::gen4::frontend::fence_funk_t ) noexcept = 0;
 
-    virtual void_t on_render_debug( size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
-    virtual void_t on_render_final( size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_debug(
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_final(
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
 
     virtual void_t on_tool( void_t ) noexcept = 0;
 
-    public: // update interface
+  public: // update interface
 
     struct update_data
     {
-        motor::math::time_ms_t absolute ;
-        motor::math::time_ms_t relative ;
+        motor::math::time_ms_t absolute;
+        motor::math::time_ms_t relative;
     };
-    motor_typedef( update_data ) ;
-    virtual void_t on_update( demos::iscene::update_data_cref_t  ) noexcept = 0;
+    motor_typedef( update_data );
+
+    virtual void_t on_update( demos::iscene::update_data_cref_t ) noexcept = 0;
 };
 motor_typedef( iscene );
 } // namespace demos
