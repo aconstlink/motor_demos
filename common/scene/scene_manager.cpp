@@ -124,7 +124,6 @@ void_t scene_manager::on_tool( void_t ) noexcept
                     std::memset( buffer, 0, sizeof( buffer ) );
                     std::snprintf( buffer, 4096, "|" );
                     ImGui::Text( buffer );
-                    
                 }
                 // end
                 {
@@ -271,7 +270,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
 }
 
 //******************************************************************************************************
-void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
+void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
 {
     if( rd.wt == demos::window_type::invalid ) return;
     if( rd.wt == demos::window_type::tool ) return;
@@ -286,34 +285,83 @@ void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
     this_t::handle_state_graphics( cur, rd.wt, rd.fe );
     this_t::handle_state_graphics( nxt, rd.wt, rd.fe );
 
-    // render current scene
-    if( demos::is_valid( cur ) )
+    if( rd.wt == demos::window_type::debug )
     {
-        if( rd.wt == demos::window_type::debug &&
-            _scenes[ cur ].gfx_dbg == demos::process_state::init )
-        {
-            _scenes[ cur ].s->on_render_debug( rd.wid, rd.fe );
-        }
+        this_t::on_render_debug( rd );
+    }
+    else if( rd.wt == demos::window_type::production )
+    {
+        this_t::on_render_production( rd );
+    }
+}
 
-        else if( rd.wt == demos::window_type::production &&
-                 _scenes[ cur ].gfx_prod == demos::process_state::init )
-        {
-            _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
-        }
+//******************************************************************************************************
+void_t scene_manager::on_render_debug( render_data_ref_t rd ) noexcept
+{
+    scene_id_t const cur = _cur_scene_idx;
+    scene_id_t const nxt = _nxt_scene_idx;
+
+    if( this_t::is_valid_and_init( cur, demos::window_type::debug ) )
+    {
+        _scenes[ cur ].s->on_render_debug( rd.wid, rd.fe );
     }
 
+    // eventually render next scene if overlap
     {
         float_t overlap = 0.0f;
         if( this_t::is_in_transition( overlap ) )
         {
             auto & snxt = _scenes[ nxt ];
 
-            if( rd.wt == demos::window_type::debug && snxt.gfx_dbg == demos::process_state::init )
+            if( snxt.gfx_dbg == demos::process_state::init )
             {
                 snxt.s->on_render_debug( rd.wid, rd.fe );
             }
         }
     }
+}
+
+//******************************************************************************************************
+void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
+{
+    scene_id_t const cur = _cur_scene_idx;
+    scene_id_t const nxt = _nxt_scene_idx;
+
+    if( this_t::is_valid_and_init( cur, demos::window_type::production ) )
+    {
+        // activate fb 0
+        _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
+    }
+
+    // eventually render next scene if overlap
+    float_t overlap = 0.0f;
+    if( this_t::is_in_transition( overlap ) )
+    {
+        auto & snxt = _scenes[ nxt ];
+
+        if( snxt.gfx_prod == demos::process_state::init )
+        {
+            // activate fb1
+            snxt.s->on_render_final( rd.wid, rd.fe );
+        }
+    }
+}
+
+//******************************************************************************************************
+bool_t scene_manager::is_valid_and_init(
+    demos::scene_id_t const id, demos::window_type const wt ) const noexcept
+{
+    if( wt == demos::window_type::debug )
+    {
+        if( demos::is_valid( id ) && _scenes[ id ].gfx_dbg == demos::process_state::init )
+            return true;
+    }
+    else if( wt == demos::window_type::production )
+    {
+        if( demos::is_valid( id ) && _scenes[ id ].gfx_prod == demos::process_state::init )
+            return true;
+    }
+    return false;
 }
 
 //******************************************************************************************************

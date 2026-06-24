@@ -42,7 +42,11 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         urd.wt = wid == _dwid ? demos::window_type::debug : urd.wt;
         urd.wt = wid == _rwid ? demos::window_type::production : urd.wt;
 
-        _sm.on_scene_render( urd );
+        urd.fb_0 = &pp_fb0 ;
+        urd.fb_1 = &pp_fb1 ;
+
+        _sm.on_render( urd );
+
     }
 
 #if 0

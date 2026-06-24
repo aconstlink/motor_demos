@@ -89,10 +89,13 @@ class scene_manager
         motor::graphics::gen4::frontend_mtr_t fe;
 
         demos::window_type wt;
+
+        motor::graphics::framebuffer_object_mtr_t fb_0;
+        motor::graphics::framebuffer_object_mtr_t fb_1;
     };
     motor_typedef( render_data );
 
-    void_t on_scene_render( render_data_ref_t ) noexcept;
+    void_t on_render( render_data_ref_t ) noexcept;
 
   public:
 
@@ -106,6 +109,11 @@ class scene_manager
     void_t on_shutdown( void_t ) noexcept;
 
   private:
+
+    void_t on_render_debug( render_data_ref_t ) noexcept;
+    void_t on_render_production( render_data_ref_t ) noexcept;
+
+    bool_t is_valid_and_init( demos::scene_id_t const, demos::window_type const ) const noexcept;
 
     bool_t is_in_time_range(
         this_t::scene_data_cref_t, motor::math::time_ms_t const ) const noexcept;

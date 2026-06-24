@@ -88,15 +88,6 @@ void_t the_app::on_init( void_t ) noexcept
         } );
     }
 
-#if 0
-    {
-        _camera.set_dims( 1.0f, 1.0f, 1.0f, 10000.0f ) ;
-        _camera.perspective_fov( motor::math::angle<float_t>::degree_to_radian( 45.0f ) ) ;
-        _camera.set_sensor_dims( float_t( 1920 ), float_t( 1080 ) ) ;
-        _camera.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -500.0f ),
-            motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ) ) ;
-    }
-#endif
     // post quad vertex/index buffer
     {
         struct vertex
@@ -383,8 +374,8 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept {}
 //******************************************************************************************************
 void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept
 {
-    if ( _proceed_time ) _cur_time += ud.milli_dt ;
-    _cont_time = ( _cont_time + ud.milli_dt ) % motor::math::time_ms_t( 10000 );    
+    if( _proceed_time ) _cur_time += ud.milli_dt;
+    _cont_time = ( _cont_time + ud.milli_dt ) % motor::math::time_ms_t( 10000 );
 
     {
         demos::scene_manager_t::update_data sud;
