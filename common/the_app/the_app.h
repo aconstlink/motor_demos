@@ -76,7 +76,7 @@ class the_app : public motor::application::app
   private: // tool ui
 
     size_t _twid = size_t( -1 );
-    
+
     motor::tool::player_controller_t pc;
     motor::tool::timeline_t tl = motor::tool::timeline_t( "my timeline" );
     bool_t _space_bar_pressed = false;
@@ -122,19 +122,18 @@ class the_app : public motor::application::app
   private:
 
     virtual void_t on_init( void_t ) noexcept;
-    virtual void_t
-    on_event( window_id_t const wid,
-              motor::application::window_message_listener::state_vector_cref_t sv ) noexcept;
+    virtual void_t on_event( window_id_t const wid,
+        motor::application::window_message_listener::state_vector_cref_t sv ) noexcept;
     virtual void_t on_device( device_data_in_t dd ) noexcept;
     virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept;
-    virtual void_t the_app::on_audio( motor::audio::frontend_ptr_t fptr,
-                                      audio_data_in_t ad ) noexcept;
+    virtual void_t the_app::on_audio(
+        motor::audio::frontend_ptr_t fptr, audio_data_in_t ad ) noexcept;
     virtual void_t on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept;
     virtual void_t on_render( this_t::window_id_t const wid,
-                              motor::graphics::gen4::frontend_ptr_t fe,
-                              motor::application::app::render_data_in_t rd ) noexcept;
-    virtual bool_t on_tool( this_t::window_id_t const wid,
-                            motor::application::app::tool_data_ref_t td ) noexcept;
+        motor::graphics::gen4::frontend_ptr_t fe,
+        motor::application::app::render_data_in_t rd ) noexcept;
+    virtual bool_t on_tool(
+        this_t::window_id_t const wid, motor::application::app::tool_data_ref_t td ) noexcept;
     virtual void_t on_shutdown( void_t ) noexcept;
 
   public:

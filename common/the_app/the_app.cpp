@@ -384,14 +384,14 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept {}
 void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexcept
 {
     if ( _proceed_time ) _cur_time += ud.milli_dt ;
-    _cont_time = ( _cont_time + ud.milli_dt ) % motor::math::time_ms_t( 10000 );
+    _cont_time = ( _cont_time + ud.milli_dt ) % motor::math::time_ms_t( 10000 );    
 
     {
         demos::scene_manager_t::update_data sud;
         sud.demo_time = _cur_time;
         sud.cont_time = _cont_time;
         sud.db = _db;
-        _sm.on_scene_update( sud );
+        _cur_time = _sm.on_scene_update( sud );
     }
 }
 

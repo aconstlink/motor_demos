@@ -45,6 +45,11 @@ class scene_manager
 
     size_t _cur_time = 0;
 
+  private: // ui
+
+    size_t _time_locked_to_scene_id = 0;
+    bool_t _time_locked_to_scene = false;
+
   public:
 
     scene_manager( void_t ) noexcept;
@@ -81,7 +86,7 @@ class scene_manager
 
     // update the scenes state and call
     // scene callbacks appropriately
-    void_t on_scene_update( update_data_cref_t ) noexcept;
+    motor::math::time_ms_t on_scene_update( update_data_cref_t ) noexcept;
 
     struct render_data
     {
@@ -106,22 +111,66 @@ class scene_manager
     void_t on_shutdown( void_t ) noexcept;
 
   private:
-  
+
     bool_t is_in_time_range(
         this_t::scene_data_cref_t, motor::math::time_ms_t const ) const noexcept;
-        
+
     // called during on_update.
     demos::scene_id_pair_t determine_scene_index( void_t ) noexcept;
     void_t commit_scene_index( demos::scene_id_pair_t const & ) noexcept;
-
-    // determine_scene_index must be used somewhere before in order to have a 
-    // proper scene index determination.
-    demos::scene_id_pair_t get_scene_index( void_t ) noexcept;
 
     void_t approach_raw_state_graphics(
         demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
     void_t handle_state_graphics(
         demos::scene_id_t const, demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
+
+    // returns true if two scenes are transitioning and
+    // if so, overlap is set. Otherwise false is returned.
+    bool_t is_in_transition( float_t & overlap ) const noexcept
+    {
+        size_t cur_end = 0;
+        size_t nxt_srt = 0;
+
+        if( _cur_scene_idx != size_t( -1 ) )
+        {
+            cur_end = _scenes[ _cur_scene_idx ].end ;
+        }
+
+        if( _nxt_scene_idx == size_t( -1 ) ) return false;
+
+        nxt_srt = _scenes[ _nxt_scene_idx ].start ;
+        overlap = float_t( _cur_time - nxt_srt ) / float_t( cur_end - nxt_srt );
+        return true;
+    }
+
+  public:
+
+    // determine_scene_index must be used somewhere before in order to have a
+    // proper scene index determination.
+    demos::scene_id_pair_t get_scene_index( void_t ) noexcept;
+
+    struct for_each_scene_info
+    {
+        motor::math::time_ms_t start;
+        motor::math::time_ms_t end;
+
+        demos::iscene_mtr_t s; // borrow
+    };
+    motor_typedef( for_each_scene_info );
+    using for_each_scene_funk_t =
+        std::function< void_t( size_t const idx, for_each_scene_info_in_t ) >;
+    void_t for_each_scene( for_each_scene_funk_t funk ) noexcept
+    {
+        size_t i = 0;
+        for( auto & s : _scenes )
+        {
+            for_each_scene_info info;
+            info.end = s.end;
+            info.start = s.start;
+            info.s = s.s;
+            funk( i++, info );
+        }
+    }
 };
 motor_typedef( scene_manager );
 

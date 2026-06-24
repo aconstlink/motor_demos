@@ -1,6 +1,7 @@
 
 #include "scene_manager.h"
 
+#include <motor/tool/util.hpp>
 #include <motor/tool/imgui/imgui.h>
 
 #include <motor/concurrent/task/task.hpp>
@@ -109,6 +110,35 @@ void_t scene_manager::on_tool( void_t ) noexcept
                 ImGui::SameLine();
                 ImGui::ColorButton( buffer, color );
             }
+
+            // time
+            {
+                // start
+                {
+                    motor::tool::make_time_string( buffer, sizeof( buffer ), s.start );
+                    ImGui::Text( buffer );
+                    ImGui::SameLine();
+                }
+                // end
+                {
+                    motor::tool::make_time_string( buffer, sizeof( buffer ), s.end );
+                    ImGui::Text( buffer );
+                    ImGui::SameLine();
+                }
+
+                // lock button
+                {
+                    std::snprintf(
+                        buffer, sizeof( buffer ), "##_lock_time_to_scene%s", s.s->name().c_str() );
+
+                    bool_t check = i == _time_locked_to_scene_id ? _time_locked_to_scene : false;
+                    if( ImGui::Checkbox( buffer, &check ) )
+                    {
+                        _time_locked_to_scene_id = i;
+                        _time_locked_to_scene = check;
+                    }
+                }
+            }
         }
     }
     ImGui::End();
@@ -131,9 +161,21 @@ void_t scene_manager::on_tool( void_t ) noexcept
 }
 
 //******************************************************************************************************
-void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
+motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
 {
     _cur_time = ud.demo_time;
+
+    // clamp current time to selected scene
+    {
+        if( _time_locked_to_scene )
+        {
+            auto const s = _scenes[ _time_locked_to_scene_id ].start;
+            auto const e = _scenes[ _time_locked_to_scene_id ].end;
+
+            _cur_time = _cur_time > e ? s : _cur_time;
+            _cur_time = _cur_time < s ? s : _cur_time;
+        }
+    }
 
     auto [ cur, nxt ] = this_t::determine_scene_index();
 
@@ -227,6 +269,23 @@ void_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
         sud.relative = _cur_time - scene.start;
         if( scene.ss == demos::process_state::init ) scene.s->on_update( sud );
     }
+
+    // update next scene if overlapping
+    {
+        float_t overlap = 0.0f;
+        if( this_t::is_in_transition( overlap ) )
+        {
+            auto & scene = _scenes[ nxt ] ;
+
+            demos::iscene::update_data_t sud;
+            sud.absolute = _cur_time;
+            sud.relative = _cur_time - scene.start;
+
+            if( scene.ss == demos::process_state::init ) scene.s->on_update( sud );
+        }
+    }
+
+    return _cur_time;
 }
 
 //******************************************************************************************************
@@ -258,6 +317,20 @@ void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
                  _scenes[ cur ].gfx_prod == demos::process_state::init )
         {
             _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
+        }
+    }
+
+    {
+        float_t overlap = 0.0f;
+        if( this_t::is_in_transition( overlap ) )
+        {
+            auto & snxt = _scenes[ nxt ] ;
+
+            if( rd.wt == demos::window_type::debug &&
+                snxt.gfx_dbg == demos::process_state::init )
+            {
+                snxt.s->on_render_debug( rd.wid, rd.fe );
+            }
         }
     }
 }
