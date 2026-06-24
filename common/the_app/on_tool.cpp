@@ -32,6 +32,14 @@ bool_t the_app::on_tool(
             // is defined further above
             {
                 tl.begin( ti );
+
+                _sm.for_each_scene(
+                    [ & ]( size_t const, demos::scene_manager::for_each_scene_info_in_t info )
+                {
+                    tl.place_marker( motor::tool::timeline::marker_position::bottom, info.start, ImColor( 0, 100, 0, 255 ) );
+                    tl.place_marker( motor::tool::timeline::marker_position::bottom,info.end, ImColor( 100, 0, 0, 255 ) );
+                } );
+
                 tl.end();
                 _cur_time = ti.cur_milli;
             }

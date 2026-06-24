@@ -115,28 +115,22 @@ void_t scene_manager::on_tool( void_t ) noexcept
             {
                 // start
                 {
+                    ImGui::SameLine();
                     motor::tool::make_time_string( buffer, sizeof( buffer ), s.start );
                     ImGui::Text( buffer );
+                }
+                {
                     ImGui::SameLine();
+                    std::memset( buffer, 0, sizeof( buffer ) );
+                    std::snprintf( buffer, 4096, "|" );
+                    ImGui::Text( buffer );
+                    
                 }
                 // end
                 {
+                    ImGui::SameLine();
                     motor::tool::make_time_string( buffer, sizeof( buffer ), s.end );
                     ImGui::Text( buffer );
-                    ImGui::SameLine();
-                }
-
-                // lock button
-                {
-                    std::snprintf(
-                        buffer, sizeof( buffer ), "##_lock_time_to_scene%s", s.s->name().c_str() );
-
-                    bool_t check = i == _time_locked_to_scene_id ? _time_locked_to_scene : false;
-                    if( ImGui::Checkbox( buffer, &check ) )
-                    {
-                        _time_locked_to_scene_id = i;
-                        _time_locked_to_scene = check;
-                    }
                 }
             }
         }
@@ -164,18 +158,6 @@ void_t scene_manager::on_tool( void_t ) noexcept
 motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
 {
     _cur_time = ud.demo_time;
-
-    // clamp current time to selected scene
-    {
-        if( _time_locked_to_scene )
-        {
-            auto const s = _scenes[ _time_locked_to_scene_id ].start;
-            auto const e = _scenes[ _time_locked_to_scene_id ].end;
-
-            _cur_time = _cur_time > e ? s : _cur_time;
-            _cur_time = _cur_time < s ? s : _cur_time;
-        }
-    }
 
     auto [ cur, nxt ] = this_t::determine_scene_index();
 
@@ -275,7 +257,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
         float_t overlap = 0.0f;
         if( this_t::is_in_transition( overlap ) )
         {
-            auto & scene = _scenes[ nxt ] ;
+            auto & scene = _scenes[ nxt ];
 
             demos::iscene::update_data_t sud;
             sud.absolute = _cur_time;
@@ -324,10 +306,9 @@ void_t scene_manager::on_scene_render( render_data_ref_t rd ) noexcept
         float_t overlap = 0.0f;
         if( this_t::is_in_transition( overlap ) )
         {
-            auto & snxt = _scenes[ nxt ] ;
+            auto & snxt = _scenes[ nxt ];
 
-            if( rd.wt == demos::window_type::debug &&
-                snxt.gfx_dbg == demos::process_state::init )
+            if( rd.wt == demos::window_type::debug && snxt.gfx_dbg == demos::process_state::init )
             {
                 snxt.s->on_render_debug( rd.wid, rd.fe );
             }

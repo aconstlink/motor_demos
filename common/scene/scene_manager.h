@@ -45,11 +45,6 @@ class scene_manager
 
     size_t _cur_time = 0;
 
-  private: // ui
-
-    size_t _time_locked_to_scene_id = 0;
-    bool_t _time_locked_to_scene = false;
-
   public:
 
     scene_manager( void_t ) noexcept;
@@ -131,16 +126,18 @@ class scene_manager
         size_t cur_end = 0;
         size_t nxt_srt = 0;
 
-        if( _cur_scene_idx != size_t( -1 ) )
-        {
-            cur_end = _scenes[ _cur_scene_idx ].end ;
-        }
-
+        if( _cur_scene_idx == size_t( -1 ) ) return false;
         if( _nxt_scene_idx == size_t( -1 ) ) return false;
 
-        nxt_srt = _scenes[ _nxt_scene_idx ].start ;
-        overlap = float_t( _cur_time - nxt_srt ) / float_t( cur_end - nxt_srt );
-        return true;
+        cur_end = _scenes[ _cur_scene_idx ].end;
+        nxt_srt = _scenes[ _nxt_scene_idx ].start;
+
+        if( _cur_time > nxt_srt && _cur_time < cur_end )
+        {
+            overlap = float_t( _cur_time - nxt_srt ) / float_t( cur_end - nxt_srt );
+            return true;
+        }
+        return false;
     }
 
   public:
