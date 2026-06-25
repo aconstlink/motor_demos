@@ -315,23 +315,48 @@ void_t the_app::on_init( void_t ) noexcept
         _scene_final_rs = std::move( so );
     }
 
+    {
+        motor::graphics::state_object_t so =
+            motor::graphics::state_object_t( "root_render_states_final" );
+
+        {
+            motor::graphics::render_state_sets_t rss;
+            rss.depth_s.do_change = true;
+            rss.depth_s.ss.do_activate = true;
+            rss.depth_s.ss.do_depth_write = true;
+
+            rss.polygon_s.do_change = true;
+            rss.polygon_s.ss.do_activate = true;
+            rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+            rss.clear_s.do_change = true;
+            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
+            rss.clear_s.ss.do_activate = true;
+            rss.clear_s.ss.do_color_clear = true;
+            rss.clear_s.ss.do_depth_clear = true;
+            rss.view_s.do_change = true;
+            rss.view_s.ss.do_activate = true;
+            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, fb_dims.z(), fb_dims.w() );
+            so.add_render_state_set( rss );
+        }
+
+        _scene_final_rs = std::move( so );
+    }
+
     // framebuffer
     {
         {
-            pp_fb0 = motor::graphics::framebuffer_object_t( "the_scene_0" );
-            pp_fb0.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
+            _pp_fb0 = motor::graphics::framebuffer_object_t( "the_scene_0" );
+            _pp_fb0.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( fb_dims.z() ), size_t( fb_dims.w() ) );
         }
         {
-            pp_fb1 = motor::graphics::framebuffer_object_t( "the_scene_1" );
-            pp_fb1.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
+            _pp_fb1 = motor::graphics::framebuffer_object_t( "the_scene_1" );
+            _pp_fb1.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( fb_dims.z() ), size_t( fb_dims.w() ) );
         }
-    }
-    // init scene manager
-    {
     }
 }
 
@@ -387,9 +412,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 }
 
 //******************************************************************************************************
-void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept
-{
-}
+void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept {}
 
 //******************************************************************************************************
 void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
@@ -409,8 +432,8 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         if( wid == _rwid )
         {
             fe->configure< motor::graphics::state_object_t >( &_scene_final_rs );
-            fe->configure< motor::graphics::framebuffer_object_t >( &pp_fb0 );
-            fe->configure< motor::graphics::framebuffer_object_t >( &pp_fb1 );
+            fe->configure< motor::graphics::framebuffer_object_t >( &_pp_fb0 );
+            fe->configure< motor::graphics::framebuffer_object_t >( &_pp_fb1 );
             fe->configure< motor::graphics::state_object_t >( &_post_process_rs );
             fe->configure< motor::graphics::geometry_object >( _post_quad );
             fe->configure< motor::graphics::msl_object >( _post_msl );
@@ -431,11 +454,11 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         urd.wt = wid == _dwid ? demos::window_type::debug : urd.wt;
         urd.wt = wid == _rwid ? demos::window_type::production : urd.wt;
 
-        urd.fb_0 = &pp_fb0 ;
-        urd.fb_1 = &pp_fb1 ;
-
+        #if 0
+        urd.fb_0 = &_pp_fb0;
+        urd.fb_1 = &_pp_fb1;
+        #endif
         _sm.on_render( urd );
-
     }
 }
 

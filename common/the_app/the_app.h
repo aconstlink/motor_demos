@@ -106,9 +106,10 @@ class the_app : public motor::application::app
   private: // post process
 
     size_t _rwid = size_t( -1 );
+    
     motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 );
-    motor::graphics::framebuffer_object_t pp_fb0; // the 1st scene is rendered to
-    motor::graphics::framebuffer_object_t pp_fb1; // the 2nd scene is rendered to
+    motor::graphics::framebuffer_object_t _pp_fb0; // the 1st scene is rendered to
+    motor::graphics::framebuffer_object_t _pp_fb1; // the 2nd scene is rendered to
 
     motor::graphics::msl_object_mtr_t _post_msl = nullptr;
     motor::graphics::msl_object_mtr_t _post_xfade_msl = nullptr;

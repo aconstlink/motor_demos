@@ -39,6 +39,11 @@ void_t scene_manager::add_scene( add_scene_data && d ) noexcept
 }
 
 //******************************************************************************************************
+void_t scene_manager::on_init( void_t ) noexcept
+{
+    
+}
+//******************************************************************************************************
 void_t scene_manager::on_shutdown( void_t ) noexcept
 {
     // release all scenes.
@@ -330,7 +335,9 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
     if( this_t::is_valid_and_init( cur, demos::window_type::production ) )
     {
         // activate fb 0
+        //rd.fe->use( &_pp_fb0 );
         _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
+        //rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
     }
 
     // eventually render next scene if overlap
@@ -342,8 +349,12 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
         if( snxt.gfx_prod == demos::process_state::init )
         {
             // activate fb1
+            //rd.fe->use( &_pp_fb1 );
             snxt.s->on_render_final( rd.wid, rd.fe );
+            //rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
+
+        // render transition
     }
 }
 

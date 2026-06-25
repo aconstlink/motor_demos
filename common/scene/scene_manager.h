@@ -14,6 +14,10 @@ class scene_manager
 
   private:
 
+    
+
+  private:
+
     struct scene_data
     {
         // should the scene render in
@@ -89,9 +93,6 @@ class scene_manager
         motor::graphics::gen4::frontend_mtr_t fe;
 
         demos::window_type wt;
-
-        motor::graphics::framebuffer_object_mtr_t fb_0;
-        motor::graphics::framebuffer_object_mtr_t fb_1;
     };
     motor_typedef( render_data );
 
