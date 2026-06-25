@@ -387,6 +387,11 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 }
 
 //******************************************************************************************************
+void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept
+{
+}
+
+//******************************************************************************************************
 void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
     motor::application::app::render_data_in_t rd ) noexcept
 {

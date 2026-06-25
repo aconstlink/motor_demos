@@ -15,7 +15,6 @@ set( commons
     "../common/the_app/the_app.cpp"
     "../common/the_app/on_audio.cpp"
     "../common/the_app/on_tool.cpp"
-    "../common/the_app/on_graphics.cpp"
     "../common/camera_collector.hpp"
 
     "../common/types.hpp"
