@@ -5,6 +5,8 @@
 #include "../types.hpp"
 #include "iscene.h"
 
+#include <motor/application/app.h>
+
 namespace demos
 {
 
@@ -12,11 +14,7 @@ class scene_manager
 {
     motor_this_typedefs( scene_manager );
 
-  private:
-
-    
-
-  private:
+  private: // the scenes
 
     struct scene_data
     {
@@ -47,7 +45,25 @@ class scene_manager
     demos::scene_id_t _cur_scene_idx = demos::invalid_scene_id;
     demos::scene_id_t _nxt_scene_idx = demos::invalid_scene_id;
 
+    motor::graphics::state_object_t _scene_final_rs;
+
     size_t _cur_time = 0;
+
+  private: // io
+
+    motor::io::monitor_mtr_t _mon = nullptr;
+    motor::io::database_mtr_t _db = nullptr;
+
+  private: // post processing
+
+    motor::math::vec4ui_t _fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 );
+    motor::graphics::framebuffer_object_mtr_t _pp_fb0; // the 1st scene is rendered to
+    motor::graphics::framebuffer_object_mtr_t _pp_fb1; // the 2nd scene is rendered to
+
+    motor::graphics::msl_object_mtr_t _post_msl = nullptr;
+    motor::graphics::msl_object_mtr_t _post_xfade_msl = nullptr;
+    motor::graphics::geometry_object_mtr_t _post_quad = nullptr;
+    motor::graphics::state_object_t _post_process_rs;
 
   public:
 
@@ -93,6 +109,8 @@ class scene_manager
         motor::graphics::gen4::frontend_mtr_t fe;
 
         demos::window_type wt;
+
+        bool_t first_frame ;
     };
     motor_typedef( render_data );
 
@@ -101,12 +119,37 @@ class scene_manager
   public:
 
     // for the scene manager itself
-    void_t on_init( void_t ) noexcept;
+    struct init_data
+    {
+        motor::math::vec4ui_t fb_dims;
+        motor::io::database_mtr_safe_t db;
+    };
+    motor_typedef( init_data );
 
-    // for the scene manager itself
+    // init only the scene manger. 
+    void_t on_init( this_t::init_data_ref_t ) noexcept;
+
+  public:
+
+  public:
+
+    struct event_data
+    {
+        demos::window_type wt;
+        motor::application::app::window_id_t wid;
+
+        bool_t window_size_changed = false ;
+        motor::math::vec2i_t window_pos ;
+        motor::math::vec2ui_t window_dims ;
+    };
+    motor_typedef( event_data );
+
+    void_t on_event( this_t::event_data_in_t ) noexcept;
+
+    //
     void_t on_tool( void_t ) noexcept;
 
-    // for the scene manager itself
+    //
     void_t on_shutdown( void_t ) noexcept;
 
   private:

@@ -64,18 +64,7 @@ class the_app : public motor::application::app
 
     demos::scene_manager_t _sm;
 
-  private: // free camera
-
-#if 0
-    bool_t _use_free_camera = true;
-    motor::gfx::generic_camera_t _camera;
-    // this is only for user input interaction!
-    helper::camera_controls::control_vector _cc;
-#endif
-
   private: // tool ui
-
-    size_t _twid = size_t( -1 );
 
     motor::tool::player_controller_t pc;
     motor::tool::timeline_t tl = motor::tool::timeline_t( "my timeline" );
@@ -83,12 +72,6 @@ class the_app : public motor::application::app
 
     // could be used in production
     bool_t _need_tool_view = false;
-
-#if 1
-    size_t _jump_to_scene = 0;
-#else
-    size_t _jump_to_scene = size_t( -1 );
-#endif
 
   private: // time control
 
@@ -101,23 +84,16 @@ class the_app : public motor::application::app
 
     bool_t _gbuffer_sel_changed = false;
     size_t _gbuffer_selection = 2;
-    motor::graphics::state_object_t _scene_final_rs;
 
-  private: // post process
+  private: // window id
 
+    // tool window id
+    size_t _twid = size_t( -1 );
+
+    // render/production window id
     size_t _rwid = size_t( -1 );
-    
-    motor::math::vec4ui_t fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 );
-    motor::graphics::framebuffer_object_t _pp_fb0; // the 1st scene is rendered to
-    motor::graphics::framebuffer_object_t _pp_fb1; // the 2nd scene is rendered to
 
-    motor::graphics::msl_object_mtr_t _post_msl = nullptr;
-    motor::graphics::msl_object_mtr_t _post_xfade_msl = nullptr;
-    motor::graphics::geometry_object_mtr_t _post_quad = nullptr;
-    motor::graphics::state_object_t _post_process_rs;
-
-  private: // debug window
-
+    // debug window id
     size_t _dwid = size_t( -1 );
 
   private:
