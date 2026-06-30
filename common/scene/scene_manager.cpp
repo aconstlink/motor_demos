@@ -464,6 +464,12 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
     }
 
     // update next scene if overlapping
+    // also, if next scene is not loaded yet, enable cycling through
+    // a specific time range in the current scene 
+    // => enables loading screen naturally.
+    // make the fist scenen a very simple loading scene and
+    // load a next more complex scene, so the loading scene 
+    // will cycle back into the loading scene for a few seconds.
     {
         float_t overlap = 0.0f;
         if( this_t::is_in_transition( overlap ) )
@@ -481,11 +487,11 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
             }
 
             // if next scene is not loaded yet, fix current time stamp
-            // but dont set it back the beyond the current scenes' time range start, 
+            // but dont set it back the beyond the current scenes' time range start,
             // because otherwise the next scene will be deloaded again.
             else if( nxt_scene.ss == demos::process_state::in_transit )
             {
-                if( _cur_time > nxt_scene.start )
+                if( _cur_time >= nxt_scene.start )
                 {
                     motor::math::time_ms_t const set_back =
                         std::min( motor::math::time_ms_t( 2000 ), ( _cur_time - cur_scene.start ) );
