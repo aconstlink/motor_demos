@@ -115,33 +115,6 @@ void_t the_app::on_init( void_t ) noexcept
     }
 
     {
-        motor::graphics::state_object_t so =
-            motor::graphics::state_object_t( "debug scene root render states" );
-
-        {
-            motor::graphics::render_state_sets_t rss;
-            rss.depth_s.do_change = true;
-            rss.depth_s.ss.do_activate = true;
-            rss.depth_s.ss.do_depth_write = true;
-            rss.polygon_s.do_change = true;
-            rss.polygon_s.ss.do_activate = true;
-            rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
-            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-            rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
-
-            rss.clear_s.do_change = true;
-            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.2f, 0.2f, 1.0f );
-            rss.clear_s.ss.do_activate = true;
-            rss.clear_s.ss.do_color_clear = true;
-            rss.clear_s.ss.do_depth_clear = true;
-
-            so.add_render_state_set( rss );
-        }
-
-        _dv_rs = std::move( so );
-    }
-
-    {
         demos::scene_manager_t::init_data_t id ;
         id.db = motor::share( _db ) ;
         id.fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 ) ;
@@ -229,7 +202,6 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         {
             pr.configure( fe );
             fe->configure< motor::graphics::state_object_t >( &_pr_rs );
-            fe->configure< motor::graphics::state_object_t >( &_dv_rs );
         }
     }
 

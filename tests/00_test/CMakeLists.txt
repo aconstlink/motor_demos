@@ -1,30 +1,40 @@
 
-set( app_name xx_demo )
+set( app_name 00_scene_test )
 
-set( sources
-    "../../common/audio_analysis.h"
+set( commons 
+  "../../common/audio_analysis.h"
     "../../common/audio_analysis.cpp"
     "../../common/scene/iscene.h"
+    "../../common/scene/dummy_scene.hpp"
+    "../../common/scene/simple_gltf_scene.hpp"
     "../../common/camera_manager.h"
     "../../common/camera_manager.cpp"
+    "../../common/scene/scene_manager.h"
+    "../../common/scene/scene_manager.cpp"
+    "../../common/the_app/the_app.h"
+    "../../common/the_app/the_app.cpp"
+    "../../common/the_app/on_audio.cpp"
+    "../../common/the_app/on_tool.cpp"
+    "../../common/camera_collector.hpp"
 
+    "../../common/types.hpp"
+)
+
+set( scenes 
+    "scenes/scene_0.h"
+    "scenes/scene_1.h"
+)
+
+set( sources
     "main.h"
     "main.cpp"
-    "app_camera.h"
-    "on_graphics.cpp"
-    "on_render.cpp"
-    "on_tool.cpp"
-    "on_audio.cpp"
-
     
-    "scenes/scene_0.h"
-    "scenes/scene_0.cpp"
-    "scenes/scene_0_coreos.cpp"
-    "scenes/scene_1.h"
-    "scenes/scene_1.cpp"
-    "scenes/scene_1_coreos.cpp"
-
+    ${commons}
+    ${scenes}
+    
     )
+
+motor_vs_src_dir( sources )
 
 add_executable( ${app_name} ${sources} ) 
 target_link_libraries( ${app_name} 
@@ -39,7 +49,7 @@ target_link_libraries( ${app_name}
       PUBLIC motor::format
       )
 
-    set_target_properties( ${app_name} PROPERTIES FOLDER "demos" )
+    set_target_properties( ${app_name} PROPERTIES FOLDER "tests" )
 
     set( data_path ${CMAKE_CURRENT_LIST_DIR} ) 
     target_compile_definitions( ${app_name} PUBLIC -DDATAPATH="${data_path}")

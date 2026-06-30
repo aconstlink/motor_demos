@@ -12,8 +12,8 @@
 
 #include <motor/gfx/primitive/primitive_render_3d.h>
 
-#include "../common/audio_analysis.h"
-#include "../common/scene/iscene.h"
+#include "../../common/audio_analysis.h"
+#include "../../common/scene/iscene.h"
 
 #include <motor/math/utility/fn.hpp>
 #include <motor/math/utility/angle.hpp>

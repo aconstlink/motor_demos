@@ -2,7 +2,7 @@ cmake_minimum_required( VERSION 3.20 )
 project( "motor_demos" )
 
 # required by motor
-set( CMAKE_CXX_STANDARD 17 )
+set( CMAKE_CXX_STANDARD 20 )
 
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build )
@@ -27,7 +27,7 @@ add_definitions( -DDEBUG_MODE )
 endif()
 
 add_subdirectory( "tests" )
-add_subdirectory( "xx_demo" )
+add_subdirectory( "00_demo" )
 
 
 

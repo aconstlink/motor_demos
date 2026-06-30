@@ -36,9 +36,6 @@ class the_app : public motor::application::app
     motor::gfx::primitive_render_3d_t pr;
     motor::graphics::state_object_t _pr_rs;
 
-    // debug view root render states
-    motor::graphics::state_object_t _dv_rs;
-
   private: // audio
 
     motor::audio::capture_object_t _co;
@@ -103,7 +100,7 @@ class the_app : public motor::application::app
         motor::application::window_message_listener::state_vector_cref_t sv ) noexcept;
     virtual void_t on_device( device_data_in_t dd ) noexcept;
     virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept;
-    virtual void_t the_app::on_audio(
+    virtual void_t on_audio(
         motor::audio::frontend_ptr_t fptr, audio_data_in_t ad ) noexcept;
     virtual void_t on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept;
     virtual void_t on_render( this_t::window_id_t const wid,

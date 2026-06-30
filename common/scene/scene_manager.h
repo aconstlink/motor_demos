@@ -110,7 +110,7 @@ class scene_manager
 
         demos::window_type wt;
 
-        bool_t first_frame ;
+        bool_t first_frame;
     };
     motor_typedef( render_data );
 
@@ -126,7 +126,7 @@ class scene_manager
     };
     motor_typedef( init_data );
 
-    // init only the scene manger. 
+    // init only the scene manger.
     void_t on_init( this_t::init_data_ref_t ) noexcept;
 
   public:
@@ -138,9 +138,9 @@ class scene_manager
         demos::window_type wt;
         motor::application::app::window_id_t wid;
 
-        bool_t window_size_changed = false ;
-        motor::math::vec2i_t window_pos ;
-        motor::math::vec2ui_t window_dims ;
+        bool_t window_size_changed = false;
+        motor::math::vec2i_t window_pos;
+        motor::math::vec2ui_t window_dims;
     };
     motor_typedef( event_data );
 
@@ -183,6 +183,8 @@ class scene_manager
 
         cur_end = _scenes[ _cur_scene_idx ].end;
         nxt_srt = _scenes[ _nxt_scene_idx ].start;
+
+        auto nxt = _scenes[ _nxt_scene_idx ];
 
         if( _cur_time > nxt_srt && _cur_time < cur_end )
         {

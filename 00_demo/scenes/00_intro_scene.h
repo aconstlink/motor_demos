@@ -20,28 +20,28 @@
 namespace demos
 {
 
-// purely tests based on time
-// but could also provide a nice starting point
-class dummy_scene : public iscene
+// loading screen
+class intro_scene : public iscene
 {
-    motor_this_typedefs( dummy_scene );
+    motor_this_typedefs( intro_scene );
 
   public:
 
-    dummy_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
-    dummy_scene( dummy_scene const & ) = delete;
-    dummy_scene( dummy_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
-    virtual ~dummy_scene( void_t ) noexcept
+    intro_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
+    intro_scene( intro_scene const & ) = delete;
+    intro_scene( intro_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
+    virtual ~intro_scene( void_t ) noexcept
     {
         this_t::release_all_objects();
     }
 
   public:
 
+    virtual void_t on_init_cameras( void_t ) noexcept {}
+
     //************************************************************************************
     virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
     {
-        std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
     }
 
     //************************************************************************************
@@ -70,7 +70,6 @@ class dummy_scene : public iscene
         auto the_task = motor::shared(
             motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
         {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
             funk();
         } ) );
 
@@ -90,7 +89,6 @@ class dummy_scene : public iscene
         auto the_task = motor::shared(
             motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
         {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
             funk();
         } ) );
 
@@ -114,11 +112,11 @@ class dummy_scene : public iscene
 
     virtual void_t on_tool( void_t ) noexcept
     {
-        ImGui::Text( "nothing to see here. no tools are added for the dummy_scene." );        
     }
 
   private:
 
     void_t release_all_objects( void_t ) noexcept {}
 };
+motor_typedef( intro_scene ) ;
 } // namespace demos

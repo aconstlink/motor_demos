@@ -51,7 +51,6 @@ class iscene
 
   public: // interface
 
-    virtual void_t on_init_cameras( void_t ) noexcept = 0;
     virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0;
     virtual void_t on_release( void_t ) noexcept = 0;
 

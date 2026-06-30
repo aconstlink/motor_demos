@@ -1,4 +1,4 @@
-config test_render
+config brain_storming_new_features
 {
     technique forward
     {
@@ -13,8 +13,24 @@ config test_render
             }
         }
 
-        pass my_name
+        pass some_base_rendering : q0, q1
         {
+            // put color on the pixels
+        }
+
+        pass some_base_rendering : q2
+        {
+            // put color on the pixels
+        }
+
+        pass lighing
+        {
+            // put light on the pixels
+        }
+
+        pass some_transparent_overlay
+        {
+            // do final transparent work
         }
     }
 

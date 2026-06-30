@@ -20,18 +20,18 @@
 namespace demos
 {
 
-// purely tests based on time
-// but could also provide a nice starting point
-class dummy_scene : public iscene
+// deferes the on_* calls in order to
+// test how other scenes react.
+class defered_scene : public iscene
 {
-    motor_this_typedefs( dummy_scene );
+    motor_this_typedefs( defered_scene );
 
   public:
 
-    dummy_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
-    dummy_scene( dummy_scene const & ) = delete;
-    dummy_scene( dummy_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
-    virtual ~dummy_scene( void_t ) noexcept
+    defered_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
+    defered_scene( defered_scene const & ) = delete;
+    defered_scene( defered_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
+    virtual ~defered_scene( void_t ) noexcept
     {
         this_t::release_all_objects();
     }
@@ -41,7 +41,7 @@ class dummy_scene : public iscene
     //************************************************************************************
     virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
     {
-        std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
     }
 
     //************************************************************************************
@@ -70,7 +70,7 @@ class dummy_scene : public iscene
         auto the_task = motor::shared(
             motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
         {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+            std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
             funk();
         } ) );
 
@@ -90,7 +90,7 @@ class dummy_scene : public iscene
         auto the_task = motor::shared(
             motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
         {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+            std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
             funk();
         } ) );
 
@@ -114,7 +114,7 @@ class dummy_scene : public iscene
 
     virtual void_t on_tool( void_t ) noexcept
     {
-        ImGui::Text( "nothing to see here. no tools are added for the dummy_scene." );        
+        ImGui::Text( "defered scene" );
     }
 
   private:

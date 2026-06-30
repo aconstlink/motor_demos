@@ -1,12 +1,12 @@
 
 #include "main.h"
-#include "../common/the_app/the_app.h"
+#include "../../common/the_app/the_app.h"
 
 #include "scenes/scene_0.h"
 #include "scenes/scene_1.h"
 
-#include "../common/scene/dummy_scene.hpp"
-#include "../common/scene/simple_gltf_scene.hpp"
+#include "../../common/scene/dummy_scene.hpp"
+#include "../../common/scene/simple_gltf_scene.hpp"
 
 #include <motor/application/carrier.h>
 #include <motor/platform/global.h>
@@ -44,7 +44,7 @@ int main( int argc, char ** argv )
             asd.start = motor::math::time::to_milli( 0, 27, 0 );
             asd.end = motor::math::time::to_milli( 0, 70, 0 );
             asd.sptr = motor::shared(
-                demos::simple_gltf_scene( "scene 2", motor::io::location_t( "scene1.gltf" ) ) );
+                demos::simple_gltf_scene( "scene 2", motor::io::location_t( "scene_1.scene.gltf" ) ) );
 
             sm.add_scene( std::move( asd ) );
         }
@@ -57,7 +57,7 @@ int main( int argc, char ** argv )
             asd.start = motor::math::time::to_milli( 0, 67, 0 );
             asd.end = motor::math::time::to_milli( 1, 50, 0 );
             asd.sptr = motor::shared(
-                demos::simple_gltf_scene( "scene 3", motor::io::location_t( "scene2.gltf" ) ) );
+                demos::simple_gltf_scene( "scene 3", motor::io::location_t( "scene_2.scene.gltf" ) ) );
 
             sm.add_scene( std::move( asd ) );
         }

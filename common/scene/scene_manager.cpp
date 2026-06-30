@@ -23,7 +23,7 @@ scene_manager::~scene_manager( void_t ) noexcept
         motor::release( motor::move( s.s ) );
     }
 
-    motor::release( motor::move(_db ) ); 
+    motor::release( motor::move( _db ) );
 }
 
 //******************************************************************************************************
@@ -228,7 +228,7 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( _fb_dims.z() ), size_t( _fb_dims.w() ) );
 
-            _pp_fb0 = motor::shared( std::move( fb ) )  ;
+            _pp_fb0 = motor::shared( std::move( fb ) );
         }
         {
             auto fb = motor::graphics::framebuffer_object_t( "the_scene_1" );
@@ -236,7 +236,7 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( _fb_dims.z() ), size_t( _fb_dims.w() ) );
 
-            _pp_fb1 = motor::shared( std::move( fb ) ) ;
+            _pp_fb1 = motor::shared( std::move( fb ) );
         }
     }
 }
@@ -455,12 +455,12 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
 
     if( demos::is_valid( cur ) )
     {
-        auto & scene = _scenes[ cur ];
+        auto & cur_scene = _scenes[ cur ];
 
         demos::iscene::update_data_t sud;
         sud.absolute = _cur_time;
-        sud.relative = _cur_time - scene.start;
-        if( scene.ss == demos::process_state::init ) scene.s->on_update( sud );
+        sud.relative = _cur_time - cur_scene.start;
+        if( cur_scene.ss == demos::process_state::init ) cur_scene.s->on_update( sud );
     }
 
     // update next scene if overlapping
@@ -468,13 +468,30 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
         float_t overlap = 0.0f;
         if( this_t::is_in_transition( overlap ) )
         {
-            auto & scene = _scenes[ nxt ];
+            auto & cur_scene = _scenes[ cur ];
+            auto & nxt_scene = _scenes[ nxt ];
 
             demos::iscene::update_data_t sud;
             sud.absolute = _cur_time;
-            sud.relative = _cur_time - scene.start;
+            sud.relative = _cur_time - nxt_scene.start;
 
-            if( scene.ss == demos::process_state::init ) scene.s->on_update( sud );
+            if( nxt_scene.ss == demos::process_state::init )
+            {
+                nxt_scene.s->on_update( sud );
+            }
+
+            // if next scene is not loaded yet, fix current time stamp
+            // but dont set it back the beyond the current scenes' time range start, 
+            // because otherwise the next scene will be deloaded again.
+            else if( nxt_scene.ss == demos::process_state::in_transit )
+            {
+                if( _cur_time > nxt_scene.start )
+                {
+                    motor::math::time_ms_t const set_back =
+                        std::min( motor::math::time_ms_t( 2000 ), ( _cur_time - cur_scene.start ) );
+                    _cur_time = _cur_time - set_back;
+                }
+            }
         }
     }
 
@@ -576,9 +593,10 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
             snxt.s->on_render_final( rd.wid, rd.fe );
             // rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
-
-        // render transition
     }
+
+    // render transition fb0 x fb1
+    // or render fb0
 }
 
 //******************************************************************************************************

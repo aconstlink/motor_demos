@@ -1,7 +1,7 @@
 #pragma once
 
-#include "iscene.h"
-#include "../camera_collector.hpp"
+#include "../../common/scene/iscene.h"
+#include "../../common/camera_collector.hpp"
 
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/component/name_component.hpp>
@@ -22,9 +22,9 @@
 
 namespace demos
 {
-class simple_gltf_scene : public iscene
+class scene_0 : public iscene
 {
-    motor_this_typedefs( simple_gltf_scene );
+    motor_this_typedefs( scene_0 );
 
   private:
 
@@ -62,16 +62,16 @@ class simple_gltf_scene : public iscene
 
   public:
 
-    simple_gltf_scene( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
+    scene_0( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
         : iscene( name ), _asset_location( loc )
     {
     }
-    simple_gltf_scene( simple_gltf_scene const & ) = delete;
-    simple_gltf_scene( simple_gltf_scene && rhv ) noexcept
+    scene_0( scene_0 const & ) = delete;
+    scene_0( scene_0 && rhv ) noexcept
         : iscene( std::move( rhv ) ), _asset_location( std::move( rhv._asset_location ) )
     {
     }
-    virtual ~simple_gltf_scene( void_t ) noexcept
+    virtual ~scene_0( void_t ) noexcept
     {
         this_t::release_all_objects();
     }
@@ -385,4 +385,5 @@ class simple_gltf_scene : public iscene
         _node_dump.clear();
     }
 };
+motor_typedef( scene_0 ) ;
 } // namespace demos
