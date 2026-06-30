@@ -54,10 +54,7 @@ class dummy_scene : public iscene
     virtual void_t on_update( demos::iscene::update_data_cref_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept {}
-
-    //************************************************************************************
-    virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept {}
+    virtual void_t on_resize( demos::window_type const, uint_t const width, uint_t const height ) noexcept {}
 
     //************************************************************************************
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}

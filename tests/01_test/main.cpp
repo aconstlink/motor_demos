@@ -10,7 +10,10 @@
 
 using namespace demos;
 
-//******************************************************************************************************
+// tests defered scene. so a current scene is 
+// cycling though a certain time range, so a loading
+// scene would be possible, or the next scene is 
+// defered until the it is loaded properly. 
 int main( int argc, char ** argv )
 {
     std::srand( 127439126 );

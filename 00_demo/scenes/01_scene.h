@@ -78,7 +78,6 @@ class scene_0 : public iscene
 
   public:
 
-    virtual void_t on_init_cameras( void_t ) noexcept {}
     virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
     {
         {
@@ -270,8 +269,7 @@ class scene_0 : public iscene
         this_t::on_update_stage2( ud );
     }
 
-    virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept {}
-    virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept {}
+    virtual void_t on_resize( demos::window_type const, uint_t const width, uint_t const height ) noexcept {}
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
 

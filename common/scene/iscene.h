@@ -54,8 +54,7 @@ class iscene
     virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0;
     virtual void_t on_release( void_t ) noexcept = 0;
 
-    virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept = 0;
-    virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept = 0;
+    virtual void_t on_resize( demos::window_type const, uint_t const width, uint_t const height ) noexcept = 0;
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept = 0;
 

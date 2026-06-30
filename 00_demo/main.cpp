@@ -1,14 +1,14 @@
 
 #include "main.h"
-#include "../../common/the_app/the_app.h"
+#include "../common/the_app/the_app.h"
 
 #include "scenes/00_intro_scene.h"
 #include "scenes/01_scene.h"
 #include "scenes/02_scene.h"
 #include "scenes/03_outro_scene.h"
 
-#include "../../common/scene/dummy_scene.hpp"
-#include "../../common/scene/simple_gltf_scene.hpp"
+#include "../common/scene/dummy_scene.hpp"
+#include "../common/scene/simple_gltf_scene.hpp"
 
 #include <motor/application/carrier.h>
 #include <motor/platform/global.h>

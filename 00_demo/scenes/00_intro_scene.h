@@ -1,7 +1,7 @@
 #pragma once
 
-#include "iscene.h"
-#include "../camera_collector.hpp"
+#include "../common/scene/iscene.h"
+#include "../common/camera_collector.hpp"
 
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/component/name_component.hpp>
@@ -37,8 +37,6 @@ class intro_scene : public iscene
 
   public:
 
-    virtual void_t on_init_cameras( void_t ) noexcept {}
-
     //************************************************************************************
     virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
     {
@@ -54,10 +52,7 @@ class intro_scene : public iscene
     virtual void_t on_update( demos::iscene::update_data_cref_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept {}
-
-    //************************************************************************************
-    virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept {}
+    virtual void_t on_resize( demos::window_type const, uint_t const width, uint_t const height ) noexcept {}
 
     //************************************************************************************
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
@@ -67,15 +62,6 @@ class intro_scene : public iscene
         motor::graphics::gen4::frontend_ptr_t fe,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        auto the_task = motor::shared(
-            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
-        {
-            funk();
-        } ) );
-
-        motor::concurrent::global::schedule(
-            motor::move( the_task ), motor::concurrent::schedule_type::loose );
-
         // the fence func is supposed to be sent to the
         // rendering backend where it is called.
         // fe->fence( funk );
@@ -86,14 +72,6 @@ class intro_scene : public iscene
         motor::graphics::gen4::frontend_ptr_t,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        auto the_task = motor::shared(
-            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
-        {
-            funk();
-        } ) );
-
-        motor::concurrent::global::schedule(
-            motor::move( the_task ), motor::concurrent::schedule_type::loose );
 
         // the fence func is supposed to be sent to the
         // rendering backend where it is called.
