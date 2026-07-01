@@ -28,7 +28,7 @@ class dummy_scene : public iscene
 
   public:
 
-    dummy_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
+    dummy_scene( motor::string_cref_t name ) noexcept : iscene( name, 5000 ) {}
     dummy_scene( dummy_scene const & ) = delete;
     dummy_scene( dummy_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
     virtual ~dummy_scene( void_t ) noexcept

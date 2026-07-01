@@ -62,8 +62,8 @@ class simple_gltf_scene : public iscene
 
   public:
 
-    simple_gltf_scene( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
-        : iscene( name ), _asset_location( loc )
+    simple_gltf_scene( motor::string_cref_t name, motor::io::location_cref_t loc, motor::math::time_ms_t const dur = 5000 ) noexcept
+        : iscene( name, dur ), _asset_location( loc )
     {
     }
     simple_gltf_scene( simple_gltf_scene const & ) = delete;

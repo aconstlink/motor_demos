@@ -28,9 +28,6 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 0, 0 );
-            asd.end = motor::math::time::to_milli( 0, 2, 0 );
             asd.sptr = motor::shared( demos::dummy_scene( "Dummy scene 1" ) );
 
             sm.add_scene( std::move( asd ) );
@@ -40,9 +37,6 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 2, 0 );
-            asd.end = motor::math::time::to_milli( 0, 4, 0 );
             asd.sptr = motor::shared( demos::dummy_scene( "Dummy scene 2" ) );
 
             sm.add_scene( std::move( asd ) );
@@ -52,9 +46,6 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 3, 0 );
-            asd.end = motor::math::time::to_milli( 0, 10, 0 );
             asd.sptr = motor::shared( demos::defered_scene( "Defered scene 3" ) );
 
             sm.add_scene( std::move( asd ) );
@@ -64,9 +55,6 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 8, 0 );
-            asd.end = motor::math::time::to_milli( 0, 20, 0 );
             asd.sptr = motor::shared( demos::dummy_scene( "Dummy scene 4" ) );
 
             sm.add_scene( std::move( asd ) );

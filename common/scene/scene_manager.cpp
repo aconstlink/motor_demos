@@ -31,13 +31,26 @@ void_t scene_manager::add_scene( add_scene_data && d ) noexcept
 {
     this_t::scene_data sd;
 
+    motor::math::time_ms_t start = 0;
+
+    if( _scenes.size() > 0 )
+    {
+        start = std::min( _scenes.back().end, _scenes.back().end - 2000 );
+    }
+
     // @todo check overlap
-    sd.start = d.start;
-    sd.end = d.end;
+    sd.start = start;
+    sd.end = start + d.sptr->get_scene_length();
     sd.ss = demos::process_state::raw;
     sd.s = motor::move( d.sptr );
 
     _scenes.emplace_back( std::move( sd ) );
+}
+
+//******************************************************************************************************
+motor::math::time_ms_t scene_manager::get_whole_duration( void_t ) const noexcept 
+{
+    return _scenes.size() > 0 ? _scenes.back().end : 0 ;
 }
 
 //******************************************************************************************************
@@ -460,15 +473,16 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
         demos::iscene::update_data_t sud;
         sud.absolute = _cur_time;
         sud.relative = _cur_time - cur_scene.start;
+        sud.relative_seconds = float_t( sud.relative ) / 1000.0f;
         if( cur_scene.ss == demos::process_state::init ) cur_scene.s->on_update( sud );
     }
 
     // update next scene if overlapping
     // also, if next scene is not loaded yet, enable cycling through
-    // a specific time range in the current scene 
+    // a specific time range in the current scene
     // => enables loading screen naturally.
     // make the fist scenen a very simple loading scene and
-    // load a next more complex scene, so the loading scene 
+    // load a next more complex scene, so the loading scene
     // will cycle back into the loading scene for a few seconds.
     {
         float_t overlap = 0.0f;

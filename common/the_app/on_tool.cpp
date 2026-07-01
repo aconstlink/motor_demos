@@ -24,7 +24,7 @@ bool_t the_app::on_tool(
     };
 
     {
-        motor::tool::time_info_t ti{ _max_time_milli, _cur_time };
+        motor::tool::time_info_t ti{ _sm.get_whole_duration() + 2000, _cur_time };
 
         if( ImGui::Begin( "Timeline" ) )
         {
@@ -36,8 +36,10 @@ bool_t the_app::on_tool(
                 _sm.for_each_scene(
                     [ & ]( size_t const, demos::scene_manager::for_each_scene_info_in_t info )
                 {
-                    tl.place_marker( motor::tool::timeline::marker_position::bottom, info.start, ImColor( 0, 100, 0, 255 ) );
-                    tl.place_marker( motor::tool::timeline::marker_position::bottom,info.end, ImColor( 100, 0, 0, 255 ) );
+                    tl.place_marker( motor::tool::timeline::marker_position::bottom, info.start,
+                        ImColor( 0, 100, 0, 255 ) );
+                    tl.place_marker( motor::tool::timeline::marker_position::bottom, info.end,
+                        ImColor( 100, 0, 0, 255 ) );
                 } );
 
                 tl.end();
@@ -133,7 +135,6 @@ bool_t the_app::on_tool(
         }
         ImGui::End();
     }
-
 
     if( ImGui::Begin( "Controls Info" ) )
     {

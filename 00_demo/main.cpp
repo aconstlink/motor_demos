@@ -30,11 +30,7 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 0, 0 );
-            asd.end = motor::math::time::to_milli( 0, 10, 0 );
-            asd.sptr = motor::shared(
-                demos::scene_0( "intro", motor::io::location_t( "scene_0.scene.gltf" ) ) );
+            asd.sptr = motor::shared( demos::intro_scene( "intro" ) ); 
 
             sm.add_scene( std::move( asd ) );
         }

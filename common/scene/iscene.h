@@ -32,13 +32,19 @@ class iscene
   private:
 
     motor::string_t _name;
+    motor::math::time_ms_t _duration = 0;
 
   public:
 
-    iscene( motor::string_in_t name ) noexcept : _name( name ) {}
+    iscene( motor::string_in_t name, motor::math::time_ms_t const dur ) noexcept
+        : _name( name ), _duration( dur )
+    {
+    }
 
     iscene( this_cref_t ) = delete;
-    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ) {}
+    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ), _duration( rhv._duration )
+    {
+    }
 
     virtual ~iscene( void_t ) noexcept {}
 
@@ -51,10 +57,16 @@ class iscene
 
   public: // interface
 
+    virtual motor::math::time_ms_t get_scene_length( void_t ) const noexcept
+    {
+        return _duration;
+    }
+
     virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0;
     virtual void_t on_release( void_t ) noexcept = 0;
 
-    virtual void_t on_resize( demos::window_type const, uint_t const width, uint_t const height ) noexcept = 0;
+    virtual void_t on_resize(
+        demos::window_type const, uint_t const width, uint_t const height ) noexcept = 0;
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept = 0;
 
@@ -77,6 +89,8 @@ class iscene
     {
         motor::math::time_ms_t absolute;
         motor::math::time_ms_t relative;
+
+        float_t relative_seconds ;
     };
     motor_typedef( update_data );
 

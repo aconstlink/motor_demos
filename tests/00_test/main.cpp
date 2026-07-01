@@ -27,10 +27,7 @@ int main( int argc, char ** argv )
         demos::scene_manager_t sm;
 #if 1
         {
-            demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 0, 0 );
-            asd.end = motor::math::time::to_milli( 0, 30, 0 );
+            demos::scene_manager_t::add_scene_data asd;           
             asd.sptr = motor::shared( demos::dummy_scene( "scene 1" ) );
 
             sm.add_scene( std::move( asd ) );
@@ -40,11 +37,8 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 27, 0 );
-            asd.end = motor::math::time::to_milli( 0, 70, 0 );
             asd.sptr = motor::shared(
-                demos::simple_gltf_scene( "scene 2", motor::io::location_t( "scene_1.scene.gltf" ) ) );
+                demos::simple_gltf_scene( "scene 2", motor::io::location_t( "scene_1.scene.gltf" ), 5000 ) );
 
             sm.add_scene( std::move( asd ) );
         }
@@ -53,11 +47,8 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-
-            asd.start = motor::math::time::to_milli( 0, 67, 0 );
-            asd.end = motor::math::time::to_milli( 1, 50, 0 );
             asd.sptr = motor::shared(
-                demos::simple_gltf_scene( "scene 3", motor::io::location_t( "scene_2.scene.gltf" ) ) );
+                demos::simple_gltf_scene( "scene 3", motor::io::location_t( "scene_2.scene.gltf" ), 10000 ) );
 
             sm.add_scene( std::move( asd ) );
         }

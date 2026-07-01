@@ -76,9 +76,6 @@ class scene_manager
 
     struct add_scene_data
     {
-        motor::math::time_ms_t start;
-        motor::math::time_ms_t end;
-
         demos::iscene_mtr_t sptr;
     };
 
@@ -222,6 +219,8 @@ class scene_manager
             funk( i++, info );
         }
     }
+
+    motor::math::time_ms_t get_whole_duration( void_t ) const noexcept;
 };
 motor_typedef( scene_manager );
 

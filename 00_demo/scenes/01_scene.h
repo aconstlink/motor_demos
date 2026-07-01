@@ -63,7 +63,7 @@ class scene_0 : public iscene
   public:
 
     scene_0( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept
-        : iscene( name ), _asset_location( loc )
+        : iscene( name, 5000 ), _asset_location( loc )
     {
     }
     scene_0( scene_0 const & ) = delete;

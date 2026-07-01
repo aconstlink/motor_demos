@@ -28,7 +28,7 @@ class defered_scene : public iscene
 
   public:
 
-    defered_scene( motor::string_cref_t name ) noexcept : iscene( name ) {}
+    defered_scene( motor::string_cref_t name ) noexcept : iscene( name, 5000 ) {}
     defered_scene( defered_scene const & ) = delete;
     defered_scene( defered_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
     virtual ~defered_scene( void_t ) noexcept
@@ -54,10 +54,10 @@ class defered_scene : public iscene
     virtual void_t on_update( demos::iscene::update_data_cref_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_resize_debug( uint_t const width, uint_t const height ) noexcept {}
-
-    //************************************************************************************
-    virtual void_t on_resize( uint_t const width, uint_t const height ) noexcept {}
+    virtual void_t on_resize(
+        demos::window_type const, uint_t const width, uint_t const height ) noexcept
+    {
+    }
 
     //************************************************************************************
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
