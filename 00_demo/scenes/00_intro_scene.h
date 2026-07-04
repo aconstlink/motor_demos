@@ -5,7 +5,7 @@
 
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/component/name_component.hpp>
-#include <motor/scene/component/render_settings_component.h>
+#include <motor/scene/component/graphics/render_settings_component.h>
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/visitor/trafo_visitor.h>
 #include <motor/scene/visitor/render_visitor.h>
@@ -72,7 +72,7 @@ class intro_scene : public iscene
 
   public:
 
-    intro_scene( motor::string_cref_t name ) noexcept : iscene( name, 4000 ) {}
+    intro_scene( motor::string_cref_t name ) noexcept : iscene( name, { 4000, 2000 } ) {}
     intro_scene( intro_scene const & ) = delete;
     intro_scene( intro_scene && rhv ) noexcept
         : iscene( std::move( rhv ) ), _gltf_mon( motor::move( rhv._gltf_mon ) )
@@ -125,9 +125,16 @@ class intro_scene : public iscene
             _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
         }
 
-        auto const loc = motor::io::location_t( "0_intro_scene.scene.gltf" );
-        this_t::init_scene_and_components( loc );
-        _db->attach( loc, motor::share( _gltf_mon ) );
+        // load scene
+        {
+            auto const loc = motor::io::location_t( "0_intro_scene.scene.gltf" );
+            this_t::init_scene_and_components( loc );
+            _db->attach( loc, motor::share( _gltf_mon ) );
+        }
+
+        // load shaders
+        {
+        }
     }
 
     //**************************************************************************************
@@ -350,12 +357,51 @@ class intro_scene : public iscene
             motor::scene::node_t::traverser( _root ).apply( &vis );
         }
     }
+
+    //************************************************************************************
     virtual void_t on_render_final(
         size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
     {
     }
 
-    virtual void_t on_tool( void_t ) noexcept {}
+    virtual void_t on_tool( void_t ) noexcept
+    {
+        // SECTION: cameras
+        {
+            auto cams = _cc.get_cameras();
+
+            if( cams.size() > 0 )
+            {
+                size_t i = 0;
+                static ImGuiComboFlags flags = 0;
+                motor::vector< char const * > items( cams.size() );
+                for( auto const & e : cams )
+                {
+                    items[ i++ ] = e.first.c_str();
+                }
+
+                motor::string_t combo_name = "Scene Camera##" + this_t::name();
+
+                int item_selected_idx = _cam_id != size_t( -1 ) ? int_t( _cam_id ) : 0;
+                const char * combo_preview_value = items[ item_selected_idx ];
+                if( ImGui::BeginCombo( combo_name.c_str(), combo_preview_value, flags ) )
+                {
+                    for( int n = 0; n < items.size(); n++ )
+                    {
+                        const bool is_selected = ( item_selected_idx == n );
+                        if( ImGui::Selectable( items[ n ], is_selected ) ) item_selected_idx = n;
+
+                        // Set the initial focus when opening the combo (scrolling +
+                        // keyboard navigation focus)
+                        if( is_selected ) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+
+                    _cam_id = size_t( item_selected_idx );
+                }
+            }
+        }
+    }
 
   private:
 

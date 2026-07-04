@@ -6,7 +6,7 @@ set( commons
     "../../common/audio_analysis.cpp"
     "../../common/scene/iscene.h"
     "../../common/scene/dummy_scene.hpp"
-    "../../common/scene/defered_scene.hpp"
+    "../../common/scene/stalled_scene.hpp"
     "../../common/scene/simple_gltf_scene.hpp"
     "../../common/camera_manager.h"
     "../../common/camera_manager.cpp"

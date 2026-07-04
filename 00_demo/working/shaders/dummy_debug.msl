@@ -26,7 +26,6 @@ config test_render
 
     pixel_shader
     {
-        
         vec4_t color ;
 
         in vec2_t tx : texcoord ;

@@ -20,6 +20,12 @@ class iscene
 
   public:
 
+    typedef struct
+    {
+        motor::math::time_ms_t duration;
+        motor::math::time_ms_t set_back;
+    } timing_info_t;
+
     struct on_graphics_data
     {
         size_t const cur_time;
@@ -32,17 +38,22 @@ class iscene
   private:
 
     motor::string_t _name;
-    motor::math::time_ms_t _duration = 0;
+    timing_info_t _ti;
 
   public:
 
     iscene( motor::string_in_t name, motor::math::time_ms_t const dur ) noexcept
-        : _name( name ), _duration( dur )
+        : _name( name ), _ti( { dur, 2000 } )
+    {
+    }
+
+    iscene( motor::string_in_t name, this_t::timing_info_t const & ti ) noexcept
+        : _name( name ), _ti( ti )
     {
     }
 
     iscene( this_cref_t ) = delete;
-    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ), _duration( rhv._duration )
+    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ), _ti( rhv._ti)
     {
     }
 
@@ -57,9 +68,9 @@ class iscene
 
   public: // interface
 
-    virtual motor::math::time_ms_t get_scene_length( void_t ) const noexcept
+    virtual timing_info_t get_timing_info( void_t ) const noexcept
     {
-        return _duration;
+        return _ti;
     }
 
     virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0;
@@ -90,7 +101,7 @@ class iscene
         motor::math::time_ms_t absolute;
         motor::math::time_ms_t relative;
 
-        float_t relative_seconds ;
+        float_t relative_seconds;
     };
     motor_typedef( update_data );
 

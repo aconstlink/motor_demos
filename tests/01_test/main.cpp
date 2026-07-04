@@ -3,7 +3,7 @@
 #include "../../common/the_app/the_app.h"
 
 #include "../../common/scene/dummy_scene.hpp"
-#include "../../common/scene/defered_scene.hpp"
+#include "../../common/scene/stalled_scene.hpp"
 
 #include <motor/application/carrier.h>
 #include <motor/platform/global.h>
@@ -46,7 +46,7 @@ int main( int argc, char ** argv )
 #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-            asd.sptr = motor::shared( demos::defered_scene( "Defered scene 3" ) );
+            asd.sptr = motor::shared( demos::stalled_scene( "Defered scene 3" ) );
 
             sm.add_scene( std::move( asd ) );
         }

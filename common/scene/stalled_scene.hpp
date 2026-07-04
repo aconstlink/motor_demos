@@ -5,7 +5,7 @@
 
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/component/name_component.hpp>
-#include <motor/scene/component/render_settings_component.h>
+#include <motor/scene/component/graphics/render_settings_component.h>
 #include <motor/scene/component/trafo3d_component.h>
 
 #include <motor/graphics/state/render_states.h>
@@ -22,16 +22,16 @@ namespace demos
 
 // deferes the on_* calls in order to
 // test how other scenes react.
-class defered_scene : public iscene
+class stalled_scene : public iscene
 {
-    motor_this_typedefs( defered_scene );
+    motor_this_typedefs( stalled_scene );
 
   public:
 
-    defered_scene( motor::string_cref_t name ) noexcept : iscene( name, 5000 ) {}
-    defered_scene( defered_scene const & ) = delete;
-    defered_scene( defered_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
-    virtual ~defered_scene( void_t ) noexcept
+    stalled_scene( motor::string_cref_t name ) noexcept : iscene( name, 5000 ) {}
+    stalled_scene( stalled_scene const & ) = delete;
+    stalled_scene( stalled_scene && rhv ) noexcept : iscene( std::move( rhv ) ) {}
+    virtual ~stalled_scene( void_t ) noexcept
     {
         this_t::release_all_objects();
     }
@@ -114,7 +114,7 @@ class defered_scene : public iscene
 
     virtual void_t on_tool( void_t ) noexcept
     {
-        ImGui::Text( "defered scene" );
+        ImGui::Text( "stalled scene" );
     }
 
   private:

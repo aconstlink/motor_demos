@@ -40,7 +40,7 @@ void_t scene_manager::add_scene( add_scene_data && d ) noexcept
 
     // @todo check overlap
     sd.start = start;
-    sd.end = start + d.sptr->get_scene_length();
+    sd.end = start + d.sptr->get_timing_info().duration;
     sd.ss = demos::process_state::raw;
     sd.s = motor::move( d.sptr );
 
@@ -508,7 +508,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
                 if( _cur_time >= nxt_scene.start )
                 {
                     motor::math::time_ms_t const set_back =
-                        std::min( motor::math::time_ms_t( 2000 ), ( _cur_time - cur_scene.start ) );
+                        std::min( nxt_scene.s->get_timing_info().set_back, ( _cur_time - cur_scene.start ) );
                     _cur_time = _cur_time - set_back;
                 }
             }
