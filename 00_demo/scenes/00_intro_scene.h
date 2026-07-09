@@ -2,14 +2,16 @@
 
 #include "../common/scene/iscene.h"
 #include "../common/camera_collector.hpp"
+#include "../common/msl_component_collector.hpp"
 
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/component/name_component.hpp>
-#include <motor/scene/component/graphics/render_settings_component.h>
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/visitor/trafo_visitor.h>
-#include <motor/scene/visitor/render_visitor.h>
+#include <motor/scene/visitor/graphics/render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.h>
+#include <motor/scene/component/graphics/render_settings_component.h>
+#include <motor/scene/visitor/graphics/add_shader_to_set_visitor.hpp>
 
 #include <motor/graphics/state/render_states.h>
 
@@ -42,17 +44,37 @@ class intro_scene : public iscene
     // store all the wire nodes for easier destruction.
     motor::vector< motor::wire::inode_mtr_t > _node_dump;
 
-  private: // graphcis
+  private: // graphcis/scene graph
 
     motor::graphics::state_object_mtr_t _root_so = nullptr;
     motor::scene::node_mtr_t _root = nullptr;
 
+    motor::scene::node_mtr_t _selected = nullptr;
+
+    motor::graphics::state_object_mtr_t _post_so = nullptr;
+    motor::graphics::msl_object_mtr_t _map_to_screen_msl = nullptr;
+
   private: // camera
 
     size_t _cam_id = size_t( -1 );
-    motor::vector< motor::gfx::generic_camera_mtr_t > _cameras;
+    motor::vector< std::pair< motor::string_t, motor::gfx::generic_camera_mtr_t > > _cameras;
 
     demos::camera_collector_t _cc;
+
+    struct camera_sequence_item
+    {
+        motor::math::time_ms_t start;
+        motor::math::time_ms_t end;
+        motor::gfx::generic_camera_mtr_t cam;
+    };
+
+    motor::vector< camera_sequence_item > _cs;
+
+  private: // shadow mapping
+
+    motor::gfx::generic_camera_mtr_t _sun_cam = nullptr;
+    motor::graphics::framebuffer_object_mtr_t _shadow_fb = nullptr;
+    motor::graphics::state_object_mtr_t _shadow_so = nullptr;
 
   private: // io
 
@@ -125,6 +147,62 @@ class intro_scene : public iscene
             _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
         }
 
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "shadow_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = true;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000,1000 );
+                so.add_render_state_set( rss );
+            }
+
+            _shadow_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.00.post_renderstates" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = false;
+                rss.depth_s.ss.do_depth_write = false;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = false;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+                so.add_render_state_set( rss );
+            }
+
+            _post_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
         // load scene
         {
             auto const loc = motor::io::location_t( "0_intro_scene.scene.gltf" );
@@ -132,8 +210,55 @@ class intro_scene : public iscene
             _db->attach( loc, motor::share( _gltf_mon ) );
         }
 
-        // load shaders
+        // load post shaders
         {
+            motor::string_t shd;
+
+            auto shader_a =
+                _db->load( motor::io::location_t( "shaders.post_process.color_to_screen.msl" ) );
+            auto shader_b =
+                _db->load( motor::io::location_t( "shaders.post_process.map_to_screen.msl" ) );
+
+            {
+                shader_a.wait_for_operation(
+                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+                {
+                    motor::log::global_t::status( "********************************" );
+                    motor::log::global_t::status(
+                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
+
+                    shd = motor::string_t( data, sib );
+                } );
+
+                // motor::scene::add_shader_to_set_visitor_t v( 1, "prod", shd );
+                // motor::scene::node_t::traverser( _root ).apply( &v );
+
+                motor::graphics::msl_object_t msl( "scene_00.color_to_screen" );
+                msl.add( motor::graphics::msl_api_type::msl_4_0, shd );
+                {
+                    motor::graphics::variable_set_t vs;
+                    auto * var = vs.texture_variable( "tx_map" );
+                    var->set( "scene.00.shadow_framebuffer.depth" );
+                    msl.add_variable_set( motor::shared( std::move( vs ) ) );
+                }
+                msl.link_geometry( "post.quad" ) ;
+                _map_to_screen_msl = motor::shared( std::move( msl ) );
+            }
+
+            {
+                shader_b.wait_for_operation(
+                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+                {
+                    motor::log::global_t::status( "********************************" );
+                    motor::log::global_t::status(
+                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
+
+                    shd = motor::string_t( data, sib );
+                } );
+
+                // motor::scene::add_shader_to_set_visitor_t v( 2, "shadow", shd );
+                // motor::scene::node_t::traverser( _root ).apply( &v );
+            }
         }
     }
 
@@ -189,6 +314,23 @@ class intro_scene : public iscene
                             _merger = motor::move( scene_item->merger_node );
 
                             _time_node->borrow_time_is()->connect( motor::share( _time ) );
+
+                            // camera sequence
+                            {
+                                for( auto & csi : _cs )
+                                    motor::release( motor::move( csi.cam ) );
+
+                                _cs.clear();
+
+                                for( auto & i : scene_item->camera_sequence )
+                                {
+                                    this_t::camera_sequence_item csi;
+                                    csi.cam = motor::move( i.cam );
+                                    csi.start = i.start;
+                                    csi.end = i.end;
+                                    _cs.emplace_back( csi );
+                                }
+                            }
                         }
                         else
                         {
@@ -196,6 +338,7 @@ class intro_scene : public iscene
                             std::exit( 1 );
                         }
 
+                        ret_item->release();
                         motor::release( motor::move( ret_item ) );
                     }
 
@@ -240,7 +383,8 @@ class intro_scene : public iscene
                 _cameras.resize( cams.size() );
                 for( auto & c : cams )
                 {
-                    _cameras[ i++ ] = motor::share( c.second );
+                    _cameras[ i ].first = c.first;
+                    _cameras[ i++ ].second = motor::share( c.second );
                 }
                 _cam_id = 0;
             }
@@ -261,6 +405,83 @@ class intro_scene : public iscene
             _merger->then( motor::move( t ) );
         }
         motor::release( motor::move( _selected_node ) );
+
+        // load all shaders
+        {
+            motor::string_t shd;
+
+            auto default_shader =
+                _db->load( motor::io::location_t( "0_intro_scene.shaders.default_final.msl" ) );
+
+            auto shadow_shader =
+                _db->load( motor::io::location_t( "0_intro_scene.shaders.shadow_pass.msl" ) );
+
+            {
+                default_shader.wait_for_operation(
+                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+                {
+                    motor::log::global_t::status( "********************************" );
+                    motor::log::global_t::status(
+                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
+
+                    shd = motor::string_t( data, sib );
+                } );
+
+                motor::scene::add_shader_to_set_visitor_t v( 1, "prod", shd );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
+
+            {
+                shadow_shader.wait_for_operation(
+                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+                {
+                    motor::log::global_t::status( "********************************" );
+                    motor::log::global_t::status(
+                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
+
+                    shd = motor::string_t( data, sib );
+                } );
+
+                motor::scene::add_shader_to_set_visitor_t v( 2, "shadow", shd );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
+        }
+
+        // collect msl_components just added and add variable
+        {
+            demos::msl_component_collector_t v( 1 );
+            motor::scene::node_t::traverser( _root ).apply( &v );
+
+            v.for_each( [ & ]( motor::scene::msl_component_mtr_t mslc )
+            {
+                auto * inputs = mslc->borrow_shader_inputs();
+
+                auto is =
+                    motor::wire::input_slot< motor::math::vec4f_t >( motor::math::vec4f_t( 1.0f ) );
+                // inputs->add( "color", motor::shared( std::move( is ) ) ) ;
+            } );
+        }
+
+        // get sun camera and create shadow framebuffer
+        {
+            for( auto & cam : _cameras )
+            {
+                if( cam.first != "sun_cam" ) continue;
+                _sun_cam = motor::share( cam.second );
+                break;
+            }
+
+            float_t const w = _sun_cam->get_dims().x();
+            float_t const h = _sun_cam->get_dims().y();
+
+            auto fb = motor::graphics::framebuffer_object_t( "scene.00.shadow_framebuffer" );
+            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
+            .set_target( motor::graphics::depth_stencil_target_type::depth32 )
+                .resize( size_t( 1000 ), size_t( 1000 ) );
+
+            motor::release( motor::move( _shadow_fb ) );
+            _shadow_fb = motor::shared( std::move( fb ) );
+        }
     }
 
     //************************************************************************************
@@ -333,6 +554,10 @@ class intro_scene : public iscene
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
         fe->configure< motor::graphics::state_object_t >( _root_so );
+        fe->configure< motor::graphics::state_object_t >( _shadow_so );
+        fe->configure< motor::graphics::state_object_t >( _post_so );
+        fe->configure< motor::graphics::framebuffer_object_t >( _shadow_fb );
+        fe->configure< motor::graphics::msl_object_t >( _map_to_screen_msl );
         fe->fence( funk );
     }
 
@@ -341,7 +566,10 @@ class intro_scene : public iscene
         motor::graphics::gen4::frontend_ptr_t fe,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-
+        fe->release<motor::graphics::state_object_t>( _root_so ) ;
+        fe->release< motor::graphics::state_object_t >( _shadow_so );
+        fe->release< motor::graphics::framebuffer_object_t >( _shadow_fb );
+        fe->release< motor::graphics::msl_object_t >( _map_to_screen_msl );
         fe->fence( funk );
     }
 
@@ -351,7 +579,7 @@ class intro_scene : public iscene
     {
         if( _cam_id != size_t( -1 ) )
         {
-            motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ];
+            motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
             motor::scene::render_visitor_t vis( wid, fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
@@ -360,10 +588,40 @@ class intro_scene : public iscene
 
     //************************************************************************************
     virtual void_t on_render_final(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
+        // make shadow pass
+        {
+            fe->use( _shadow_fb );
+            fe->push( _shadow_so );
+            motor::gfx::generic_camera_mtr_t cam = _sun_cam;
+            motor::scene::render_visitor_t vis( wid, 2, fe, cam );
+            motor::scene::node_t::traverser( _root ).apply( &vis );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        }
+
+        if( _cam_id != size_t( -1 ) )
+        {
+            motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
+            // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
+            motor::scene::render_visitor_t vis( wid, 1, fe, cam );
+            motor::scene::node_t::traverser( _root ).apply( &vis );
+        }
+
+        #if 0
+        {        
+            fe->push( _post_so );
+            motor::graphics::gen4::backend::render_detail det ;
+            det.geo = 0  ;
+            det.varset = 0 ;
+            fe->render( _map_to_screen_msl, det ) ;
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+        }
+        #endif
     }
 
+    //************************************************************************************
     virtual void_t on_tool( void_t ) noexcept
     {
         // SECTION: cameras
@@ -401,6 +659,15 @@ class intro_scene : public iscene
                 }
             }
         }
+
+        // SECION: Scene Graph
+        {
+            {
+                motor::tool::imgui_node_visitor_t v( motor::move( _selected ) );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+                _selected = v.move_selected();
+            }
+        }
     }
 
   private:
@@ -408,11 +675,15 @@ class intro_scene : public iscene
     void_t release_cameras( void_t ) noexcept
     {
         _cc.release();
-        for( auto * ptr : _cameras )
+        for( auto & cam : _cameras )
         {
-            motor::release( motor::move( ptr ) );
+            motor::release( motor::move( cam.second ) );
         }
         _cameras.clear();
+
+        for( auto & csi : _cs )
+            motor::release( motor::move( csi.cam ) );
+        _cs.clear();
     }
 
     void_t release_node_dump( void_t ) noexcept
@@ -436,11 +707,17 @@ class intro_scene : public iscene
 
         motor::release( motor::move( _root_so ) );
         motor::release( motor::move( _root ) );
+        motor::release( motor::move( _selected ) );
 
         this_t::release_cameras();
         motor::release( motor::move( _selected_node ) );
 
         this_t::release_node_dump();
+
+        motor::release( motor::move( _sun_cam ) );
+        motor::release( motor::move( _shadow_fb ) );
+
+        motor::release( motor::move( _map_to_screen_msl ) );
     }
 };
 motor_typedef( intro_scene );

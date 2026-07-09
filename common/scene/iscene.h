@@ -2,7 +2,9 @@
 #pragma once
 
 #include "../types.hpp"
-#include "../camera_manager.h"
+
+#include <motor/gfx/primitive/primitive_render_3d.h>
+#include <motor/gfx/camera/generic_camera.h>
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/io/database.h>

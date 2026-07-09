@@ -8,7 +8,7 @@
 #include <motor/scene/component/graphics/render_settings_component.h>
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/visitor/trafo_visitor.h>
-#include <motor/scene/visitor/render_visitor.h>
+#include <motor/scene/visitor/graphics/render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.h>
 
 #include <motor/graphics/state/render_states.h>

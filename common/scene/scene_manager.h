@@ -108,6 +108,7 @@ class scene_manager
         demos::window_type wt;
 
         bool_t first_frame;
+        bool_t last_frame;
     };
     motor_typedef( render_data );
 
@@ -165,8 +166,8 @@ class scene_manager
 
     void_t approach_raw_state_graphics(
         demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
-    void_t handle_state_graphics(
-        demos::scene_id_t const, demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
+    void_t handle_state_graphics( demos::scene_id_t const, demos::window_type const,
+        motor::graphics::gen4::frontend_mtr_t, bool_t const do_release );
 
     // returns true if two scenes are transitioning and
     // if so, overlap is set. Otherwise false is returned.

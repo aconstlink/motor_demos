@@ -23,7 +23,10 @@ config color_to_screen
 
         void main()
         {
-            out.color = rt_texture( tx_map, in.tx ) ;
+            vec4_t col = rt_texture( tx_map, in.tx ) ;
+            //out.color = col ;
+            out.color = vec4_t( col.r, col.r, col.r ,1.0) ;
+            //out.color = vec4_t( in.tx, 0.0, 1.0) ;
         }
     }
 }

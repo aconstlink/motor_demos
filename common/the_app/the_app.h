@@ -36,6 +36,8 @@ class the_app : public motor::application::app
     motor::gfx::primitive_render_3d_t pr;
     motor::graphics::state_object_t _pr_rs;
 
+    motor::graphics::geometry_object_t _post_quad ;
+
   private: // audio
 
     motor::audio::capture_object_t _co;

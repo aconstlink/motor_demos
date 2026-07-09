@@ -7,8 +7,6 @@ set( commons
     "../common/scene/iscene.h"
     "../common/scene/dummy_scene.hpp"
     "../common/scene/simple_gltf_scene.hpp"
-    "../common/camera_manager.h"
-    "../common/camera_manager.cpp"
     "../common/scene/scene_manager.h"
     "../common/scene/scene_manager.cpp"
     "../common/the_app/the_app.h"
@@ -16,6 +14,7 @@ set( commons
     "../common/the_app/on_audio.cpp"
     "../common/the_app/on_tool.cpp"
     "../common/camera_collector.hpp"
+    "../common/msl_component_collector.hpp"
 
     "../common/types.hpp"
 )

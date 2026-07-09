@@ -1,0 +1,27 @@
+config shadow_pass
+{
+    vertex_shader
+    {
+        mat4_t proj : projection ;
+        mat4_t view : view ;
+        mat4_t world : world ;
+
+        in vec3_t pos : position ;
+        out vec4_t pos : position ;
+
+        void main()
+        {
+            out.pos = proj * view * world * vec4_t( in.pos, 1.0 ) ;
+        }
+    }
+
+    pixel_shader
+    {
+        out vec4_t color : color0 ;
+
+        void main()
+        {
+            out.color = vec4_t(0.7,0.0,0.4,1.0) ;
+        }
+    }
+}
