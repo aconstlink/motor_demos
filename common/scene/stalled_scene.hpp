@@ -5,7 +5,7 @@
 
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/component/name_component.hpp>
-#include <motor/scene/component/graphics/render_settings_component.h>
+#include <motor/scene/component/graphics/render_settings_component.hpp>
 #include <motor/scene/component/trafo3d_component.h>
 
 #include <motor/graphics/state/render_states.h>

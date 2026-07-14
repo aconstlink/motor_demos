@@ -10,7 +10,7 @@
 #include <motor/scene/visitor/trafo_visitor.h>
 #include <motor/scene/visitor/graphics/render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.h>
-#include <motor/scene/component/graphics/render_settings_component.h>
+#include <motor/scene/component/graphics/render_settings_component.hpp>
 #include <motor/scene/visitor/graphics/add_shader_to_set_visitor.hpp>
 
 #include <motor/graphics/state/render_states.h>
@@ -145,7 +145,7 @@ class intro_scene : public iscene
             }
 
             _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
-        }
+        }        
 
         {
             motor::graphics::state_object_t so =
@@ -229,9 +229,6 @@ class intro_scene : public iscene
 
                     shd = motor::string_t( data, sib );
                 } );
-
-                // motor::scene::add_shader_to_set_visitor_t v( 1, "prod", shd );
-                // motor::scene::node_t::traverser( _root ).apply( &v );
 
                 motor::graphics::msl_object_t msl( "scene_00.color_to_screen" );
                 msl.add( motor::graphics::msl_api_type::msl_4_0, shd );
@@ -554,6 +551,7 @@ class intro_scene : public iscene
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
         fe->configure< motor::graphics::state_object_t >( _root_so );
+
         fe->configure< motor::graphics::state_object_t >( _shadow_so );
         fe->configure< motor::graphics::state_object_t >( _post_so );
         fe->configure< motor::graphics::framebuffer_object_t >( _shadow_fb );
@@ -581,7 +579,7 @@ class intro_scene : public iscene
         {
             motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
-            motor::scene::render_visitor_t vis( wid, fe, cam );
+            motor::scene::render_visitor_t vis( 0, fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
         }
     }
@@ -595,7 +593,7 @@ class intro_scene : public iscene
             fe->use( _shadow_fb );
             fe->push( _shadow_so );
             motor::gfx::generic_camera_mtr_t cam = _sun_cam;
-            motor::scene::render_visitor_t vis( wid, 2, fe, cam );
+            motor::scene::render_visitor_t vis( 2, fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
             fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
             fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
@@ -605,7 +603,7 @@ class intro_scene : public iscene
         {
             motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
-            motor::scene::render_visitor_t vis( wid, 1, fe, cam );
+            motor::scene::render_visitor_t vis( 1, fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
         }
 
@@ -706,6 +704,9 @@ class intro_scene : public iscene
         motor::wire::release( motor::move( _merger ) );
 
         motor::release( motor::move( _root_so ) );
+        motor::release( motor::move( _shadow_so ) );
+        motor::release( motor::move( _post_so ) );
+
         motor::release( motor::move( _root ) );
         motor::release( motor::move( _selected ) );
 
