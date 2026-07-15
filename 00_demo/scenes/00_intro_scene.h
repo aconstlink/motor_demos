@@ -489,8 +489,9 @@ class intro_scene : public iscene
                 auto * inputs = mslc->borrow_shader_inputs();
 
                 auto is =
-                    motor::wire::input_slot< motor::math::vec4f_t >( motor::math::vec4f_t( 1.0f ) );
-                // inputs->add( "color", motor::shared( std::move( is ) ) ) ;
+                    motor::wire::input_slot< motor::math::vec4f_t >( 
+                        motor::math::vec4f_t( 1.0f, 0.1f, 0.1f, 1.0f ) );
+                 inputs->add( "color", motor::shared( std::move( is ) ) ) ;
             } );
         }
 
