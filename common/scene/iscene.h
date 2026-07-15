@@ -55,9 +55,7 @@ class iscene
     }
 
     iscene( this_cref_t ) = delete;
-    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ), _ti( rhv._ti)
-    {
-    }
+    iscene( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ), _ti( rhv._ti ) {}
 
     virtual ~iscene( void_t ) noexcept {}
 
@@ -91,8 +89,12 @@ class iscene
 
     virtual void_t on_render_debug(
         size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
-    virtual void_t on_render_final(
+
+    virtual void_t on_render_final_offscreen(
         size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+
+    virtual void_t on_render_final( size_t const wid,
+        motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
 
     virtual void_t on_tool( void_t ) noexcept = 0;
 

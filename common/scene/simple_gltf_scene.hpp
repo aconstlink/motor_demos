@@ -300,6 +300,13 @@ class simple_gltf_scene : public iscene
             motor::scene::node_t::traverser( _root ).apply( &vis );
         }
     }
+
+    //************************************************************************************
+    virtual void_t on_render_final_offscreen(
+        size_t const, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    {
+    }
+
     virtual void_t on_render_final(
         size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
     {

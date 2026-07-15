@@ -252,10 +252,28 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
             _pp_fb1 = motor::shared( std::move( fb ) );
         }
     }
+
+    {
+        _pp_pipe = motor::shared( motor::gfx::hdr_postprocess_pipeline_t() );
+        _pp_pipe->init();
+    }
 }
 
 //******************************************************************************************************
-void_t scene_manager::on_event( this_t::event_data_in_t ) noexcept {}
+void_t scene_manager::on_event( this_t::event_data_in_t ed ) noexcept
+{
+    if( ed.window_size_changed )
+    {
+        for( auto & s : _scenes )
+        {
+            if( s.ss == demos::process_state::init )
+            {
+                s.s->on_resize( ed.wt, ed.window_dims.x(), ed.window_dims.y() );
+            }
+        }
+    }
+}
+
 //******************************************************************************************************
 void_t scene_manager::on_shutdown( void_t ) noexcept
 {
@@ -272,6 +290,10 @@ void_t scene_manager::on_shutdown( void_t ) noexcept
 
     motor::release( motor::move( _pp_fb0 ) );
     motor::release( motor::move( _pp_fb1 ) );
+    
+    _pp_pipe->release() ;
+    motor::release( motor::move( _pp_pipe ) );
+
 }
 
 //******************************************************************************************************
@@ -538,6 +560,8 @@ void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
         rd.fe->configure< motor::graphics::geometry_object >( _post_quad );
         rd.fe->configure< motor::graphics::msl_object >( _post_msl );
         rd.fe->configure< motor::graphics::msl_object >( _post_xfade_msl );
+
+        _pp_pipe->init_render( rd.fe );
     }
 
     scene_id_t const cur = _cur_scene_idx;
@@ -589,15 +613,25 @@ void_t scene_manager::on_render_debug( render_data_ref_t rd ) noexcept
 //******************************************************************************************************
 void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
 {
+    if( rd.last_frame )
+    {
+        _pp_pipe->release_render( rd.fe ) ;
+        return ;
+    }
+
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
 
     if( this_t::is_valid_and_init( cur, demos::window_type::production ) )
     {
+        _scenes[ cur ].s->on_render_final_offscreen( rd.wid, rd.fe );
+
         // activate fb 0
-        // rd.fe->use( &_pp_fb0 );
+        rd.fe->use( _pp_pipe->borrow_hdr_fb( 0 ) );
+        rd.fe->push( _pp_pipe->borrow_hdr_states() );
         _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
-        // rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+        rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
     }
 
     // eventually render next scene if overlap
@@ -608,15 +642,24 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
 
         if( snxt.gfx_prod == demos::process_state::init )
         {
+            snxt.s->on_render_final_offscreen( rd.wid, rd.fe );
+
             // activate fb1
-            // rd.fe->use( &_pp_fb1 );
+            rd.fe->use( _pp_pipe->borrow_hdr_fb( 0 ) );
+            rd.fe->push( _pp_pipe->borrow_hdr_states() );
             snxt.s->on_render_final( rd.wid, rd.fe );
-            // rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
     }
 
     // render transition fb0 x fb1
     // or render fb0
+
+    // post process
+    {
+        _pp_pipe->render( rd.fe );
+    }
 }
 
 //******************************************************************************************************

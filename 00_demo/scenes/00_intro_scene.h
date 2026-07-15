@@ -47,6 +47,7 @@ class intro_scene : public iscene
   private: // graphcis/scene graph
 
     motor::graphics::state_object_mtr_t _root_so = nullptr;
+    motor::graphics::state_object_mtr_t _final_so = nullptr;
     motor::scene::node_mtr_t _root = nullptr;
 
     motor::scene::node_mtr_t _selected = nullptr;
@@ -121,7 +122,35 @@ class intro_scene : public iscene
 
         {
             motor::graphics::state_object_t so =
-                motor::graphics::state_object_t( "root_render_states" );
+                motor::graphics::state_object_t( "scene.00.final_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+                so.add_render_state_set( rss );
+            }
+
+            _final_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.00.root_render_states" );
 
             {
                 motor::graphics::render_state_sets_t rss;
@@ -145,11 +174,11 @@ class intro_scene : public iscene
             }
 
             _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
-        }        
+        }
 
         {
             motor::graphics::state_object_t so =
-                motor::graphics::state_object_t( "shadow_render_states" );
+                motor::graphics::state_object_t( "scene.00.shadow_render_states" );
 
             {
                 motor::graphics::render_state_sets_t rss;
@@ -168,7 +197,7 @@ class intro_scene : public iscene
                 rss.clear_s.ss.do_depth_clear = true;
                 rss.view_s.do_change = true;
                 rss.view_s.ss.do_activate = true;
-                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000,1000 );
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000, 1000 );
                 so.add_render_state_set( rss );
             }
 
@@ -238,7 +267,7 @@ class intro_scene : public iscene
                     var->set( "scene.00.shadow_framebuffer.depth" );
                     msl.add_variable_set( motor::shared( std::move( vs ) ) );
                 }
-                msl.link_geometry( "post.quad" ) ;
+                msl.link_geometry( "post.quad" );
                 _map_to_screen_msl = motor::shared( std::move( msl ) );
             }
 
@@ -272,6 +301,11 @@ class intro_scene : public iscene
                 motor::scene::node_mtr_t imported_node = nullptr;
 
                 auto rs = motor::shared( motor::scene::logic_group_t() );
+
+// for now, no render states in the scene graph.
+// the base render states are set before the particular
+// scene is rendered.
+#if 0
                 {
                     auto rsc =
                         motor::scene::render_settings_component_t( motor::share( _root_so ) );
@@ -281,6 +315,7 @@ class intro_scene : public iscene
                     rs->add_component(
                         motor::shared( motor::scene::name_component_t( "Render Settings" ) ) );
                 }
+#endif
 
                 // make importer ready
                 {
@@ -473,7 +508,7 @@ class intro_scene : public iscene
 
             auto fb = motor::graphics::framebuffer_object_t( "scene.00.shadow_framebuffer" );
             fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
-            .set_target( motor::graphics::depth_stencil_target_type::depth32 )
+                .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( 1000 ), size_t( 1000 ) );
 
             motor::release( motor::move( _shadow_fb ) );
@@ -551,6 +586,7 @@ class intro_scene : public iscene
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
         fe->configure< motor::graphics::state_object_t >( _root_so );
+        fe->configure< motor::graphics::state_object_t >( _final_so );
 
         fe->configure< motor::graphics::state_object_t >( _shadow_so );
         fe->configure< motor::graphics::state_object_t >( _post_so );
@@ -564,7 +600,8 @@ class intro_scene : public iscene
         motor::graphics::gen4::frontend_ptr_t fe,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        fe->release<motor::graphics::state_object_t>( _root_so ) ;
+        fe->release< motor::graphics::state_object_t >( _root_so );
+        fe->release< motor::graphics::state_object_t >( _final_so );
         fe->release< motor::graphics::state_object_t >( _shadow_so );
         fe->release< motor::graphics::framebuffer_object_t >( _shadow_fb );
         fe->release< motor::graphics::msl_object_t >( _map_to_screen_msl );
@@ -577,16 +614,18 @@ class intro_scene : public iscene
     {
         if( _cam_id != size_t( -1 ) )
         {
+            fe->push( _root_so );
             motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
             motor::scene::render_visitor_t vis( 0, fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }
     }
 
     //************************************************************************************
-    virtual void_t on_render_final(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    virtual void_t on_render_final_offscreen(
+        size_t const, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
         // make shadow pass
         {
@@ -598,16 +637,24 @@ class intro_scene : public iscene
             fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
             fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
+    }
 
+    //************************************************************************************
+    virtual void_t on_render_final(
+        size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    {
         if( _cam_id != size_t( -1 ) )
         {
+
+            fe->push( _final_so );
             motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
             motor::scene::render_visitor_t vis( 1, fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }
 
-        #if 0
+#if 0
         {        
             fe->push( _post_so );
             motor::graphics::gen4::backend::render_detail det ;
@@ -616,7 +663,7 @@ class intro_scene : public iscene
             fe->render( _map_to_screen_msl, det ) ;
             fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }
-        #endif
+#endif
     }
 
     //************************************************************************************
@@ -704,6 +751,7 @@ class intro_scene : public iscene
         motor::wire::release( motor::move( _merger ) );
 
         motor::release( motor::move( _root_so ) );
+        motor::release( motor::move( _final_so ) );
         motor::release( motor::move( _shadow_so ) );
         motor::release( motor::move( _post_so ) );
 

@@ -1,4 +1,4 @@
-config test_render
+config default_final
 {
     vertex_shader
     {
@@ -33,14 +33,15 @@ config test_render
         in vec2_t tx : texcoord ;
         in vec3_t nrm : normal ;
         out vec4_t color0 : color0 ;
-        //out vec4_t color1 : color1 ;
-        //out vec4_t color2 : color2 ;
+        out vec4_t color1 : color1 ;
+        out vec4_t color2 : color2 ;
+        out vec4_t color4 : color3 ;
 
         void main()
         {
             float_t ndl = dot( normalize( in.nrm ), normalize( vec3_t( 1.0, 1.0, 0.5) ) ) ;
             float_t light = (ndl*0.5+0.5)  ;
-            out.color0 = color ' vec4_t( 1.0, 1.0, 1.0, 1.0 );
+            out.color0 = color ' vec4_t( light, light, light, 1.0 );
             //out.color1 = vec4_t( in.nrm, 1.0 ) ;
             //out.color2 = vec4_t( light, light, light , 1.0 ) ;
         }

@@ -6,6 +6,7 @@
 #include "iscene.h"
 
 #include <motor/application/app.h>
+#include <motor/gfx/postprocess/hdr_postprocess_pipeline.h>
 
 namespace demos
 {
@@ -64,6 +65,8 @@ class scene_manager
     motor::graphics::msl_object_mtr_t _post_xfade_msl = nullptr;
     motor::graphics::geometry_object_mtr_t _post_quad = nullptr;
     motor::graphics::state_object_t _post_process_rs;
+
+    motor::gfx::hdr_postprocess_pipeline_mtr_t _pp_pipe = nullptr ;
 
   public:
 

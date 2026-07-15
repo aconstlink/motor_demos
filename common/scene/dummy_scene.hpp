@@ -104,6 +104,14 @@ class dummy_scene : public iscene
         size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
     {
     }
+
+    //************************************************************************************
+    virtual void_t on_render_final_offscreen(
+        size_t const, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    {
+    }
+
+    //************************************************************************************
     virtual void_t on_render_final(
         size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
     {
