@@ -48,8 +48,6 @@ class scene_manager
     demos::scene_id_t _cur_scene_idx = demos::invalid_scene_id;
     demos::scene_id_t _nxt_scene_idx = demos::invalid_scene_id;
 
-    motor::graphics::state_object_t _scene_final_rs;
-
     size_t _cur_time = 0;
 
   private: // io
@@ -58,15 +56,6 @@ class scene_manager
     motor::io::database_mtr_t _db = nullptr;
 
   private: // post processing
-
-    motor::math::vec4ui_t _fb_dims = motor::math::vec4ui_t( 0, 0, 1920, 1080 );
-    motor::graphics::framebuffer_object_mtr_t _pp_fb0; // the 1st scene is rendered to
-    motor::graphics::framebuffer_object_mtr_t _pp_fb1; // the 2nd scene is rendered to
-
-    motor::graphics::msl_object_mtr_t _post_msl = nullptr;
-    motor::graphics::msl_object_mtr_t _post_xfade_msl = nullptr;
-    motor::graphics::geometry_object_mtr_t _post_quad = nullptr;
-    motor::graphics::state_object_t _post_process_rs;
 
     motor::gfx::hdr_postprocess_pipeline_mtr_t _pp_pipe = nullptr ;
     motor::property::property_sheet_t _pp_sheet ;

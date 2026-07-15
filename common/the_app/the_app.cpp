@@ -112,44 +112,7 @@ void_t the_app::on_init( void_t ) noexcept
         }
 
         _pr_rs = std::move( so );
-    }
-
-    // init quad
-    {
-        struct vertex
-        {
-            motor::math::vec2f_t pos;
-        };
-
-        auto vb = motor::graphics::vertex_buffer_t()
-                      .add_layout_element( motor::graphics::vertex_attribute::position,
-                          motor::graphics::type::tfloat, motor::graphics::type_struct::vec2 )
-                      .resize( 4 )
-                      .update< vertex >( [ = ]( vertex * array, size_t const ne )
-        {
-            array[ 0 ].pos = motor::math::vec2f_t( -0.5f, -0.5f );
-            array[ 1 ].pos = motor::math::vec2f_t( -0.5f, +0.5f );
-            array[ 2 ].pos = motor::math::vec2f_t( +0.5f, +0.5f );
-            array[ 3 ].pos = motor::math::vec2f_t( +0.5f, -0.5f );
-        } );
-
-        auto ib = motor::graphics::index_buffer_t()
-                      .set_layout_element( motor::graphics::type::tuint )
-                      .resize( 6 )
-                      .update< uint_t >( []( uint_t * array, size_t const ne )
-        {
-            array[ 0 ] = 0;
-            array[ 1 ] = 1;
-            array[ 2 ] = 2;
-
-            array[ 3 ] = 0;
-            array[ 4 ] = 2;
-            array[ 5 ] = 3;
-        } );
-
-        _post_quad = motor::graphics::geometry_object_t( "post.quad",
-            motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) );
-    }
+    }    
 
     {
         demos::scene_manager_t::init_data_t id;
@@ -320,8 +283,6 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
             pr.configure( fe );
             fe->configure< motor::graphics::state_object_t >( &_pr_rs );
         }
-
-        fe->configure<motor::graphics::geometry_object_t>( &_post_quad ) ;
     }
 
     /////////////////////////////////////////////////////////////////////

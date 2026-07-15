@@ -58,48 +58,10 @@ motor::math::time_ms_t scene_manager::get_whole_duration( void_t ) const noexcep
 //******************************************************************************************************
 void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
 {
-    _db = motor::move( idata.db );
-    _fb_dims = idata.fb_dims;
+    _db = motor::move( idata.db );    
 
-    // post quad vertex/index buffer
-    {
-        struct vertex
-        {
-            motor::math::vec3f_t pos;
-        };
-
-        auto vb = motor::graphics::vertex_buffer_t()
-                      .add_layout_element( motor::graphics::vertex_attribute::position,
-                          motor::graphics::type::tfloat, motor::graphics::type_struct::vec3 )
-                      .resize( 4 )
-                      .update< vertex >( [ = ]( vertex * array, size_t const ne )
-        {
-            array[ 0 ].pos = motor::math::vec3f_t( -0.5f, -0.5f, 0.0f );
-            array[ 1 ].pos = motor::math::vec3f_t( -0.5f, +0.5f, 0.0f );
-            array[ 2 ].pos = motor::math::vec3f_t( +0.5f, +0.5f, 0.0f );
-            array[ 3 ].pos = motor::math::vec3f_t( +0.5f, -0.5f, 0.0f );
-        } );
-
-        auto ib = motor::graphics::index_buffer_t()
-                      .set_layout_element( motor::graphics::type::tuint )
-                      .resize( 6 )
-                      .update< uint_t >( []( uint_t * array, size_t const ne )
-        {
-            array[ 0 ] = 0;
-            array[ 1 ] = 1;
-            array[ 2 ] = 2;
-
-            array[ 3 ] = 0;
-            array[ 4 ] = 2;
-            array[ 5 ] = 3;
-        } );
-
-        _post_quad = motor::shared(
-            motor::graphics::geometry_object_t( "post_quad",
-                motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ),
-            "post quad" );
-    }
-
+    // remember for later!
+    #if 0
     // post shader
     {
         motor::graphics::msl_object_t mslo( "color_to_screen" );
@@ -136,124 +98,7 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
 
         _post_msl = motor::shared( std::move( mslo ), "post msl" );
     }
-
-    // post shader
-    {
-        motor::graphics::msl_object_t mslo( "xfade_to_screen" );
-
-        _db->load( motor::io::location_t( "shaders.post_process.xfade_to_screen.msl" ) )
-            .wait_for_operation(
-                [ & ]( char_cptr_t data, size_t const sib, motor::io::result const loading_res )
-        {
-            if( loading_res != motor::io::result::ok )
-            {
-                assert( false );
-            }
-
-            mslo.add( motor::graphics::msl_api_type::msl_4_0, motor::string_t( data, sib ) );
-        } );
-
-        mslo.link_geometry( "post_quad" );
-
-        // variable sets
-        {
-            motor::graphics::variable_set_t vars;
-            {
-                auto * var = vars.data_variable< motor::math::vec4f_t >( "u_color" );
-                var->set( motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ) );
-            }
-
-            {
-                auto * var = vars.texture_variable( "tx_0_map" );
-                var->set( "the_scene_0.2" );
-            }
-
-            {
-                auto * var = vars.texture_variable( "tx_1_map" );
-                var->set( "the_scene_1.2" );
-            }
-
-            {
-                auto * var = vars.data_variable< float_t >( "u_overlap" );
-                var->set( 0.5f );
-            }
-
-            mslo.add_variable_set( motor::shared( std::move( vars ), "a variable set" ) );
-        }
-
-        _post_xfade_msl = motor::shared( std::move( mslo ), "post xfade" );
-    }
-
-    {
-        motor::graphics::state_object_t so = motor::graphics::state_object_t( "post_processing" );
-
-        {
-            motor::graphics::render_state_sets_t rss;
-            rss.depth_s.do_change = true;
-            rss.depth_s.ss.do_activate = false;
-
-            rss.polygon_s.do_change = true;
-            rss.polygon_s.ss.do_activate = true;
-            rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise;
-            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-
-            rss.clear_s.do_change = false;
-
-            rss.view_s.do_change = false;
-
-            so.add_render_state_set( rss );
-        }
-
-        _post_process_rs = std::move( so );
-    }
-
-    {
-        motor::graphics::state_object_t so =
-            motor::graphics::state_object_t( "root_render_states_final" );
-
-        {
-            motor::graphics::render_state_sets_t rss;
-            rss.depth_s.do_change = true;
-            rss.depth_s.ss.do_activate = true;
-            rss.depth_s.ss.do_depth_write = true;
-
-            rss.polygon_s.do_change = true;
-            rss.polygon_s.ss.do_activate = true;
-            rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
-            rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-            rss.clear_s.do_change = true;
-            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
-            rss.clear_s.ss.do_activate = true;
-            rss.clear_s.ss.do_color_clear = true;
-            rss.clear_s.ss.do_depth_clear = true;
-            rss.view_s.do_change = true;
-            rss.view_s.ss.do_activate = true;
-            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, _fb_dims.z(), _fb_dims.w() );
-            so.add_render_state_set( rss );
-        }
-
-        _scene_final_rs = std::move( so );
-    }
-
-    // framebuffer
-    {
-        {
-            auto fb = motor::graphics::framebuffer_object_t( "the_scene_0" );
-            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
-                .set_target( motor::graphics::depth_stencil_target_type::depth32 )
-                .resize( size_t( _fb_dims.z() ), size_t( _fb_dims.w() ) );
-
-            _pp_fb0 = motor::shared( std::move( fb ) );
-        }
-        {
-            auto fb = motor::graphics::framebuffer_object_t( "the_scene_1" );
-            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 3 )
-                .set_target( motor::graphics::depth_stencil_target_type::depth32 )
-                .resize( size_t( _fb_dims.z() ), size_t( _fb_dims.w() ) );
-
-            _pp_fb1 = motor::shared( std::move( fb ) );
-        }
-    }
+    #endif 
 
     {
         _pp_pipe = motor::shared( motor::gfx::hdr_postprocess_pipeline_t() );
@@ -285,13 +130,6 @@ void_t scene_manager::on_shutdown( void_t ) noexcept
     {
         motor::release( motor::move( sd.s ) );
     }
-
-    motor::release( motor::move( _post_quad ) );
-    motor::release( motor::move( _post_msl ) );
-    motor::release( motor::move( _post_xfade_msl ) );
-
-    motor::release( motor::move( _pp_fb0 ) );
-    motor::release( motor::move( _pp_fb1 ) );
 
     _pp_pipe->release();
     motor::release( motor::move( _pp_pipe ) );
@@ -563,14 +401,6 @@ void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
     // init render window rendering objects
     if( rd.first_frame && rd.wt == demos::window_type::production )
     {
-        rd.fe->configure< motor::graphics::state_object_t >( &_scene_final_rs );
-        rd.fe->configure< motor::graphics::framebuffer_object_t >( _pp_fb0 );
-        rd.fe->configure< motor::graphics::framebuffer_object_t >( _pp_fb1 );
-        rd.fe->configure< motor::graphics::state_object_t >( &_post_process_rs );
-        rd.fe->configure< motor::graphics::geometry_object >( _post_quad );
-        rd.fe->configure< motor::graphics::msl_object >( _post_msl );
-        rd.fe->configure< motor::graphics::msl_object >( _post_xfade_msl );
-
         _pp_pipe->init_render( rd.fe );
     }
 
