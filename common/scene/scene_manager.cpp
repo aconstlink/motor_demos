@@ -7,6 +7,8 @@
 #include <motor/concurrent/task/task.hpp>
 #include <motor/concurrent/global.h>
 
+#include <motor/tool/imgui/imgui_property.h>
+
 using namespace demos;
 
 //******************************************************************************************************
@@ -290,10 +292,9 @@ void_t scene_manager::on_shutdown( void_t ) noexcept
 
     motor::release( motor::move( _pp_fb0 ) );
     motor::release( motor::move( _pp_fb1 ) );
-    
-    _pp_pipe->release() ;
-    motor::release( motor::move( _pp_pipe ) );
 
+    _pp_pipe->release();
+    motor::release( motor::move( _pp_pipe ) );
 }
 
 //******************************************************************************************************
@@ -379,6 +380,15 @@ void_t scene_manager::on_tool( void_t ) noexcept
                     ImGui::Text( buffer );
                 }
             }
+        }
+    }
+    ImGui::End();
+
+    if( ImGui::Begin( "Post Process" ) )
+    {
+        for( auto ps : _pp_pipe->property_sheets() )
+        {
+            motor::tool::imgui_property::handle( ps.first, *ps.second ) ;
         }
     }
     ImGui::End();
@@ -615,8 +625,8 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
 {
     if( rd.last_frame )
     {
-        _pp_pipe->release_render( rd.fe ) ;
-        return ;
+        _pp_pipe->release_render( rd.fe );
+        return;
     }
 
     scene_id_t const cur = _cur_scene_idx;

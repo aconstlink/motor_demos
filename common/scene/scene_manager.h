@@ -8,6 +8,8 @@
 #include <motor/application/app.h>
 #include <motor/gfx/postprocess/hdr_postprocess_pipeline.h>
 
+#include <motor/property/property_sheet.hpp>
+
 namespace demos
 {
 
@@ -67,6 +69,7 @@ class scene_manager
     motor::graphics::state_object_t _post_process_rs;
 
     motor::gfx::hdr_postprocess_pipeline_mtr_t _pp_pipe = nullptr ;
+    motor::property::property_sheet_t _pp_sheet ;
 
   public:
 
