@@ -40,8 +40,8 @@ config default_final
         in vec3_t to_cam ;
 
         float_t shininess(40.0);
-        float_t light_intensity(10.0);
-        vec3_t light_color(10.0,10.1,10.0) ;
+        float_t light_intensity(3.0);
+        vec3_t light_color(1.0,1.1,1.0) ;
 
         out vec4_t color0 : color0 ;
         out vec4_t color1 : color1 ;
@@ -58,6 +58,8 @@ config default_final
             
             float_t ndl = dot( n, l ) *0.5+0.5 ;
             float_t spec = pow( max(dot(n,h), 0.0 ), shininess ) ;
+            float_t fresnel = pow( 1.0-max( dot(n,v), 0.0), 5.0 ) ;
+            spec *= mix( 0.2, 1.0, fresnel ) ;
 
             // albedo * light_color * light_intensity * ndotl
             vec3_t diffuse = 
@@ -70,7 +72,7 @@ config default_final
 
             //specular = light_color ' vec3_t(1.4,10.4,11.4) ' vec3_t(spec,spec,spec) ;
 
-            out.color0 = vec4_t(diffuse,1.0) + vec4_t(specular,1.0) ;
+            out.color0 = vec4_t(specular + diffuse,1.0) ;
             //out.color0 = vec4_t( n, 1.0 ) ;
             //out.color1 = vec4_t( light, light, light, 1.0 ) ;
             //out.color1 = vec4_t( in.nrm, 1.0 ) ;
