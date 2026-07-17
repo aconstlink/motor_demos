@@ -78,6 +78,7 @@ void_t the_app::on_init( void_t ) noexcept
         wi.w = 1280;
         wi.h = 960;
         wi.gen = motor::application::graphics_generation::gen4_auto;
+        // wi.gen = motor::application::graphics_generation::gen4_gl4;
 
         _rwid = this_t::create_window( wi );
         this_t::send_window_message( _rwid, [ & ]( motor::application::app::window_view & wnd )
@@ -112,7 +113,7 @@ void_t the_app::on_init( void_t ) noexcept
         }
 
         _pr_rs = std::move( so );
-    }    
+    }
 
     {
         demos::scene_manager_t::init_data_t id;
@@ -179,6 +180,12 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
 
         motor::controls::types::ascii_keyboard_t keyboard( dd.ascii );
 
+        bool_t const f3_released =
+            ( keyboard.get_state( key_t::f3 ) == motor::controls::components::key_state::released );
+
+        bool_t const f4_released =
+            ( keyboard.get_state( key_t::f4 ) == motor::controls::components::key_state::released );
+
         if( keyboard.get_state( key_t::k_1 ) == motor::controls::components::key_state::released )
         {
         }
@@ -195,8 +202,7 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
         {
             _need_tool_view = !_need_tool_view;
         }
-        else if( keyboard.get_state( key_t::f3 ) ==
-                 motor::controls::components::key_state::released )
+        else if( f3_released || f4_released )
         {
             if( _rwid == size_t( -1 ) )
             {
@@ -205,7 +211,10 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                 wi.y = 720;
                 wi.w = 800;
                 wi.h = 600;
-                wi.gen = motor::application::graphics_generation::gen4_auto;
+                if( f3_released )
+                    wi.gen = motor::application::graphics_generation::gen4_auto;
+                else
+                    wi.gen = motor::application::graphics_generation::gen4_gl4;
 
                 _rwid = this_t::create_window( wi );
 
@@ -224,7 +233,7 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                 { wnd.send_message( motor::application::close_message( { true } ) ); } );
             }
         }
-        else if( keyboard.get_state( key_t::f4 ) ==
+        else if( keyboard.get_state( key_t::f5 ) ==
                      motor::controls::components::key_state::released &&
                  _rwid != size_t( -1 ) )
         {
