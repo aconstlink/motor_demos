@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <motor/scene/component/graphics/msl_set_component.hpp>
 #include <motor/base/types.hpp>
 
 namespace demos
@@ -29,6 +30,19 @@ enum class process_state
     init,
     num_states
 };
+
+// used in the msl_set_component
+enum class msl_id
+{
+    default_id = 0,
+    final_id = 1,
+    shadow_id = 2
+};
+
+static motor::scene::msl_set_component::id_t to_id( msl_id const id ) noexcept
+{
+    return motor::scene::msl_set_component::id_t( id ) ;
+}
 
 //
 // SECTION : scene id

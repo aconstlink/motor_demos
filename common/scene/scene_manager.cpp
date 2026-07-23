@@ -58,10 +58,10 @@ motor::math::time_ms_t scene_manager::get_whole_duration( void_t ) const noexcep
 //******************************************************************************************************
 void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
 {
-    _db = motor::move( idata.db );    
+    _db = motor::move( idata.db );
 
-    // remember for later!
-    #if 0
+// remember for later!
+#if 0
     // post shader
     {
         motor::graphics::msl_object_t mslo( "color_to_screen" );
@@ -98,7 +98,7 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
 
         _post_msl = motor::shared( std::move( mslo ), "post msl" );
     }
-    #endif 
+#endif
 
     {
         _pp_pipe = motor::shared( motor::gfx::hdr_postprocess_pipeline_t() );
@@ -224,9 +224,18 @@ void_t scene_manager::on_tool( void_t ) noexcept
 
     if( ImGui::Begin( "Post Process" ) )
     {
+        bool_t has_changed = false;
         for( auto ps : _pp_pipe->property_sheets() )
         {
-            motor::tool::imgui_property::handle( ps.first, *ps.second ) ;
+            has_changed |= motor::tool::imgui_property::handle( ps.first, *ps.second );
+        }
+        if( has_changed ) _pp_pipe->update_properies();
+
+        {
+            if( ImGui::Checkbox( "Show temp render target ##scene_manager", &_show_temp_rt ) )
+            {
+                _pp_pipe->set_map_to_screen_texture_temp("scene.00.shadow_framebuffer.depth") ;
+            }
         }
     }
     ImGui::End();
@@ -396,13 +405,7 @@ void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
 
     if( rd.first_frame && rd.wt == demos::window_type::debug )
     {
-    }
-
-    // init render window rendering objects
-    if( rd.first_frame && rd.wt == demos::window_type::production )
-    {
-        _pp_pipe->init_render( rd.fe );
-    }
+    }    
 
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
@@ -453,11 +456,11 @@ void_t scene_manager::on_render_debug( render_data_ref_t rd ) noexcept
 //******************************************************************************************************
 void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
 {
-    if( rd.last_frame )
+    // init render window rendering objects
+    if( rd.first_frame )
     {
-        _pp_pipe->release_render( rd.fe );
-        return;
-    }
+        _pp_pipe->init_render( rd.fe );
+    }    
 
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
@@ -496,9 +499,15 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
     // render transition fb0 x fb1
     // or render fb0
 
+    if( rd.last_frame )
+    {
+        _pp_pipe->release_render( rd.fe );
+        return;
+    }
+
     // post process
     {
-        _pp_pipe->render( rd.fe );
+        _pp_pipe->render( rd.fe, _show_temp_rt );
     }
 }
 

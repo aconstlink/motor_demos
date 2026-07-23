@@ -317,6 +317,17 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         _sm.on_render( urd );
     }
 
+#if 0
+    {
+        fe->push( _post_so );
+        motor::graphics::gen4::backend::render_detail det;
+        det.geo = 0;
+        det.varset = 0;
+        fe->render( _map_to_screen_msl, det );
+        fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+    }
+#endif
+
     if( wid == _rwid && rd.last_frame ) _rwid = size_t( -1 );
 }
 

@@ -59,6 +59,7 @@ class scene_manager
 
     motor::gfx::hdr_postprocess_pipeline_mtr_t _pp_pipe = nullptr ;
     motor::property::property_sheet_t _pp_sheet ;
+    bool_t _show_temp_rt = false ;
 
   public:
 
