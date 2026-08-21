@@ -23,7 +23,7 @@ config default_final
         void main()
         {
             out.to_cam = cam_pos - (world * vec4_t(in.pos, 1.0)).xyz ;
-            out.to_light = light_dir ;
+            out.to_light = -light_dir ;
 
             vec3_t pos = in.pos ;
             //pos.xyz = pos.xyz * 10.0 ;
@@ -49,7 +49,7 @@ config default_final
         vec3_t light_color(1.0,1.1,1.0) ;
 
         vec3_t hemi_top_color( 0.0,0.0, 1.0 ) ;
-        vec3_t hemi_bottom_color( 0.0,0.0, 0.0 ) ;
+        vec3_t hemi_bottom_color( 1.0,0.0, 0.0 ) ;
 
         out vec4_t color0 : color0 ;
         out vec4_t color1 : color1 ;

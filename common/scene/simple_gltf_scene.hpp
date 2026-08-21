@@ -62,7 +62,8 @@ class simple_gltf_scene : public iscene
 
   public:
 
-    simple_gltf_scene( motor::string_cref_t name, motor::io::location_cref_t loc, motor::math::time_ms_t const dur = 5000 ) noexcept
+    simple_gltf_scene( motor::string_cref_t name, motor::io::location_cref_t loc,
+        motor::math::time_ms_t const dur = 5000 ) noexcept
         : iscene( name, dur ), _asset_location( loc )
     {
     }
@@ -79,7 +80,7 @@ class simple_gltf_scene : public iscene
   public:
 
     virtual void_t on_init_cameras( void_t ) noexcept {}
-    virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
+    virtual void_t on_init( demos::iscene::on_init_data_in_t data_in ) noexcept
     {
         {
             _time = motor::shared( os_float_t( 0.0f ) );
@@ -146,7 +147,7 @@ class simple_gltf_scene : public iscene
                         ps.add_property< motor::string_t >( "base_name", this_t::name() );
 
                         auto item = mod_reg->import_from(
-                            _asset_location, db, motor::shared( std::move( ps ) ) );
+                            _asset_location, data_in.db, motor::shared( std::move( ps ) ) );
                         auto * ret_item = item.get();
 
                         // test scene with visitor
@@ -225,7 +226,7 @@ class simple_gltf_scene : public iscene
         }
     }
 
-    virtual void_t on_release( void_t ) noexcept
+    virtual void_t on_release( demos::iscene::on_release_data_in_t ) noexcept
     {
         this_t::release_all_objects();
     }
@@ -240,7 +241,7 @@ class simple_gltf_scene : public iscene
             float_t const t = float_t( ud.relative ) / 1000.0f;
             _time->set_and_exchange( t );
         }
-        
+
         {
             motor::concurrent::global_t::schedule(
                 _time_node->get_task(), motor::concurrent::schedule_type::pool );
@@ -270,49 +271,48 @@ class simple_gltf_scene : public iscene
         this_t::on_update_stage2( ud );
     }
 
-    virtual void_t on_resize( demos::window_type const, uint_t const width, uint_t const height ) noexcept {}
+    virtual void_t on_resize(
+        demos::window_type const, uint_t const width, uint_t const height ) noexcept
+    {
+    }
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
 
-    virtual void_t on_render_init( demos::window_type const,
-        motor::graphics::gen4::frontend_ptr_t fe,
+    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept {}
+
+    virtual void_t on_render_init( demos::iscene::on_render_data_in_t data_in,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        fe->configure< motor::graphics::state_object_t >( _root_so );
-        fe->fence( funk );
+        data_in.fe->configure< motor::graphics::state_object_t >( _root_so );
+        data_in.fe->fence( funk );
     }
 
-    virtual void_t on_render_deinit( demos::window_type const,
-        motor::graphics::gen4::frontend_ptr_t fe,
+    virtual void_t on_render_deinit( demos::iscene::on_render_data_in_t data_in,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        fe->fence( funk );
+        data_in.fe->fence( funk );
     }
 
-    virtual void_t on_render_debug(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    virtual void_t on_render_debug( demos::iscene::on_render_data_in_t data_in ) noexcept
     {
         if( _cam_id != size_t( -1 ) )
         {
             motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ];
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
-            motor::scene::render_visitor_t vis( wid, fe, cam );
+            motor::scene::render_visitor_t vis( 0, data_in.fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
         }
     }
 
     //************************************************************************************
-    virtual void_t on_render_final_offscreen(
-        size_t const, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
-    {
-    }
+    virtual void_t on_render_final_depth_pass( demos::iscene::on_render_data_in_t ) noexcept {}
 
-    virtual void_t on_render_final(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
-    {
-    }
+    //************************************************************************************
+    virtual void_t on_render_final_offscreen( demos::iscene::on_render_data_in_t ) noexcept {}
 
-    virtual void_t on_tool( void_t ) noexcept
+    virtual void_t on_render_final( demos::iscene::on_render_data_in_t ) noexcept {}
+
+    virtual void_t on_tool( demos::iscene::on_tool_data_in_t ) noexcept
     {
         // SECTION: cameras
         {

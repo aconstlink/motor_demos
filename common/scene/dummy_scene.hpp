@@ -39,13 +39,13 @@ class dummy_scene : public iscene
   public:
 
     //************************************************************************************
-    virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
+    virtual void_t on_init( demos::iscene::on_init_data_in_t ) noexcept
     {
         std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
     }
 
     //************************************************************************************
-    virtual void_t on_release( void_t ) noexcept
+    virtual void_t on_release( demos::iscene::on_release_data_in_t ) noexcept
     {
         this_t::release_all_objects();
     }
@@ -54,14 +54,19 @@ class dummy_scene : public iscene
     virtual void_t on_update( demos::iscene::update_data_cref_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_resize( demos::window_type const, uint_t const width, uint_t const height ) noexcept {}
+    virtual void_t on_resize(
+        demos::window_type const, uint_t const width, uint_t const height ) noexcept
+    {
+    }
 
     //************************************************************************************
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_render_init( demos::window_type const,
-        motor::graphics::gen4::frontend_ptr_t fe,
+    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept {}
+
+    //************************************************************************************
+    virtual void_t on_render_init( demos::iscene::on_render_data_in_t,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
         auto the_task = motor::shared(
@@ -80,8 +85,7 @@ class dummy_scene : public iscene
     }
 
     //************************************************************************************
-    virtual void_t on_render_deinit( demos::window_type const,
-        motor::graphics::gen4::frontend_ptr_t,
+    virtual void_t on_render_deinit( demos::iscene::on_render_data_in_t,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
         auto the_task = motor::shared(
@@ -100,26 +104,20 @@ class dummy_scene : public iscene
     }
 
     //************************************************************************************
-    virtual void_t on_render_debug(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
-    {
-    }
+    virtual void_t on_render_debug( demos::iscene::on_render_data_in_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_render_final_offscreen(
-        size_t const, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
-    {
-    }
+    virtual void_t on_render_final_depth_pass( demos::iscene::on_render_data_in_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_render_final(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept
-    {
-    }
+    virtual void_t on_render_final_offscreen( demos::iscene::on_render_data_in_t ) noexcept {}
 
-    virtual void_t on_tool( void_t ) noexcept
+    //************************************************************************************
+    virtual void_t on_render_final( demos::iscene::on_render_data_in_t ) noexcept {}
+
+    virtual void_t on_tool( demos::iscene::on_tool_data_in_t ) noexcept
     {
-        ImGui::Text( "nothing to see here. no tools are added for the dummy_scene." );        
+        ImGui::Text( "nothing to see here. no tools are added for the dummy_scene." );
     }
 
   private:

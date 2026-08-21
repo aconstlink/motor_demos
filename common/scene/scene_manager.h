@@ -7,6 +7,7 @@
 
 #include <motor/application/app.h>
 #include <motor/gfx/postprocess/hdr_postprocess_pipeline.h>
+#include <motor/gfx/manager/msl_manager.h>
 
 #include <motor/property/property_sheet.hpp>
 
@@ -61,6 +62,10 @@ class scene_manager
     motor::property::property_sheet_t _pp_sheet ;
     bool_t _show_temp_rt = false ;
 
+    private: // manager
+
+    motor::gfx::msl_manager_mtr_t _mmgr = nullptr ;
+
   public:
 
     scene_manager( void_t ) noexcept;
@@ -109,6 +114,7 @@ class scene_manager
     motor_typedef( render_data );
 
     void_t on_render( render_data_ref_t ) noexcept;
+    void_t on_frame_done( void_t ) noexcept ;
 
   public:
 
@@ -161,9 +167,8 @@ class scene_manager
     void_t commit_scene_index( demos::scene_id_pair_t const & ) noexcept;
 
     void_t approach_raw_state_graphics(
-        demos::window_type const, motor::graphics::gen4::frontend_mtr_t );
-    void_t handle_state_graphics( demos::scene_id_t const, demos::window_type const,
-        motor::graphics::gen4::frontend_mtr_t, bool_t const do_release );
+        render_data_ref_t );
+    void_t handle_state_graphics( demos::scene_id_t const, render_data_ref_t, bool_t const do_release );
 
     // returns true if two scenes are transitioning and
     // if so, overlap is set. Otherwise false is returned.

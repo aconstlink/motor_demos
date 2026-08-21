@@ -15,7 +15,10 @@ using namespace demos;
 scene_manager::scene_manager( void_t ) noexcept {}
 
 //******************************************************************************************************
-scene_manager::scene_manager( this_rref_t rhv ) noexcept : _scenes( std::move( rhv._scenes ) ) {}
+scene_manager::scene_manager( this_rref_t rhv ) noexcept
+    : _scenes( std::move( rhv._scenes ) ), _mmgr( motor::move( rhv._mmgr ) )
+{
+}
 
 //******************************************************************************************************
 scene_manager::~scene_manager( void_t ) noexcept
@@ -59,6 +62,7 @@ motor::math::time_ms_t scene_manager::get_whole_duration( void_t ) const noexcep
 void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
 {
     _db = motor::move( idata.db );
+    _mmgr = motor::shared( motor::gfx::msl_manager_t( motor::share( _db ) ) );
 
 // remember for later!
 #if 0
@@ -133,6 +137,8 @@ void_t scene_manager::on_shutdown( void_t ) noexcept
 
     _pp_pipe->release();
     motor::release( motor::move( _pp_pipe ) );
+
+    motor::release( motor::move( _mmgr ) );
 }
 
 //******************************************************************************************************
@@ -234,7 +240,9 @@ void_t scene_manager::on_tool( void_t ) noexcept
         {
             if( ImGui::Checkbox( "Show temp render target ##scene_manager", &_show_temp_rt ) )
             {
-                _pp_pipe->set_map_to_screen_texture_temp("scene.00.shadow_framebuffer.depth") ;
+                //_pp_pipe->set_map_to_screen_texture_temp( "scene.00.shadow_framebuffer.depth" );
+                _pp_pipe->set_map_to_screen_texture_temp(
+                    "gfx.postprocess.hdr.framebuffer.0.depth" );
             }
         }
     }
@@ -250,7 +258,8 @@ void_t scene_manager::on_tool( void_t ) noexcept
 
             if( ImGui::Begin( buffer ) )
             {
-                sd.s->on_tool();
+                demos::iscene::on_tool_data d;
+                sd.s->on_tool( d );
             }
             ImGui::End();
         }
@@ -260,6 +269,8 @@ void_t scene_manager::on_tool( void_t ) noexcept
 //******************************************************************************************************
 motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
 {
+    _mmgr->on_update() ;
+
     _cur_time = ud.demo_time;
 
     auto [ cur, nxt ] = this_t::determine_scene_index();
@@ -294,7 +305,8 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
                     auto the_task = motor::shared( motor::concurrent::task_t(
                         [ = ]( motor::concurrent::task_t::task_funk_param const & )
                     {
-                        this->_scenes[ i ].s->on_release();
+                        demos::iscene::on_release_data_t d;
+                        this->_scenes[ i ].s->on_release( d );
                         this->_scenes[ i ].ss = demos::process_state::raw;
                     } ) );
                     motor::concurrent::global::schedule(
@@ -321,7 +333,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
                 auto the_task = motor::shared( motor::concurrent::task_t(
                     [ = ]( motor::concurrent::task_t::task_funk_param const & )
                 {
-                    this->_scenes[ id ].s->on_init( ud.db );
+                    this->_scenes[ id ].s->on_init( { ud.db, _mmgr } );
                     this->_scenes[ id ].ss = demos::process_state::init;
                 } ) );
                 motor::concurrent::global::schedule(
@@ -398,6 +410,21 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
 }
 
 //******************************************************************************************************
+void_t scene_manager::on_frame_done( void_t ) noexcept
+{
+    scene_id_t const cur = _cur_scene_idx;
+    scene_id_t const nxt = _nxt_scene_idx;
+
+    if( this_t::is_valid_and_init( cur, demos::window_type::debug ) )
+    {
+        demos::iscene::on_frame_done_data_t d;
+        _scenes[ cur ].s->on_frame_done( d );
+    }
+
+    _mmgr->on_frame_done();
+}
+
+//******************************************************************************************************
 void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
 {
     if( rd.wt == demos::window_type::invalid ) return;
@@ -405,17 +432,22 @@ void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
 
     if( rd.first_frame && rd.wt == demos::window_type::debug )
     {
-    }    
+    }
 
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
 
+    demos::iscene::on_render_data_t d;
+    d.wid = rd.wid;
+    d.wt = rd.wt;
+    d.fe = rd.fe;
+
     // for each scene, approch raw state. every other scene
     // except cur and next scenes must be raw state i.e.
     // not initialized.
-    this_t::approach_raw_state_graphics( rd.wt, rd.fe );
-    this_t::handle_state_graphics( cur, rd.wt, rd.fe, rd.last_frame );
-    this_t::handle_state_graphics( nxt, rd.wt, rd.fe, rd.last_frame );
+    this_t::approach_raw_state_graphics( rd );
+    this_t::handle_state_graphics( cur, rd, rd.last_frame );
+    this_t::handle_state_graphics( nxt, rd, rd.last_frame );
 
     if( rd.wt == demos::window_type::debug )
     {
@@ -425,6 +457,8 @@ void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
     {
         this_t::on_render_production( rd );
     }
+
+    _mmgr->on_render( rd.fe );
 }
 
 //******************************************************************************************************
@@ -433,9 +467,14 @@ void_t scene_manager::on_render_debug( render_data_ref_t rd ) noexcept
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
 
+    demos::iscene::on_render_data_t d;
+    d.wid = rd.wid;
+    d.wt = rd.wt;
+    d.fe = rd.fe;
+
     if( this_t::is_valid_and_init( cur, demos::window_type::debug ) )
     {
-        _scenes[ cur ].s->on_render_debug( rd.wid, rd.fe );
+        _scenes[ cur ].s->on_render_debug( d );
     }
 
     // eventually render next scene if overlap
@@ -447,7 +486,7 @@ void_t scene_manager::on_render_debug( render_data_ref_t rd ) noexcept
 
             if( snxt.gfx_dbg == demos::process_state::init )
             {
-                snxt.s->on_render_debug( rd.wid, rd.fe );
+                snxt.s->on_render_debug( d );
             }
         }
     }
@@ -460,20 +499,37 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
     if( rd.first_frame )
     {
         _pp_pipe->init_render( rd.fe );
-    }    
+    }
 
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
 
+    demos::iscene::on_render_data_t d;
+    d.wid = rd.wid;
+    d.wt = rd.wt;
+    d.fe = rd.fe;
+
     if( this_t::is_valid_and_init( cur, demos::window_type::production ) )
     {
-        _scenes[ cur ].s->on_render_final_offscreen( rd.wid, rd.fe );
+        _scenes[ cur ].s->on_render_final_offscreen( d );
 
         // activate fb 0
         rd.fe->use( _pp_pipe->borrow_hdr_fb( 0 ) );
-        rd.fe->push( _pp_pipe->borrow_hdr_states() );
-        _scenes[ cur ].s->on_render_final( rd.wid, rd.fe );
-        rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+
+        // z-prepass
+        {
+            rd.fe->push( _pp_pipe->borrow_zpre_states() );
+            _scenes[ cur ].s->on_render_final_depth_pass( d );
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+        }
+
+        // render color
+        {
+            rd.fe->push( _pp_pipe->borrow_hdr_states() );
+            _scenes[ cur ].s->on_render_final( d );
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+        }
+
         rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
     }
 
@@ -485,12 +541,12 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
 
         if( snxt.gfx_prod == demos::process_state::init )
         {
-            snxt.s->on_render_final_offscreen( rd.wid, rd.fe );
+            snxt.s->on_render_final_offscreen( d );
 
             // activate fb1
             rd.fe->use( _pp_pipe->borrow_hdr_fb( 0 ) );
             rd.fe->push( _pp_pipe->borrow_hdr_states() );
-            snxt.s->on_render_final( rd.wid, rd.fe );
+            snxt.s->on_render_final( d );
             rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
             rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
@@ -529,8 +585,7 @@ bool_t scene_manager::is_valid_and_init(
 }
 
 //******************************************************************************************************
-void_t scene_manager::approach_raw_state_graphics(
-    demos::window_type const wt, motor::graphics::gen4::frontend_mtr_t fe )
+void_t scene_manager::approach_raw_state_graphics( render_data_ref_t rd )
 {
     scene_id_t const cur = _cur_scene_idx;
     scene_id_t const nxt = _nxt_scene_idx;
@@ -541,7 +596,7 @@ void_t scene_manager::approach_raw_state_graphics(
 
         auto & scene = _scenes[ i ];
 
-        auto & ps = wt == demos::window_type::debug ? scene.gfx_dbg : scene.gfx_prod;
+        auto & ps = rd.wt == demos::window_type::debug ? scene.gfx_dbg : scene.gfx_prod;
 
         switch( ps )
         {
@@ -554,9 +609,14 @@ void_t scene_manager::approach_raw_state_graphics(
         {
             ps = demos::process_state::in_transit;
 
-            scene.s->on_render_deinit( wt, fe, [ = ]( void_t )
+            demos::iscene::on_render_data_t d;
+            d.wid = rd.wid;
+            d.wt = rd.wt;
+            d.fe = rd.fe;
+
+            scene.s->on_render_deinit( d, [ = ]( void_t )
             {
-                if( wt == demos::window_type::debug )
+                if( rd.wt == demos::window_type::debug )
                     this->_scenes[ i ].gfx_dbg = demos::process_state::raw;
                 else
                     this->_scenes[ i ].gfx_prod = demos::process_state::raw;
@@ -569,8 +629,8 @@ void_t scene_manager::approach_raw_state_graphics(
 }
 
 //******************************************************************************************************
-void_t scene_manager::handle_state_graphics( demos::scene_id_t const id,
-    demos::window_type const wt, motor::graphics::gen4::frontend_mtr_t fe, bool_t const do_release )
+void_t scene_manager::handle_state_graphics(
+    demos::scene_id_t const id, render_data_ref_t rd, bool_t const do_release )
 {
     if( demos::is_invalid( id ) ) return;
 
@@ -579,7 +639,12 @@ void_t scene_manager::handle_state_graphics( demos::scene_id_t const id,
     // we can only process graphics state if the scene is initialized
     if( scene.ss != demos::process_state::init ) return;
 
-    auto & ps = wt == demos::window_type::debug ? scene.gfx_dbg : scene.gfx_prod;
+    demos::iscene::on_render_data_t ord;
+    ord.wid = rd.wid;
+    ord.wt = rd.wt;
+    ord.fe = rd.fe;
+
+    auto & ps = rd.wt == demos::window_type::debug ? scene.gfx_dbg : scene.gfx_prod;
 
     switch( ps )
     {
@@ -588,9 +653,9 @@ void_t scene_manager::handle_state_graphics( demos::scene_id_t const id,
         if( !do_release )
         {
             ps = demos::process_state::in_transit;
-            scene.s->on_render_init( wt, fe, [ = ]( void_t )
+            scene.s->on_render_init( ord, [ = ]( void_t )
             {
-                if( wt == demos::window_type::debug )
+                if( rd.wt == demos::window_type::debug )
                     this->_scenes[ id ].gfx_dbg = demos::process_state::init;
                 else
                     this->_scenes[ id ].gfx_prod = demos::process_state::init;
@@ -604,9 +669,9 @@ void_t scene_manager::handle_state_graphics( demos::scene_id_t const id,
         if( do_release )
         {
             ps = demos::process_state::in_transit;
-            scene.s->on_render_deinit( wt, fe, [ = ]( void_t )
+            scene.s->on_render_deinit( ord, [ = ]( void_t )
             {
-                if( wt == demos::window_type::debug )
+                if( rd.wt == demos::window_type::debug )
                     this->_scenes[ id ].gfx_dbg = demos::process_state::raw;
                 else
                     this->_scenes[ id ].gfx_prod = demos::process_state::raw;

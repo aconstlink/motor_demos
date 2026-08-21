@@ -11,8 +11,9 @@
 #include <motor/scene/visitor/graphics/render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.h>
 #include <motor/scene/component/graphics/render_settings_component.hpp>
-#include <motor/scene/visitor/graphics/add_shader_to_set_visitor.hpp>
+#include <motor/scene/visitor/graphics/add_msl_to_set_visitor.hpp>
 
+#include <motor/gfx/manager/msl_manager.h>
 #include <motor/graphics/state/render_states.h>
 
 #include <motor/tool/imgui/node_kit/imgui_node_visitor.h>
@@ -81,6 +82,10 @@ class intro_scene : public iscene
     // borrowed
     motor::io::database_mtr_t _db = nullptr;
 
+    // borrowed
+    motor::gfx::msl_manager_mtr_t _mmgr = nullptr;
+    motor::gfx::msl_manager_mtr_t _own_mmgr = nullptr;
+
   private: // general variables
 
     // 0: can start parallel work
@@ -107,9 +112,11 @@ class intro_scene : public iscene
   public:
 
     //************************************************************************************
-    virtual void_t on_init( motor::io::database_ptr_t db ) noexcept
+    virtual void_t on_init( demos::iscene::on_init_data_in_t oid ) noexcept
     {
-        _db = db;
+        _db = oid.db;
+        _mmgr = oid.mmgr;
+        _own_mmgr = motor::shared( motor::gfx::msl_manager_t( motor::share( _db ) ) );
         _gltf_mon = motor::shared( motor::io::monitor_t(), "gltf file monitor" );
 
         {
@@ -123,22 +130,36 @@ class intro_scene : public iscene
 
             {
                 motor::graphics::render_state_sets_t rss;
+#if 0
                 rss.depth_s.do_change = true;
                 rss.depth_s.ss.do_activate = true;
-                rss.depth_s.ss.do_depth_write = true;
+                rss.depth_s.ss.do_depth_write = false;
+#endif
                 rss.polygon_s.do_change = true;
                 rss.polygon_s.ss.do_activate = true;
                 rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
                 rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
                 rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+#if 1
                 rss.clear_s.do_change = true;
-                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
-                rss.clear_s.ss.do_activate = true;
-                rss.clear_s.ss.do_color_clear = true;
-                rss.clear_s.ss.do_depth_clear = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f );
+                rss.clear_s.ss.do_activate = false;
+                rss.clear_s.ss.do_color_clear = false;
+                rss.clear_s.ss.do_depth_clear = false;
+#endif
+#if 0
                 rss.view_s.do_change = true;
                 rss.view_s.ss.do_activate = false;
                 rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+#endif
+#if 0
+                rss.blend_s.do_change = false ;
+                rss.blend_s.ss.do_activate = true ;
+                rss.blend_s.ss.blend_func = motor::graphics::blend_function::add ;
+                rss.blend_s.ss.src_blend_factor = motor::graphics::blend_factor::one ;
+                rss.blend_s.ss.dst_blend_factor = motor::graphics::blend_factor::one ;
+#endif
+
                 so.add_render_state_set( rss );
             }
 
@@ -382,6 +403,17 @@ class intro_scene : public iscene
         }
         motor::release( motor::move( _selected_node ) );
 
+        // manager
+        {
+            _own_mmgr->add( "default_final",
+                motor::io::location_t( "0_intro_scene.shaders.default_final.msl" ) );
+            _own_mmgr->add(
+                "shadow_pass", motor::io::location_t( "0_intro_scene.shaders.shadow_pass.msl" ) );
+            _own_mmgr->add(
+                "depth_pass", motor::io::location_t( "0_intro_scene.shaders.depth_pass.msl" ) );
+        }
+
+#if 0
         // load all shaders
         {
             motor::string_t shd;
@@ -391,6 +423,9 @@ class intro_scene : public iscene
 
             auto shadow_shader =
                 _db->load( motor::io::location_t( "0_intro_scene.shaders.shadow_pass.msl" ) );
+
+            auto depth_pass_shader =
+                _db->load( motor::io::location_t( "0_intro_scene.shaders.depth_pass.msl" ) );
 
             {
                 default_shader.wait_for_operation(
@@ -423,11 +458,28 @@ class intro_scene : public iscene
                     demos::to_id( demos::msl_id::shadow_id ), "shadow", shd );
                 motor::scene::node_t::traverser( _root ).apply( &v );
             }
+
+            {
+                depth_pass_shader.wait_for_operation(
+                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+                {
+                    motor::log::global_t::status( "********************************" );
+                    motor::log::global_t::status(
+                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
+
+                    shd = motor::string_t( data, sib );
+                } );
+
+                motor::scene::add_shader_to_set_visitor_t v(
+                    demos::to_id( demos::msl_id::depth_pass_id ), "depth_pass", shd );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
         }
+#endif
 
         // collect msl_components just added and add variable
         {
-            demos::msl_component_collector_t v( 1 );
+            demos::msl_component_collector_t v( demos::to_id( demos::msl_id::final_id ) );
             motor::scene::node_t::traverser( _root ).apply( &v );
 
             v.for_each( [ & ]( motor::scene::msl_component_mtr_t mslc )
@@ -463,11 +515,12 @@ class intro_scene : public iscene
     }
 
     //************************************************************************************
-    virtual void_t on_release( void_t ) noexcept
+    virtual void_t on_release( demos::iscene::on_release_data_in_t ) noexcept
     {
         this_t::release_all_objects();
     }
 
+    //************************************************************************************
     // start parallel work
     void_t on_update_stage1( demos::iscene::update_data_cref_t ud ) noexcept
     {
@@ -493,6 +546,7 @@ class intro_scene : public iscene
         }
     }
 
+    //************************************************************************************
     // do work after parallel work is done.
     void_t on_update_stage2( demos::iscene::update_data_cref_t ud ) noexcept
     {
@@ -513,6 +567,28 @@ class intro_scene : public iscene
     //************************************************************************************
     virtual void_t on_update( demos::iscene::update_data_cref_t ud ) noexcept
     {
+        _own_mmgr->for_each_configure_done(
+            [ & ]( motor::string_in_t name, motor::graphics::msl_object_mtr_t msl ) //
+        {
+            if( name == "default_final" )
+            {
+                motor::scene::add_msl_to_set_visitor_t v(
+                    demos::to_id( demos::msl_id::final_id ), motor::share( msl ) );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
+            else if( name == "shadow_pass" )
+            {
+                motor::scene::add_msl_to_set_visitor_t v(
+                    demos::to_id( demos::msl_id::shadow_id ), motor::share( msl ) );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
+            else if( name == "depth_pass" )
+            {
+                motor::scene::add_msl_to_set_visitor_t v(
+                    demos::to_id( demos::msl_id::depth_pass_id ), motor::share( msl ) );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
+        } );
         this_t::on_update_stage1( ud );
         this_t::on_update_stage2( ud );
     }
@@ -527,102 +603,126 @@ class intro_scene : public iscene
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
 
     //************************************************************************************
-    virtual void_t on_render_init( demos::window_type const wt,
-        motor::graphics::gen4::frontend_ptr_t fe,
+    virtual void_t on_render_init( demos::iscene::on_render_data_in_t rd,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        if( wt == demos::window_type::debug )
+    
+        if( rd.wt == demos::window_type::debug )
         {
-            fe->configure< motor::graphics::state_object_t >( _root_so );
+            rd.fe->configure< motor::graphics::state_object_t >( _root_so );
         }
 
-        if( wt == demos::window_type::production )
+        if( rd.wt == demos::window_type::production )
         {
-            fe->configure< motor::graphics::state_object_t >( _final_so );
+            rd.fe->configure< motor::graphics::state_object_t >( _final_so );
 
-            fe->configure< motor::graphics::state_object_t >( _shadow_so );
+            rd.fe->configure< motor::graphics::state_object_t >( _shadow_so );
 
-            fe->configure< motor::graphics::framebuffer_object_t >( _shadow_fb );
+            rd.fe->configure< motor::graphics::framebuffer_object_t >( _shadow_fb );
         }
-        fe->fence( funk );
+        rd.fe->fence( funk );
     }
 
     //************************************************************************************
-    virtual void_t on_render_deinit( demos::window_type const wt,
-        motor::graphics::gen4::frontend_ptr_t fe,
+    virtual void_t on_render_deinit( demos::iscene::on_render_data_in_t rd,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-        if( wt == demos::window_type::debug )
+        _own_mmgr->on_render_release( rd.fe );
+
+        if( rd.wt == demos::window_type::debug )
         {
-            fe->release< motor::graphics::state_object_t >( _root_so );
+            rd.fe->release< motor::graphics::state_object_t >( _root_so );
         }
 
-        if( wt == demos::window_type::production )
+        if( rd.wt == demos::window_type::production )
         {
-            fe->release< motor::graphics::state_object_t >( _final_so );
-            fe->release< motor::graphics::state_object_t >( _shadow_so );
-            fe->release< motor::graphics::framebuffer_object_t >( _shadow_fb );
+            rd.fe->release< motor::graphics::state_object_t >( _final_so );
+            rd.fe->release< motor::graphics::state_object_t >( _shadow_so );
+            rd.fe->release< motor::graphics::framebuffer_object_t >( _shadow_fb );
         }
 
-        fe->fence( funk );
+        rd.fe->fence( funk );
     }
 
     //************************************************************************************
-    virtual void_t on_render_debug(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept {}
+
+    //************************************************************************************
+    virtual void_t on_render_debug( demos::iscene::on_render_data_in_t rd ) noexcept
     {
+        _own_mmgr->on_render( rd.fe );
+
         if( _cam_id != size_t( -1 ) )
         {
-            fe->push( _root_so );
+            rd.fe->push( _root_so );
             motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
             // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
             motor::scene::render_visitor_t vis(
-                demos::to_id( demos::msl_id::default_id ), fe, cam );
+                demos::to_id( demos::msl_id::default_id ), rd.fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
-            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }
     }
 
     //************************************************************************************
-    virtual void_t on_render_final_offscreen(
-        size_t const, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    virtual void_t on_render_final_offscreen( demos::iscene::on_render_data_in_t rd ) noexcept
     {
         // make shadow pass
         {
-            fe->use( _shadow_fb );
-            fe->push( _shadow_so );
+            rd.fe->use( _shadow_fb );
+            rd.fe->push( _shadow_so );
             motor::gfx::generic_camera_mtr_t cam = _sun_cam;
-            motor::scene::render_visitor_t vis( demos::to_id( demos::msl_id::shadow_id ), fe, cam );
+            motor::scene::render_visitor_t vis(
+                demos::to_id( demos::msl_id::shadow_id ), rd.fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
-            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
-            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
     }
 
     //************************************************************************************
-    virtual void_t on_render_final(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    virtual void_t on_render_final_depth_pass( demos::iscene::on_render_data_in_t rd ) noexcept
     {
         if( _cam_id != size_t( -1 ) )
         {
-            fe->push( _final_so );
+            rd.fe->push( _final_so );
 
             {
                 motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
-                // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
                 motor::scene::render_visitor_t vis(
-                    demos::to_id( demos::msl_id::final_id ), fe, cam );
-                vis.set_light_direction( motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ) );
+                    demos::to_id( demos::msl_id::depth_pass_id ), rd.fe, cam );
 
                 motor::scene::node_t::traverser( _root ).apply( &vis );
             }
 
-            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }
     }
 
     //************************************************************************************
-    virtual void_t on_tool( void_t ) noexcept
+    virtual void_t on_render_final( demos::iscene::on_render_data_in_t rd ) noexcept
+    {
+        _own_mmgr->on_render( rd.fe );
+
+        if( _cam_id != size_t( -1 ) )
+        {
+            rd.fe->push( _final_so );
+
+            {
+                motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
+                motor::scene::render_visitor_t vis(
+                    demos::to_id( demos::msl_id::final_id ), rd.fe, cam );
+                vis.set_light_direction( motor::math::vec3f_t( 0.0f, -1.0f, 0.0f ) );
+
+                motor::scene::node_t::traverser( _root ).apply( &vis );
+            }
+
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+        }
+    }
+
+    //************************************************************************************
+    virtual void_t on_tool( demos::iscene::on_tool_data_in_t ) noexcept
     {
         // SECTION: cameras
         {

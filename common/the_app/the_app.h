@@ -100,8 +100,7 @@ class the_app : public motor::application::app
         motor::application::window_message_listener::state_vector_cref_t sv ) noexcept;
     virtual void_t on_device( device_data_in_t dd ) noexcept;
     virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept;
-    virtual void_t on_audio(
-        motor::audio::frontend_ptr_t fptr, audio_data_in_t ad ) noexcept;
+    virtual void_t on_audio( motor::audio::frontend_ptr_t fptr, audio_data_in_t ad ) noexcept;
     virtual void_t on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept;
     virtual void_t on_render( this_t::window_id_t const wid,
         motor::graphics::gen4::frontend_ptr_t fe,
@@ -109,6 +108,7 @@ class the_app : public motor::application::app
     virtual bool_t on_tool(
         this_t::window_id_t const wid, motor::application::app::tool_data_ref_t td ) noexcept;
     virtual void_t on_shutdown( void_t ) noexcept;
+    virtual void_t on_frame_done( void_t ) noexcept;
 
   public:
 

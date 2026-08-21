@@ -5,6 +5,7 @@
 
 #include <motor/gfx/primitive/primitive_render_3d.h>
 #include <motor/gfx/camera/generic_camera.h>
+#include <motor/gfx/manager/msl_manager.h>
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/io/database.h>
@@ -36,6 +37,45 @@ class iscene
         motor::gfx::generic_camera_mtr_t dbg_cam;
     };
     motor_typedef( on_graphics_data );
+
+    struct on_init_data
+    {
+        motor::io::database_ptr_t db;
+        motor::gfx::msl_manager_mtr_t mmgr ;
+    };
+    motor_typedef( on_init_data );
+
+    struct on_release_data
+    {
+    };
+    motor_typedef( on_release_data );
+
+    struct on_frame_done_data
+    {
+    };
+    motor_typedef( on_frame_done_data );
+
+    struct on_render_data
+    {
+        size_t wid;
+        demos::window_type wt;
+        motor::graphics::gen4::frontend_ptr_t fe;
+    };
+    motor_typedef( on_render_data );
+
+    struct on_tool_data
+    {
+    };
+    motor_typedef( on_tool_data );
+
+    struct update_data
+    {
+        motor::math::time_ms_t absolute;
+        motor::math::time_ms_t relative;
+
+        float_t relative_seconds;
+    };
+    motor_typedef( update_data );
 
   private:
 
@@ -73,41 +113,32 @@ class iscene
         return _ti;
     }
 
-    virtual void_t on_init( motor::io::database_ptr_t ) noexcept = 0;
-    virtual void_t on_release( void_t ) noexcept = 0;
+    virtual void_t on_init( demos::iscene::on_init_data_in_t d ) noexcept = 0;
+    virtual void_t on_release( demos::iscene::on_release_data_in_t ) noexcept = 0;
 
     virtual void_t on_resize(
         demos::window_type const, uint_t const width, uint_t const height ) noexcept = 0;
 
     virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept = 0;
+    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept = 0;
 
-    virtual void_t on_render_init( demos::window_type const, motor::graphics::gen4::frontend_ptr_t,
+    virtual void_t on_render_init( demos::iscene::on_render_data_in_t,
         motor::graphics::gen4::frontend::fence_funk_t ) noexcept = 0;
-    virtual void_t on_render_deinit( demos::window_type const,
-        motor::graphics::gen4::frontend_ptr_t,
-        motor::graphics::gen4::frontend::fence_funk_t ) noexcept = 0;
+    virtual void_t on_render_deinit( demos::iscene::on_render_data_in_t,
+        motor::graphics::gen4::frontend::fence_funk_t fence ) noexcept = 0;
 
-    virtual void_t on_render_debug(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_debug( demos::iscene::on_render_data_in_t ) noexcept = 0;
 
-    virtual void_t on_render_final_offscreen(
-        size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_final_offscreen( demos::iscene::on_render_data_in_t ) noexcept = 0;
 
-    virtual void_t on_render_final( size_t const wid,
-        motor::graphics::gen4::frontend_ptr_t ) noexcept = 0;
+    virtual void_t on_render_final_depth_pass( demos::iscene::on_render_data_in_t ) noexcept = 0;
+    virtual void_t on_render_final( demos::iscene::on_render_data_in_t ) noexcept = 0;
 
-    virtual void_t on_tool( void_t ) noexcept = 0;
+    virtual void_t on_tool( demos::iscene::on_tool_data_in_t ) noexcept = 0;
 
   public: // update interface
 
-    struct update_data
-    {
-        motor::math::time_ms_t absolute;
-        motor::math::time_ms_t relative;
-
-        float_t relative_seconds;
-    };
-    motor_typedef( update_data );
+    
 
     virtual void_t on_update( demos::iscene::update_data_cref_t ) noexcept = 0;
 };

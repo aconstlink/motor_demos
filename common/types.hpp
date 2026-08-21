@@ -36,7 +36,8 @@ enum class msl_id
 {
     default_id = 0,
     final_id = 1,
-    shadow_id = 2
+    shadow_id = 2,
+    depth_pass_id = 3,
 };
 
 static motor::scene::msl_set_component::id_t to_id( msl_id const id ) noexcept

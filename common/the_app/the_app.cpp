@@ -39,7 +39,7 @@ void_t the_app::on_init( void_t ) noexcept
             wi.y = 100;
             wi.w = 800;
             wi.h = 1200;
-            wi.gen = motor::application::graphics_generation::gen4_auto;
+            wi.gen = motor::application::graphics_generation::gen4_gl4;
 
             _twid = this_t::create_window( wi );
             this_t::send_window_message( _twid, [ & ]( motor::application::app::window_view & wnd )
@@ -78,7 +78,7 @@ void_t the_app::on_init( void_t ) noexcept
         wi.w = 1280;
         wi.h = 960;
         wi.gen = motor::application::graphics_generation::gen4_auto;
-        // wi.gen = motor::application::graphics_generation::gen4_gl4;
+        //wi.gen = motor::application::graphics_generation::gen4_gl4;
 
         _rwid = this_t::create_window( wi );
         this_t::send_window_message( _rwid, [ & ]( motor::application::app::window_view & wnd )
@@ -279,6 +279,12 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 
 //******************************************************************************************************
 void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept {}
+
+//******************************************************************************************************
+void_t the_app::on_frame_done( void_t ) noexcept
+{
+    _sm.on_frame_done() ;
+}
 
 //******************************************************************************************************
 void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
