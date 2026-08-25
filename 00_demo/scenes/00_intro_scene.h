@@ -133,19 +133,19 @@ class intro_scene : public iscene
 #if 0
                 rss.depth_s.do_change = true;
                 rss.depth_s.ss.do_activate = true;
-                rss.depth_s.ss.do_depth_write = false;
+                rss.depth_s.ss.do_depth_write = true;
 #endif
                 rss.polygon_s.do_change = true;
                 rss.polygon_s.ss.do_activate = true;
                 rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
                 rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
                 rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-#if 1
+#if 0
                 rss.clear_s.do_change = true;
                 rss.clear_s.ss.clear_color = motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f );
-                rss.clear_s.ss.do_activate = false;
-                rss.clear_s.ss.do_color_clear = false;
-                rss.clear_s.ss.do_depth_clear = false;
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
 #endif
 #if 0
                 rss.view_s.do_change = true;
@@ -567,6 +567,7 @@ class intro_scene : public iscene
     //************************************************************************************
     virtual void_t on_update( demos::iscene::update_data_cref_t ud ) noexcept
     {
+        _own_mmgr->on_update();
         _own_mmgr->for_each_configure_done(
             [ & ]( motor::string_in_t name, motor::graphics::msl_object_mtr_t msl ) //
         {
@@ -606,7 +607,7 @@ class intro_scene : public iscene
     virtual void_t on_render_init( demos::iscene::on_render_data_in_t rd,
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
-    
+
         if( rd.wt == demos::window_type::debug )
         {
             rd.fe->configure< motor::graphics::state_object_t >( _root_so );
@@ -621,6 +622,9 @@ class intro_scene : public iscene
             rd.fe->configure< motor::graphics::framebuffer_object_t >( _shadow_fb );
         }
         rd.fe->fence( funk );
+
+        // send all msl objects to be configured for this window.
+        _own_mmgr->on_render_init( rd.fe ) ;
     }
 
     //************************************************************************************
@@ -645,7 +649,10 @@ class intro_scene : public iscene
     }
 
     //************************************************************************************
-    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept {}
+    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept     
+    {
+        _own_mmgr->on_frame_done();
+    }
 
     //************************************************************************************
     virtual void_t on_render_debug( demos::iscene::on_render_data_in_t rd ) noexcept
@@ -819,6 +826,8 @@ class intro_scene : public iscene
 
         motor::release( motor::move( _sun_cam ) );
         motor::release( motor::move( _shadow_fb ) );
+
+        motor::release( motor::move( _own_mmgr ) ) ;
     }
 };
 motor_typedef( intro_scene );
