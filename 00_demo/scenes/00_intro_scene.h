@@ -644,8 +644,9 @@ class intro_scene : public iscene
             rd.fe->release< motor::graphics::state_object_t >( _shadow_so );
             rd.fe->release< motor::graphics::framebuffer_object_t >( _shadow_fb );
         }
-
+        
         rd.fe->fence( funk );
+        
     }
 
     //************************************************************************************
