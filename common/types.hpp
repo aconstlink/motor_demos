@@ -35,14 +35,17 @@ enum class process_state
 enum class msl_id
 {
     default_id = 0,
-    final_id = 1,
-    shadow_id = 2,
+    color_pass_id = 1,
+    light_pass_id = 2,
     depth_pass_id = 3,
+    shadow_depth_id = 4,
+    shadow_accum_id = 5,
+    num_ids
 };
 
 static motor::scene::msl_set_component::id_t to_id( msl_id const id ) noexcept
 {
-    return motor::scene::msl_set_component::id_t( id ) ;
+    return motor::scene::msl_set_component::id_t( id );
 }
 
 //

@@ -78,7 +78,7 @@ void_t the_app::on_init( void_t ) noexcept
         wi.w = 1280;
         wi.h = 960;
         wi.gen = motor::application::graphics_generation::gen4_auto;
-        //wi.gen = motor::application::graphics_generation::gen4_gl4;
+        // wi.gen = motor::application::graphics_generation::gen4_gl4;
 
         _rwid = this_t::create_window( wi );
         this_t::send_window_message( _rwid, [ & ]( motor::application::app::window_view & wnd )
@@ -283,23 +283,14 @@ void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) no
 //******************************************************************************************************
 void_t the_app::on_frame_done( void_t ) noexcept
 {
-    _sm.on_frame_done() ;
+    _sm.on_frame_done();
 }
 
 //******************************************************************************************************
-void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
-    motor::application::app::render_data_in_t rd ) noexcept
+void_t the_app::old_style_render( this_t::window_id_t const wid,
+    motor::graphics::gen4::frontend_ptr_t fe,
+    motor::application::app::render_data_in_t rd, bool_t const ff, bool_t const lf ) noexcept
 {
-    if( rd.first_frame )
-    {
-        // init debug window rendering objects
-        if( wid == _dwid )
-        {
-            pr.configure( fe );
-            fe->configure< motor::graphics::state_object_t >( &_pr_rs );
-        }
-    }
-
     /////////////////////////////////////////////////////////////////////
     // handle render scene states
     /////////////////////////////////////////////////////////////////////
@@ -313,8 +304,8 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
         urd.wt = wid == _dwid ? demos::window_type::debug : urd.wt;
         urd.wt = wid == _rwid ? demos::window_type::production : urd.wt;
 
-        urd.first_frame = rd.first_frame;
-        urd.last_frame = rd.last_frame;
+        urd.first_frame = ff;
+        urd.last_frame = lf;
 
 #if 0
         urd.fb_0 = &_pp_fb0;
@@ -334,7 +325,36 @@ void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4:
     }
 #endif
 
-    if( wid == _rwid && rd.last_frame ) _rwid = size_t( -1 );
+    if( wid == _rwid && lf ) _rwid = size_t( -1 );
+}
+
+//******************************************************************************************************
+void_t the_app::on_first_frame( this_t::window_id_t const wid,
+    motor::graphics::gen4::frontend_ptr_t fe,
+    motor::application::app::render_data_in_t rd ) noexcept
+{
+    // init debug window rendering objects
+    if( wid == _dwid )
+    {
+        pr.configure( fe );
+        fe->configure< motor::graphics::state_object_t >( &_pr_rs );
+    }
+    this_t::old_style_render( wid, fe, rd, true, false ) ;
+}
+
+//******************************************************************************************************
+void_t the_app::on_last_frame( this_t::window_id_t const wid,
+    motor::graphics::gen4::frontend_ptr_t fe,
+    motor::application::app::render_data_in_t rd ) noexcept
+{
+    this_t::old_style_render( wid, fe, rd, false, true ) ;
+}
+
+//******************************************************************************************************
+void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
+    motor::application::app::render_data_in_t rd ) noexcept
+{
+    this_t::old_style_render( wid, fe, rd, false, false ) ;
 }
 
 //******************************************************************************************************

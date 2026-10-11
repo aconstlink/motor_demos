@@ -1,4 +1,8 @@
-config shadow_pass
+// rendered from the lights' point of view
+// and renders out the depth value of the
+// geometry rendered.
+// this shader can be used by any light source
+config shadow_depth_pass
 {
     vertex_shader
     {
@@ -21,6 +25,7 @@ config shadow_pass
 
         void main()
         {
+            // output test color if color target is bound
             out.color = vec4_t(0.7,0.0,0.4,1.0) ;
         }
     }

@@ -105,10 +105,24 @@ class the_app : public motor::application::app
     virtual void_t on_render( this_t::window_id_t const wid,
         motor::graphics::gen4::frontend_ptr_t fe,
         motor::application::app::render_data_in_t rd ) noexcept;
+
+    virtual void_t on_first_frame( this_t::window_id_t const wid,
+        motor::graphics::gen4::frontend_ptr_t fe,
+        motor::application::app::render_data_in_t rd ) noexcept;
+
+    virtual void_t on_last_frame( this_t::window_id_t const wid,
+        motor::graphics::gen4::frontend_ptr_t fe,
+        motor::application::app::render_data_in_t rd ) noexcept;
+
     virtual bool_t on_tool(
         this_t::window_id_t const wid, motor::application::app::tool_data_ref_t td ) noexcept;
     virtual void_t on_shutdown( void_t ) noexcept;
     virtual void_t on_frame_done( void_t ) noexcept;
+
+
+    virtual void_t old_style_render( this_t::window_id_t const wid,
+        motor::graphics::gen4::frontend_ptr_t fe,
+        motor::application::app::render_data_in_t rd, bool_t const ff, bool_t const lf ) noexcept;
 
   public:
 

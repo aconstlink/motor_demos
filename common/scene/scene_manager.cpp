@@ -242,7 +242,10 @@ void_t scene_manager::on_tool( void_t ) noexcept
             {
                 //_pp_pipe->set_map_to_screen_texture_temp( "scene.00.shadow_framebuffer.depth" );
                 _pp_pipe->set_map_to_screen_texture_temp(
-                    "gfx.postprocess.hdr.framebuffer.0.depth" );
+                    //"gfx.postprocess.hdr.framebuffer.0.depth" 
+                    //"scene.00.shadow_accum_framebuffer.0"
+                    "scene.00.shadow_depth_framebuffer.depth"
+                    );
             }
         }
     }

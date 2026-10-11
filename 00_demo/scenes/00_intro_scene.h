@@ -9,6 +9,7 @@
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/visitor/trafo_visitor.h>
 #include <motor/scene/visitor/graphics/render_visitor.h>
+#include <motor/scene/visitor/graphics/light_pass_render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.h>
 #include <motor/scene/component/graphics/render_settings_component.hpp>
 #include <motor/scene/visitor/graphics/add_msl_to_set_visitor.hpp>
@@ -72,8 +73,17 @@ class intro_scene : public iscene
   private: // shadow mapping
 
     motor::gfx::generic_camera_mtr_t _sun_cam = nullptr;
-    motor::graphics::framebuffer_object_mtr_t _shadow_fb = nullptr;
-    motor::graphics::state_object_mtr_t _shadow_so = nullptr;
+
+    // this is where the depth of the light source is rendered to.
+    // rendered from the light perspective.
+    motor::graphics::framebuffer_object_mtr_t _shadow_depth_fb = nullptr;
+    motor::graphics::state_object_mtr_t _shadow_depth_so = nullptr;
+
+    // this is the scenes' shadow render target. this is where every lights'
+    // shadow is rendered to.
+    // rendered from the viewer perspecitve.
+    motor::graphics::framebuffer_object_mtr_t _shadow_accum_fb = nullptr;
+    motor::graphics::state_object_mtr_t _shadow_accum_so = nullptr;
 
   private: // io
 
@@ -207,6 +217,34 @@ class intro_scene : public iscene
                 rss.polygon_s.ss.do_activate = true;
                 rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
                 rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::front;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = true;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1920, 1080 );
+                so.add_render_state_set( rss );
+            }
+
+            _shadow_depth_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.00.shadow_accum_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
                 rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
                 rss.clear_s.do_change = true;
                 rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -219,7 +257,7 @@ class intro_scene : public iscene
                 so.add_render_state_set( rss );
             }
 
-            _shadow_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+            _shadow_accum_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
         }
 
         // load scene
@@ -227,29 +265,6 @@ class intro_scene : public iscene
             auto const loc = motor::io::location_t( "0_intro_scene.scene.gltf" );
             this_t::init_scene_and_components( loc );
             _db->attach( loc, motor::share( _gltf_mon ) );
-        }
-
-        // load post shaders
-        {
-            motor::string_t shd;
-
-            auto shader_b =
-                _db->load( motor::io::location_t( "shaders.post_process.map_to_screen.msl" ) );
-
-            {
-                shader_b.wait_for_operation(
-                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
-                {
-                    motor::log::global_t::status( "********************************" );
-                    motor::log::global_t::status(
-                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
-
-                    shd = motor::string_t( data, sib );
-                } );
-
-                // motor::scene::add_shader_to_set_visitor_t v( 2, "shadow", shd );
-                // motor::scene::node_t::traverser( _root ).apply( &v );
-            }
         }
     }
 
@@ -403,92 +418,20 @@ class intro_scene : public iscene
         }
         motor::release( motor::move( _selected_node ) );
 
-        // manager
-        {
-            _own_mmgr->add( "default_final",
-                motor::io::location_t( "0_intro_scene.shaders.default_final.msl" ) );
-            _own_mmgr->add(
-                "shadow_pass", motor::io::location_t( "0_intro_scene.shaders.shadow_pass.msl" ) );
-            _own_mmgr->add(
-                "depth_pass", motor::io::location_t( "0_intro_scene.shaders.depth_pass.msl" ) );
-        }
-
-#if 0
-        // load all shaders
-        {
-            motor::string_t shd;
-
-            auto default_shader =
-                _db->load( motor::io::location_t( "0_intro_scene.shaders.default_final.msl" ) );
-
-            auto shadow_shader =
-                _db->load( motor::io::location_t( "0_intro_scene.shaders.shadow_pass.msl" ) );
-
-            auto depth_pass_shader =
-                _db->load( motor::io::location_t( "0_intro_scene.shaders.depth_pass.msl" ) );
-
-            {
-                default_shader.wait_for_operation(
-                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
-                {
-                    motor::log::global_t::status( "********************************" );
-                    motor::log::global_t::status(
-                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
-
-                    shd = motor::string_t( data, sib );
-                } );
-
-                motor::scene::add_shader_to_set_visitor_t v(
-                    demos::to_id( demos::msl_id::final_id ), "prod", shd );
-                motor::scene::node_t::traverser( _root ).apply( &v );
-            }
-
-            {
-                shadow_shader.wait_for_operation(
-                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
-                {
-                    motor::log::global_t::status( "********************************" );
-                    motor::log::global_t::status(
-                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
-
-                    shd = motor::string_t( data, sib );
-                } );
-
-                motor::scene::add_shader_to_set_visitor_t v(
-                    demos::to_id( demos::msl_id::shadow_id ), "shadow", shd );
-                motor::scene::node_t::traverser( _root ).apply( &v );
-            }
-
-            {
-                depth_pass_shader.wait_for_operation(
-                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
-                {
-                    motor::log::global_t::status( "********************************" );
-                    motor::log::global_t::status(
-                        "loaded shader " + motor::from_std( std::to_string( sib ) ) + " bytes" );
-
-                    shd = motor::string_t( data, sib );
-                } );
-
-                motor::scene::add_shader_to_set_visitor_t v(
-                    demos::to_id( demos::msl_id::depth_pass_id ), "depth_pass", shd );
-                motor::scene::node_t::traverser( _root ).apply( &v );
-            }
-        }
-#endif
+        
 
         // collect msl_components just added and add variable
         {
-            demos::msl_component_collector_t v( demos::to_id( demos::msl_id::final_id ) );
+            demos::msl_component_collector_t v( demos::to_id( demos::msl_id::color_pass_id ) );
             motor::scene::node_t::traverser( _root ).apply( &v );
 
             v.for_each( [ & ]( motor::scene::msl_component_mtr_t mslc )
             {
-                auto * inputs = mslc->borrow_shader_inputs();
+                auto & inputs = mslc->borrow_shader_inputs();
 
                 auto is = motor::wire::input_slot< motor::math::vec4f_t >(
                     motor::math::vec4f_t( 1.0f, 0.1f, 0.1f, 1.0f ) );
-                inputs->add( "color", motor::shared( std::move( is ) ) );
+                inputs.add( "color", motor::shared( std::move( is ) ) );
             } );
         }
 
@@ -504,13 +447,36 @@ class intro_scene : public iscene
             float_t const w = _sun_cam->get_dims().x();
             float_t const h = _sun_cam->get_dims().y();
 
-            auto fb = motor::graphics::framebuffer_object_t( "scene.00.shadow_framebuffer" );
+            auto fb = motor::graphics::framebuffer_object_t( "scene.00.shadow_depth_framebuffer" );
+            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
+                .set_target( motor::graphics::depth_stencil_target_type::depth32 )
+                .resize( size_t( 1920 ), size_t( 1080 ) );
+
+            motor::release( motor::move( _shadow_depth_fb ) );
+            _shadow_depth_fb = motor::shared( std::move( fb ) );
+        }
+
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "scene.00.shadow_accum_framebuffer" );
             fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( 1000 ), size_t( 1000 ) );
 
-            motor::release( motor::move( _shadow_fb ) );
-            _shadow_fb = motor::shared( std::move( fb ) );
+            motor::release( motor::move( _shadow_accum_fb ) );
+            _shadow_accum_fb = motor::shared( std::move( fb ) );
+        }
+
+        // manager
+        {
+            _own_mmgr->add(
+                "color_pass", motor::io::location_t( "0_intro_scene.shaders.color_pass.msl" ) );
+            _own_mmgr->add(
+                "light_pass", motor::io::location_t( "0_intro_scene.shaders.light_pass.msl" ) );
+            _own_mmgr->add(
+                "shadow_depth_pass", motor::io::location_t( "shaders.shadow_depth_pass.msl" ) );
+            _own_mmgr->add(
+                "shadow_accum_pass", motor::io::location_t( "shaders.shadow_accum_pass.msl" ) );
+            _own_mmgr->add( "depth_pass", motor::io::location_t( "shaders.depth_pass.msl" ) );
         }
     }
 
@@ -571,16 +537,28 @@ class intro_scene : public iscene
         _own_mmgr->for_each_configure_done(
             [ & ]( motor::string_in_t name, motor::graphics::msl_object_mtr_t msl ) //
         {
-            if( name == "default_final" )
+            if( name == "color_pass" )
             {
                 motor::scene::add_msl_to_set_visitor_t v(
-                    demos::to_id( demos::msl_id::final_id ), motor::share( msl ) );
+                    demos::to_id( demos::msl_id::color_pass_id ), motor::share( msl ) );
                 motor::scene::node_t::traverser( _root ).apply( &v );
             }
-            else if( name == "shadow_pass" )
+            if( name == "light_pass" )
             {
                 motor::scene::add_msl_to_set_visitor_t v(
-                    demos::to_id( demos::msl_id::shadow_id ), motor::share( msl ) );
+                    demos::to_id( demos::msl_id::light_pass_id ), motor::share( msl ) );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
+            else if( name == "shadow_depth_pass" )
+            {
+                motor::scene::add_msl_to_set_visitor_t v(
+                    demos::to_id( demos::msl_id::shadow_depth_id ), motor::share( msl ) );
+                motor::scene::node_t::traverser( _root ).apply( &v );
+            }
+            else if( name == "shadow_accum_pass" )
+            {
+                motor::scene::add_msl_to_set_visitor_t v(
+                    demos::to_id( demos::msl_id::shadow_accum_id ), motor::share( msl ) );
                 motor::scene::node_t::traverser( _root ).apply( &v );
             }
             else if( name == "depth_pass" )
@@ -617,14 +595,15 @@ class intro_scene : public iscene
         {
             rd.fe->configure< motor::graphics::state_object_t >( _final_so );
 
-            rd.fe->configure< motor::graphics::state_object_t >( _shadow_so );
-
-            rd.fe->configure< motor::graphics::framebuffer_object_t >( _shadow_fb );
+            rd.fe->configure< motor::graphics::state_object_t >( _shadow_depth_so );
+            rd.fe->configure< motor::graphics::framebuffer_object_t >( _shadow_depth_fb );
+            rd.fe->configure< motor::graphics::state_object_t >( _shadow_accum_so );
+            rd.fe->configure< motor::graphics::framebuffer_object_t >( _shadow_accum_fb );
         }
         rd.fe->fence( funk );
 
         // send all msl objects to be configured for this window.
-        _own_mmgr->on_render_init( rd.fe ) ;
+        _own_mmgr->on_render_init( rd.fe );
     }
 
     //************************************************************************************
@@ -640,17 +619,19 @@ class intro_scene : public iscene
 
         if( rd.wt == demos::window_type::production )
         {
+            rd.fe->release< motor::graphics::state_object_t >( _root_so );
             rd.fe->release< motor::graphics::state_object_t >( _final_so );
-            rd.fe->release< motor::graphics::state_object_t >( _shadow_so );
-            rd.fe->release< motor::graphics::framebuffer_object_t >( _shadow_fb );
+            rd.fe->release< motor::graphics::state_object_t >( _shadow_depth_so );
+            rd.fe->release< motor::graphics::framebuffer_object_t >( _shadow_depth_fb );
+            rd.fe->release< motor::graphics::state_object_t >( _shadow_accum_so );
+            rd.fe->release< motor::graphics::framebuffer_object_t >( _shadow_accum_fb );
         }
-        
+
         rd.fe->fence( funk );
-        
     }
 
     //************************************************************************************
-    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept     
+    virtual void_t on_frame_done( demos::iscene::on_frame_done_data_in_t ) noexcept
     {
         _own_mmgr->on_frame_done();
     }
@@ -675,17 +656,31 @@ class intro_scene : public iscene
     //************************************************************************************
     virtual void_t on_render_final_offscreen( demos::iscene::on_render_data_in_t rd ) noexcept
     {
-        // make shadow pass
+        // make shadow pass for sun light
         {
-            rd.fe->use( _shadow_fb );
-            rd.fe->push( _shadow_so );
+            rd.fe->use( _shadow_depth_fb );
+            rd.fe->push( _shadow_depth_so );
             motor::gfx::generic_camera_mtr_t cam = _sun_cam;
             motor::scene::render_visitor_t vis(
-                demos::to_id( demos::msl_id::shadow_id ), rd.fe, cam );
+                demos::to_id( demos::msl_id::shadow_depth_id ), 0, rd.fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
             rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
             rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
+
+        // render light source shadow into shadow accum buffer
+        #if 0
+        {
+            rd.fe->use( _shadow_accum_fb );
+            rd.fe->push( _shadow_accum_so );
+            motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
+            motor::scene::render_visitor_t vis(
+                demos::to_id( demos::msl_id::shadow_accum_id ), rd.fe, cam );
+            motor::scene::node_t::traverser( _root ).apply( &vis );
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        }
+        #endif
     }
 
     //************************************************************************************
@@ -694,7 +689,6 @@ class intro_scene : public iscene
         if( _cam_id != size_t( -1 ) )
         {
             rd.fe->push( _final_so );
-
             {
                 motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
                 motor::scene::render_visitor_t vis(
@@ -716,11 +710,19 @@ class intro_scene : public iscene
         {
             rd.fe->push( _final_so );
 
+
             {
+
+                motor::gfx::directional_light_t dl( _sun_cam->get_direction().negated() );
+                motor::gfx::single_shadow_data_t sd = { _sun_cam->get_proj_matrix(),
+                    _sun_cam->get_view_matrix(),
+                    "scene.00.shadow_depth_framebuffer.depth" };
+
                 motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
-                motor::scene::render_visitor_t vis(
-                    demos::to_id( demos::msl_id::final_id ), rd.fe, cam );
-                vis.set_light_direction( motor::math::vec3f_t( 0.0f, -1.0f, 0.0f ) );
+
+                motor::scene::light_pass_render_visitor_t vis(
+                    demos::to_id( demos::msl_id::light_pass_id ), 1, rd.fe, cam, &dl, &sd );
+                  
 
                 motor::scene::node_t::traverser( _root ).apply( &vis );
             }
@@ -815,7 +817,6 @@ class intro_scene : public iscene
 
         motor::release( motor::move( _root_so ) );
         motor::release( motor::move( _final_so ) );
-        motor::release( motor::move( _shadow_so ) );
 
         motor::release( motor::move( _root ) );
         motor::release( motor::move( _selected ) );
@@ -826,9 +827,13 @@ class intro_scene : public iscene
         this_t::release_node_dump();
 
         motor::release( motor::move( _sun_cam ) );
-        motor::release( motor::move( _shadow_fb ) );
 
-        motor::release( motor::move( _own_mmgr ) ) ;
+        motor::release( motor::move( _shadow_accum_so ) );
+        motor::release( motor::move( _shadow_depth_so ) );
+        motor::release( motor::move( _shadow_depth_fb ) );
+        motor::release( motor::move( _shadow_accum_fb ) );
+
+        motor::release( motor::move( _own_mmgr ) );
     }
 };
 motor_typedef( intro_scene );
