@@ -10,7 +10,7 @@
 #include <motor/scene/visitor/trafo_visitor.h>
 #include <motor/scene/visitor/graphics/render_visitor.h>
 #include <motor/scene/visitor/graphics/light_pass_render_visitor.h>
-#include <motor/scene/visitor/variable_update_visitor.h>
+#include <motor/scene/visitor/variable_update_visitor.hpp>
 #include <motor/scene/component/graphics/render_settings_component.hpp>
 #include <motor/scene/visitor/graphics/add_msl_to_set_visitor.hpp>
 
@@ -474,8 +474,10 @@ class intro_scene : public iscene
                 "light_pass", motor::io::location_t( "0_intro_scene.shaders.light_pass.msl" ) );
             _own_mmgr->add(
                 "shadow_depth_pass", motor::io::location_t( "shaders.shadow_depth_pass.msl" ) );
+               #if 0
             _own_mmgr->add(
                 "shadow_accum_pass", motor::io::location_t( "shaders.shadow_accum_pass.msl" ) );
+                #endif
             _own_mmgr->add( "depth_pass", motor::io::location_t( "shaders.depth_pass.msl" ) );
         }
     }
@@ -555,12 +557,14 @@ class intro_scene : public iscene
                     demos::to_id( demos::msl_id::shadow_depth_id ), motor::share( msl ) );
                 motor::scene::node_t::traverser( _root ).apply( &v );
             }
+            #if 0
             else if( name == "shadow_accum_pass" )
             {
                 motor::scene::add_msl_to_set_visitor_t v(
                     demos::to_id( demos::msl_id::shadow_accum_id ), motor::share( msl ) );
                 motor::scene::node_t::traverser( _root ).apply( &v );
             }
+            #endif
             else if( name == "depth_pass" )
             {
                 motor::scene::add_msl_to_set_visitor_t v(
