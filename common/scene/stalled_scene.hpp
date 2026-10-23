@@ -73,7 +73,7 @@ class stalled_scene : public iscene
             motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
         {
             std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
-            funk();
+            funk( motor::graphics::gen4::frontend::fence_phase::invalid );
         } ) );
 
         motor::concurrent::global::schedule(
@@ -92,7 +92,7 @@ class stalled_scene : public iscene
             motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
         {
             std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
-            funk();
+            funk( motor::graphics::gen4::frontend::fence_phase::invalid );
         } ) );
 
         motor::concurrent::global::schedule(

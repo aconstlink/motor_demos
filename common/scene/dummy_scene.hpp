@@ -73,7 +73,7 @@ class dummy_scene : public iscene
             motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
         {
             std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
-            funk();
+            funk( motor::graphics::gen4::frontend::fence_phase::invalid );
         } ) );
 
         motor::concurrent::global::schedule(
@@ -89,10 +89,10 @@ class dummy_scene : public iscene
         motor::graphics::gen4::frontend::fence_funk_t funk ) noexcept
     {
         auto the_task = motor::shared(
-            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const & )
+            motor::concurrent::task_t( [ = ]( motor::concurrent::task_t::task_funk_param const &  )
         {
             std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
-            funk();
+            funk( motor::graphics::gen4::frontend::fence_phase::invalid );
         } ) );
 
         motor::concurrent::global::schedule(

@@ -617,7 +617,7 @@ void_t scene_manager::approach_raw_state_graphics( render_data_ref_t rd )
             d.wt = rd.wt;
             d.fe = rd.fe;
 
-            scene.s->on_render_deinit( d, [ = ]( void_t )
+            scene.s->on_render_deinit( d, [ = ]( motor::graphics::gen4::frontend::fence_phase const )
             {
                 if( rd.wt == demos::window_type::debug )
                     this->_scenes[ i ].gfx_dbg = demos::process_state::raw;
@@ -656,7 +656,7 @@ void_t scene_manager::handle_state_graphics(
         if( !do_release )
         {
             ps = demos::process_state::in_transit;
-            scene.s->on_render_init( ord, [ = ]( void_t )
+            scene.s->on_render_init( ord, [ = ]( motor::graphics::gen4::frontend::fence_phase const )
             {
                 if( rd.wt == demos::window_type::debug )
                     this->_scenes[ id ].gfx_dbg = demos::process_state::init;
@@ -672,7 +672,7 @@ void_t scene_manager::handle_state_graphics(
         if( do_release )
         {
             ps = demos::process_state::in_transit;
-            scene.s->on_render_deinit( ord, [ = ]( void_t )
+            scene.s->on_render_deinit( ord, [ = ]( motor::graphics::gen4::frontend::fence_phase const )
             {
                 if( rd.wt == demos::window_type::debug )
                     this->_scenes[ id ].gfx_dbg = demos::process_state::raw;
