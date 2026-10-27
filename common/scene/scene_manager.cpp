@@ -64,6 +64,15 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
     _db = motor::move( idata.db );
     _mmgr = motor::shared( motor::gfx::msl_manager_t( motor::share( _db ) ) );
 
+    {
+        _mmgr->add( "light_pass", motor::io::location_t( "shaders.light_pass.msl" ) );
+        _mmgr->add( "shadow_depth_pass", motor::io::location_t( "shaders.shadow_depth_pass.msl" ) );
+#if 0
+            _mmgr->add(
+                "scene0.shadow_accum_pass", motor::io::location_t( "shaders.shadow_accum_pass.msl" ) );
+#endif
+        _mmgr->add( "depth_pass", motor::io::location_t( "shaders.depth_pass.msl" ) );
+    }
 // remember for later!
 #if 0
     // post shader
@@ -242,10 +251,9 @@ void_t scene_manager::on_tool( void_t ) noexcept
             {
                 //_pp_pipe->set_map_to_screen_texture_temp( "scene.00.shadow_framebuffer.depth" );
                 _pp_pipe->set_map_to_screen_texture_temp(
-                    //"gfx.postprocess.hdr.framebuffer.0.depth" 
+                    //"gfx.postprocess.hdr.framebuffer.0.depth"
                     //"scene.00.shadow_accum_framebuffer.0"
-                    "scene.00.shadow_depth_framebuffer.depth"
-                    );
+                    "scene.00.shadow_depth_framebuffer.depth" );
             }
         }
     }
@@ -272,7 +280,7 @@ void_t scene_manager::on_tool( void_t ) noexcept
 //******************************************************************************************************
 motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) noexcept
 {
-    _mmgr->on_update() ;
+    _mmgr->on_update();
 
     _cur_time = ud.demo_time;
 
@@ -308,7 +316,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
                     auto the_task = motor::shared( motor::concurrent::task_t(
                         [ = ]( motor::concurrent::task_t::task_funk_param const & )
                     {
-                        demos::iscene::on_release_data_t d;
+                        demos::iscene::on_release_data_t d{ _mmgr };
                         this->_scenes[ i ].s->on_release( d );
                         this->_scenes[ i ].ss = demos::process_state::raw;
                     } ) );
@@ -368,6 +376,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
         sud.absolute = _cur_time;
         sud.relative = _cur_time - cur_scene.start;
         sud.relative_seconds = float_t( sud.relative ) / 1000.0f;
+        sud.mmgr = _mmgr;
         if( cur_scene.ss == demos::process_state::init ) cur_scene.s->on_update( sud );
     }
 
@@ -388,7 +397,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
             demos::iscene::update_data_t sud;
             sud.absolute = _cur_time;
             sud.relative = _cur_time - nxt_scene.start;
-
+            sud.mmgr = _mmgr;
             if( nxt_scene.ss == demos::process_state::init )
             {
                 nxt_scene.s->on_update( sud );
@@ -423,6 +432,22 @@ void_t scene_manager::on_frame_done( void_t ) noexcept
         demos::iscene::on_frame_done_data_t d;
         _scenes[ cur ].s->on_frame_done( d );
     }
+    else if( this_t::is_valid_and_init( cur, demos::window_type::production ) )
+    {
+        demos::iscene::on_frame_done_data_t d;
+        _scenes[ cur ].s->on_frame_done( d );
+    }
+
+    if( this_t::is_valid_and_init( nxt, demos::window_type::debug ) )
+    {
+        demos::iscene::on_frame_done_data_t d;
+        _scenes[ nxt ].s->on_frame_done( d );
+    }
+    else if( this_t::is_valid_and_init( nxt, demos::window_type::production ) )
+    {
+        demos::iscene::on_frame_done_data_t d;
+        _scenes[ nxt ].s->on_frame_done( d );
+    }
 
     _mmgr->on_frame_done();
 }
@@ -432,6 +457,11 @@ void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
 {
     if( rd.wt == demos::window_type::invalid ) return;
     if( rd.wt == demos::window_type::tool ) return;
+
+    if( rd.first_frame )
+    {
+        _mmgr->on_render_init( rd.fe );
+    }
 
     if( rd.first_frame && rd.wt == demos::window_type::debug )
     {
@@ -617,7 +647,8 @@ void_t scene_manager::approach_raw_state_graphics( render_data_ref_t rd )
             d.wt = rd.wt;
             d.fe = rd.fe;
 
-            scene.s->on_render_deinit( d, [ = ]( motor::graphics::gen4::frontend::fence_phase const )
+            scene.s->on_render_deinit( d,
+                [ = ]( motor::graphics::gen4::frontend::fence_phase const )
             {
                 if( rd.wt == demos::window_type::debug )
                     this->_scenes[ i ].gfx_dbg = demos::process_state::raw;
@@ -656,7 +687,8 @@ void_t scene_manager::handle_state_graphics(
         if( !do_release )
         {
             ps = demos::process_state::in_transit;
-            scene.s->on_render_init( ord, [ = ]( motor::graphics::gen4::frontend::fence_phase const )
+            scene.s->on_render_init( ord,
+                [ = ]( motor::graphics::gen4::frontend::fence_phase const )
             {
                 if( rd.wt == demos::window_type::debug )
                     this->_scenes[ id ].gfx_dbg = demos::process_state::init;
@@ -672,7 +704,8 @@ void_t scene_manager::handle_state_graphics(
         if( do_release )
         {
             ps = demos::process_state::in_transit;
-            scene.s->on_render_deinit( ord, [ = ]( motor::graphics::gen4::frontend::fence_phase const )
+            scene.s->on_render_deinit( ord,
+                [ = ]( motor::graphics::gen4::frontend::fence_phase const )
             {
                 if( rd.wt == demos::window_type::debug )
                     this->_scenes[ id ].gfx_dbg = demos::process_state::raw;

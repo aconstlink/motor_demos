@@ -122,7 +122,7 @@ class scene_manager
     struct init_data
     {
         motor::math::vec4ui_t fb_dims;
-        motor::io::database_mtr_safe_t db;
+        motor::io::database_mtr_safe_t db;        
     };
     motor_typedef( init_data );
 

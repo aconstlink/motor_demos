@@ -1,4 +1,4 @@
-config color_pass
+config scene.0.color_pass
 {
     vertex_shader
     {

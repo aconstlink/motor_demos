@@ -37,7 +37,16 @@ int main( int argc, char ** argv )
         }
 #endif
 
-#if 1
+    #if 1
+        {
+            demos::scene_manager_t::add_scene_data asd;
+            asd.sptr = motor::shared( demos::scene_01( "scene_01" ) ); 
+
+            sm.add_scene( std::move( asd ) );
+        }
+#endif
+
+#if 0
         {
             demos::scene_manager_t::add_scene_data asd;
             asd.sptr = motor::shared( demos::stalled_scene( "Defered scene 3" ) );

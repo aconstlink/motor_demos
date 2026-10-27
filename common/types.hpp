@@ -19,7 +19,8 @@ enum class window_type
     invalid,
     tool,
     debug,
-    production
+    production,
+    debug_or_production
 };
 
 // per scene
