@@ -41,6 +41,7 @@ enum class msl_id
     depth_pass_id = 3,
     shadow_depth_id = 4,
     shadow_accum_id = 5,
+    shadow_light_pass_id = 6,
     num_ids
 };
 

@@ -66,6 +66,7 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
 
     {
         _mmgr->add( "light_pass", motor::io::location_t( "shaders.light_pass.msl" ) );
+        _mmgr->add( "shadow_light_pass", motor::io::location_t( "shaders.shadow_light_pass.msl" ) );
         _mmgr->add( "shadow_depth_pass", motor::io::location_t( "shaders.shadow_depth_pass.msl" ) );
 #if 0
             _mmgr->add(
@@ -577,10 +578,27 @@ void_t scene_manager::on_render_production( render_data_ref_t rd ) noexcept
             snxt.s->on_render_final_offscreen( d );
 
             // activate fb1
-            rd.fe->use( _pp_pipe->borrow_hdr_fb( 0 ) );
+            rd.fe->use( _pp_pipe->borrow_hdr_fb( 1 ) );
+
+#if 1
+            // z-prepass
+            {
+                rd.fe->push( _pp_pipe->borrow_zpre_states() );
+                snxt.s->on_render_final_depth_pass( d );
+                rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            }
+
+            // render color
+            {
+                rd.fe->push( _pp_pipe->borrow_hdr_states() );
+                snxt.s->on_render_final( d );
+                rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            }
+#else
             rd.fe->push( _pp_pipe->borrow_hdr_states() );
             snxt.s->on_render_final( d );
             rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+#endif
             rd.fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
     }

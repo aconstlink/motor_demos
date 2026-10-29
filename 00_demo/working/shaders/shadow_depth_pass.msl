@@ -26,7 +26,7 @@ config shadow_depth_pass
         void main()
         {
             // output test color if color target is bound
-            out.color = vec4_t(0.7,0.0,0.4,1.0) ;
+            out.color = vec4_t(1.0,1.0,1.0,1.0) ;
         }
     }
 }

@@ -8,7 +8,9 @@
 #include <motor/scene/component/graphics/render_settings_component.hpp>
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/visitor/trafo_visitor.h>
+#include <motor/scene/visitor/light_collector_visitor.hpp>
 #include <motor/scene/visitor/graphics/render_visitor.h>
+#include <motor/scene/visitor/graphics/light_pass_render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.hpp>
 
 #include <motor/graphics/state/render_states.h>
@@ -47,6 +49,7 @@ class scene_01 : public iscene
 
   private: // graphcis/scene graph
 
+    motor::graphics::state_object_mtr_t light_so;
     motor::graphics::state_object_mtr_t _root_so = nullptr;
     motor::graphics::state_object_mtr_t _final_so = nullptr;
     motor::scene::node_mtr_t _root = nullptr;
@@ -202,6 +205,50 @@ class scene_01 : public iscene
             }
 
             _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        // light render states
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.01.light_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = false;
+                rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less_equal;
+
+                rss.blend_s.do_change = true;
+                rss.blend_s.ss.do_activate = true;
+                rss.blend_s.ss.blend_func = motor::graphics::blend_function::add;
+                rss.blend_s.ss.dst_blend_factor = motor::graphics::blend_factor::one;
+                rss.blend_s.ss.src_blend_factor = motor::graphics::blend_factor::src_alpha;
+
+#if 0
+                // this is done in the frame restart of the
+                // rendering backends. Here we can not do it
+                // because we are using mutiple lights and therefore
+                // render the scene scene multiple times.
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.9f, 0.5f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+#endif
+
+#if 0
+                // do not need to set the viewport here. It is
+                // done through the backends.
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+#endif
+
+                so.add_render_state_set( rss );
+            }
+
+            light_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
         }
 
         {
@@ -485,6 +532,12 @@ class scene_01 : public iscene
                         demos::to_id( demos::msl_id::light_pass_id ), motor::share( msl ) );
                     motor::scene::node_t::traverser( _root ).apply( &v );
                 }
+                else if( name == "shadow_light_pass" )
+                {
+                    motor::scene::add_msl_to_set_visitor_t v(
+                        demos::to_id( demos::msl_id::shadow_light_pass_id ), motor::share( msl ) );
+                    motor::scene::node_t::traverser( _root ).apply( &v );
+                }
                 else if( name == "shadow_depth_pass" )
                 {
                     motor::scene::add_msl_to_set_visitor_t v(
@@ -571,7 +624,7 @@ class scene_01 : public iscene
     virtual void_t on_update( demos::iscene::update_data_cref_t ud ) noexcept
     {
         _own_mmgr->on_update();
-       
+
         this_t::on_update_stage1( ud );
         this_t::on_update_stage2( ud );
     }
@@ -596,6 +649,7 @@ class scene_01 : public iscene
         if( rd.wt == demos::window_type::production )
         {
             rd.fe->configure< motor::graphics::state_object_t >( _final_so );
+            rd.fe->configure< motor::graphics::state_object_t >( light_so );
 
             rd.fe->configure< motor::graphics::state_object_t >( _shadow_depth_so );
             rd.fe->configure< motor::graphics::framebuffer_object_t >( _shadow_depth_fb );
@@ -621,6 +675,7 @@ class scene_01 : public iscene
 
         if( rd.wt == demos::window_type::production )
         {
+            rd.fe->release< motor::graphics::state_object_t >( light_so );
             rd.fe->release< motor::graphics::state_object_t >( _root_so );
             rd.fe->release< motor::graphics::state_object_t >( _final_so );
             rd.fe->release< motor::graphics::state_object_t >( _shadow_depth_so );
@@ -712,6 +767,54 @@ class scene_01 : public iscene
         {
             rd.fe->push( _final_so );
 
+#if 1
+
+            // if previous render ids were used, set this
+            // value appropriately.
+            size_t render_id = size_t(0) ;
+
+            // render sun first
+            {
+                motor::gfx::directional_light_t dl( _sun_cam->get_direction().negated() );
+                motor::gfx::single_shadow_data_t sd = { _sun_cam->get_proj_matrix(),
+                    _sun_cam->get_view_matrix(), "scene.01.shadow_depth_framebuffer.depth" };
+
+                motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
+
+                motor::scene::light_pass_render_visitor_t vis(
+                    demos::to_id( demos::msl_id::shadow_light_pass_id ), ++render_id, rd.fe, cam, &dl, &sd );
+
+                motor::scene::node_t::traverser( _root ).apply( &vis );
+            }
+
+            rd.fe->push( light_so );
+
+            
+
+            
+
+            // add all other lights
+            {
+                motor::scene::light_collector_visitor_t vis;
+                motor::scene::node_t::traverser( _root ).apply( &vis );
+
+                motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
+
+                vis.for_each_light( [ & ]( size_t const, motor::scene::light_component_mtr_t light )
+                {
+                    light->for_each_light( [ & ]( motor::gfx::light_mtr_t l )
+                    {
+                        motor::scene::light_pass_render_visitor_t vis_light(
+                            demos::to_id( demos::msl_id::light_pass_id ), ++render_id, rd.fe,
+                            cam, l );
+                        motor::scene::node_t::traverser( _root ).apply( &vis_light );
+                    } );
+                } );
+            }
+
+            rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+
+#else // old
             {
 
                 motor::gfx::directional_light_t dl( _sun_cam->get_direction().negated() );
@@ -725,14 +828,14 @@ class scene_01 : public iscene
 
                 motor::scene::node_t::traverser( _root ).apply( &vis );
             }
-
+#endif
             rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }
     }
 
     virtual void_t on_tool( demos::iscene::on_tool_data_in_t ) noexcept
     {
-#if 0
+
         // SECTION: cameras
         {
             auto cams = _cc.get_cameras();
@@ -769,6 +872,7 @@ class scene_01 : public iscene
             }
         }
 
+#if 0
         ImGui::Separator();
 
         // SECTION: Scene Graph

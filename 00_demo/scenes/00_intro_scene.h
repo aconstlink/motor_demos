@@ -485,6 +485,12 @@ class intro_scene : public iscene
                         demos::to_id( demos::msl_id::light_pass_id ), motor::share( msl ) );
                     motor::scene::node_t::traverser( _root ).apply( &v );
                 }
+                else if( name == "shadow_light_pass" )
+                {
+                    motor::scene::add_msl_to_set_visitor_t v(
+                        demos::to_id( demos::msl_id::shadow_light_pass_id ), motor::share( msl ) );
+                    motor::scene::node_t::traverser( _root ).apply( &v );
+                }
                 else if( name == "shadow_depth_pass" )
                 {
                     motor::scene::add_msl_to_set_visitor_t v(
@@ -721,7 +727,7 @@ class intro_scene : public iscene
                 motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
 
                 motor::scene::light_pass_render_visitor_t vis(
-                    demos::to_id( demos::msl_id::light_pass_id ), 1, rd.fe, cam, &dl, &sd );
+                    demos::to_id( demos::msl_id::shadow_light_pass_id ), 1, rd.fe, cam, &dl, &sd );
 
                 motor::scene::node_t::traverser( _root ).apply( &vis );
             }
