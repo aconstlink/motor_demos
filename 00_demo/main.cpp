@@ -4,7 +4,7 @@
 #include "../common/scene/stalled_scene.hpp"
 
 #include "scenes/00_intro_scene.h"
-#include "scenes/01_scene.h"
+#include "scenes/01_scene_planet.h"
 #include "scenes/02_scene.h"
 #include "scenes/03_outro_scene.h"
 

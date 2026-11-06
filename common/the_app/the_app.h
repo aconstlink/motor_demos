@@ -8,8 +8,11 @@
 #include <motor/platform/global.h>
 #include <motor/gfx/primitive/primitive_render_3d.h>
 
+#include <motor/audio/util/onset_detector.hpp>
+
 #include <motor/tool/imgui/timeline.h>
 #include <motor/tool/imgui/player_controller.h>
+#include <motor/tool/imgui/onset_meter.hpp>
 
 #include <motor/io/monitor.hpp>
 #include <motor/io/database.h>
@@ -40,6 +43,12 @@ class the_app : public motor::application::app
 
     motor::audio::capture_object_t _co;
     demos::audio_analysis _aanl;
+
+    motor::audio::onset_detector _kix_detector;
+    motor::audio::onset_detector _mid_detector;
+
+    motor::tool::imgui_onset_meter _low_onset_widget;
+    motor::tool::imgui_onset_meter _mid_onset_widget;
 
 #if 0 // PRODUCTION_MODE
         demos::demo_mode const _dm = demos::demo_mode::production ;

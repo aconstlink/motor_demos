@@ -800,7 +800,7 @@ class scene_01 : public iscene
 
                 motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
 
-                vis.for_each_light( [ & ]( size_t const, motor::scene::light_component_mtr_t light )
+                vis.for_each_light_component( [ & ]( size_t const, motor::scene::light_component_mtr_t light )
                 {
                     light->for_each_light( [ & ]( motor::gfx::light_mtr_t l )
                     {
@@ -808,6 +808,7 @@ class scene_01 : public iscene
                             demos::to_id( demos::msl_id::light_pass_id ), ++render_id, rd.fe,
                             cam, l );
                         motor::scene::node_t::traverser( _root ).apply( &vis_light );
+                        return true ;
                     } );
                 } );
             }

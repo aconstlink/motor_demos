@@ -21,7 +21,7 @@ set( commons
 
 set( scenes 
     "scenes/00_intro_scene.h"
-    "scenes/01_scene.h"
+    "scenes/01_scene_planet.h"
     "scenes/02_scene.h"
     "scenes/03_outro_scene.h"
 )

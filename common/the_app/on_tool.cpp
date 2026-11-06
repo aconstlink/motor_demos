@@ -81,6 +81,41 @@ bool_t the_app::on_tool(
 
     // audio stuff
     {
+#if 1
+        if( ImGui::Begin( "Detection" ) )
+        {
+            {
+                ImGui::SameLine();
+                _low_onset_widget.draw( "40\n250\nHz", _kix_detector );
+            }
+            {
+                ImGui::SameLine();
+                _mid_onset_widget.draw( "250\n2000\nHz", _mid_detector );
+            }
+            {
+                float_t peak = 0.0000000001f;
+                for( float_t const value : _aanl.captured_frequencies )
+                {
+                    peak = std::max( peak, value );
+                }
+                ImGui::PlotHistogram( "Squared amplitude", _aanl.captured_frequencies.data(),
+                    int_t( _aanl.captured_frequencies.size() ) >> 2, 0, nullptr, 0.0f, peak * 1.05f,
+                    ImVec2( ImGui::GetContentRegionAvail().x, 50.0f ) );
+            }
+            {
+                float_t peak = 0.00001f;
+                for( float_t const sample : _aanl.captured_samples )
+                {
+                    peak = std::max( peak, std::abs( sample ) );
+                }
+                float_t const scale = peak * 1.05f;
+                ImGui::PlotLines( "Samples", _aanl.captured_samples.data(),
+                    int_t( _aanl.captured_samples.size() ), 0, nullptr, -scale, scale,
+                    ImVec2( ImGui::GetContentRegionAvail().x, 50.0f ) );
+            }
+        }
+        ImGui::End();
+#else
         if( ImGui::Begin( "Capture Audio" ) )
         {
             // print wave form
@@ -134,6 +169,7 @@ bool_t the_app::on_tool(
             }
         }
         ImGui::End();
+#endif
     }
 
     if( ImGui::Begin( "Controls Info" ) )
