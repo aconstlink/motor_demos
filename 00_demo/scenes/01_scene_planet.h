@@ -13,6 +13,7 @@
 #include <motor/scene/visitor/graphics/light_pass_render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.hpp>
 
+#include <motor/collide/3d/transform.hpp>
 #include <motor/graphics/state/render_states.h>
 
 #include <motor/tool/imgui/node_kit/imgui_node_visitor.h>
@@ -24,9 +25,9 @@
 
 namespace demos
 {
-class scene_01 : public iscene
+class scene_01_planet : public iscene
 {
-    motor_this_typedefs( scene_01 );
+    motor_this_typedefs( scene_01_planet );
 
   private:
 
@@ -55,6 +56,8 @@ class scene_01 : public iscene
     motor::scene::node_mtr_t _root = nullptr;
 
     motor::scene::node_mtr_t _selected = nullptr;
+
+    motor::collide::aabb3f_t _world_bounds;
 
   private: // camera
 
@@ -109,14 +112,14 @@ class scene_01 : public iscene
 
   public:
 
-    scene_01( motor::string_cref_t name ) noexcept : iscene( name, { 4000, 2000 } ) {}
-    scene_01( scene_01 const & ) = delete;
-    scene_01( scene_01 && rhv ) noexcept
+    scene_01_planet( motor::string_cref_t name ) noexcept : iscene( name, { 4000, 2000 } ) {}
+    scene_01_planet( scene_01_planet const & ) = delete;
+    scene_01_planet( scene_01_planet && rhv ) noexcept
         : iscene( std::move( rhv ) ), _gltf_mon( motor::move( rhv._gltf_mon ) )
     {
         // @todo ...
     }
-    virtual ~scene_01( void_t ) noexcept
+    virtual ~scene_01_planet( void_t ) noexcept
     {
         this_t::release_all_objects();
         motor::release( motor::move( _gltf_mon ) );
@@ -264,7 +267,9 @@ class scene_01 : public iscene
                 rss.polygon_s.ss.do_activate = true;
                 rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
                 rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
-                rss.polygon_s.ss.cm = motor::graphics::cull_mode::front;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                
+                rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less;
                 rss.clear_s.do_change = true;
                 rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
                 rss.clear_s.ss.do_activate = true;
@@ -309,7 +314,7 @@ class scene_01 : public iscene
 
         // load scene
         {
-            auto const loc = motor::io::location_t( "1_scene.scene.gltf" );
+            auto const loc = motor::io::location_t( "01_scene_planet.scene.gltf" );
             this_t::init_scene_and_components( loc, oid.mmgr );
             _db->attach( loc, motor::share( _gltf_mon ) );
         }
@@ -483,17 +488,10 @@ class scene_01 : public iscene
 
         // get sun camera and create shadow framebuffer
         {
-            for( auto & cam : _cameras )
-            {
-                if( cam.first != "sun_cam" ) continue;
-                _sun_cam = motor::share( cam.second );
-                break;
-            }
+            motor::gfx::generic_camera_t gcam;
+            _sun_cam = motor::shared( std::move( gcam ) );
 
-            if( _sun_cam == nullptr )
-            {
-                assert( _sun_cam != nullptr && "need the sun cam from gltf scene" );
-            }
+            _cameras.emplace_back( std::make_pair( "sun cam", motor::share( _sun_cam ) ) );
 
             float_t const w = _sun_cam->get_dims().x();
             float_t const h = _sun_cam->get_dims().y();
@@ -519,8 +517,8 @@ class scene_01 : public iscene
 
         // manager
         {
-            _own_mmgr->add(
-                "scene1.color_pass", motor::io::location_t( "1_scene.shaders.color_pass.msl" ) );
+            _own_mmgr->add( "scene1.color_pass",
+                motor::io::location_t( "01_scene_planet.shaders.color_pass.msl" ) );
 
             _reg0 = mmgr->unregister_funk( _reg0 );
             _reg0 = mmgr->register_funk(
@@ -610,14 +608,15 @@ class scene_01 : public iscene
         _update_sync = 0;
 
         {
+            motor::scene::trafo_visitor_t v;
+            motor::scene::node_t::traverser( _root ).apply( &v );
+            _world_bounds = v.get_world_box();
+        }
+        {
             motor::scene::variable_update_visitor_t v;
             motor::scene::node_t::traverser( _root ).apply( &v );
         }
-
-        {
-            motor::scene::trafo_visitor_t v;
-            motor::scene::node_t::traverser( _root ).apply( &v );
-        }
+        
     }
 
     //************************************************************************************
@@ -634,7 +633,86 @@ class scene_01 : public iscene
     {
     }
 
-    virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept {}
+    virtual void_t on_graphics( demos::iscene::on_graphics_data_in_t ) noexcept
+    {
+
+        // sun cam creation
+        // here we need the world box which is used to create the othographic box
+        // so that the camera can see all the geometry/objects in the scene
+        // 1. create loot_at using the light direction
+        // 2. transform the world aabb into view space world aabb-> view obb-> view aabb
+        // 3. use view aabb for width, height, near, far computation
+        // 4. create orthographic projection
+        // 5. fix cam position in view space using the view aabb
+        // 6. transform new cam position back to world space and assign to camera.
+        {
+            motor::gfx::directional_light_mtr_t lg = nullptr;
+
+            // find sun light direction
+            // in this case, just take the first directional we find and
+            // use that as the sun light.
+            {
+                motor::scene::light_collector_visitor_t vis;
+                motor::scene::node_t::traverser( _root ).apply( &vis );
+                vis.for_each_light( [ & ]( size_t const i, motor::gfx::light_mtr_t light )
+                {
+                    if( light->is_shadow_casting() &&
+                        light->get_light_type() == motor::gfx::light_type::directional )
+                    {
+                        lg = static_cast< motor::gfx::directional_light_mtr_t >( light );
+                        return false;
+                    }
+                    return true;
+                } );
+            }
+
+            if( lg != nullptr )
+            {
+                // create look at
+                auto const dir = lg->get_transformed_direction().normalized();
+                _sun_cam->look_at_by_dir( motor::math::vec3f_t(), dir.negated() );
+
+                // transform world aabb to view space => view obb
+                auto const view_obb = motor::collide::transform3f_t::from_aabb(
+                    _world_bounds, motor::math::m3d::trafof_t( _sun_cam->get_view_matrix() ) );
+
+                // transform view obb to aabb in view space => view aabb
+                auto const view_aabb = motor::collide::transform_bounds3f_t::to_aabb( view_obb );
+
+                // now because the box is camera aligned, we can easily grap the values.
+                float_t const margin = 0.5f;
+                float_t const near_plane = 0.1f;
+                float_t const far_plane =
+                    near_plane + view_aabb.get_max().z() - view_aabb.get_min().z() + 2.0f * margin;
+
+                // fix projection
+                {
+                    float_t const width = view_aabb.get_dims().x() + 2.0f * margin;
+                    float_t const height = view_aabb.get_dims().y() + 2.0f * margin;
+
+                    _sun_cam->set_dims( width, height, near_plane, far_plane );
+                    _sun_cam->orthographic();
+                }
+
+                // fix position
+                {
+                    auto const center = view_aabb.get_center();
+                    auto const position_view = motor::math::vec3f_t(
+                        center.x(), center.y(), view_aabb.get_max().z() + near_plane + margin );
+
+                    auto const position_world = ( _sun_cam->get_camera_matrix() *
+                                                  motor::math::vec4f_t( position_view, 1.0f ) )
+                                                    .xyz();
+
+                    _sun_cam->translate_to( position_world );
+                }
+
+                // at this point, the sun cam should enclose the whole scene.
+            }
+        }
+
+        
+    }
 
     //************************************************************************************
     virtual void_t on_render_init( demos::iscene::on_render_data_in_t rd,
@@ -702,7 +780,7 @@ class scene_01 : public iscene
         {
             rd.fe->push( _root_so );
             motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
-            // cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
+            //cam->set_dims( 1000.0f, 1000.0f, 1.0f, 1000.0f) ;
             motor::scene::render_visitor_t vis(
                 demos::to_id( demos::msl_id::default_id ), rd.fe, cam );
             motor::scene::node_t::traverser( _root ).apply( &vis );
@@ -768,10 +846,49 @@ class scene_01 : public iscene
             rd.fe->push( _final_so );
 
 #if 1
+            size_t render_id = size_t( -1 );
 
-            // if previous render ids were used, set this
-            // value appropriately.
-            size_t render_id = size_t(0) ;
+            if( _cam_id != size_t( -1 ) )
+            {
+                rd.fe->push( _final_so );
+
+                
+                motor::scene::render_visitor_t rnd_vis(
+                    demos::to_id( demos::msl_id::default_id ), ++render_id, rd.fe,
+                    _cameras[ _cam_id ].second );
+                motor::scene::node_t::traverser( _root ).apply( &rnd_vis );
+               
+                {
+#if 0
+                    rd.fe->push( light_so );
+                    if( _sun_cam )
+                    {
+
+                        motor::gfx::directional_light_t dl( _sun_cam->get_direction().negated() );
+                        motor::gfx::single_shadow_data_t sd = { _sun_cam->get_proj_matrix(),
+                            _sun_cam->get_view_matrix(),
+                            "02_camera_fit_shadow_mapping.shadow_depth_framebuffer.depth" };
+
+                        motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
+
+                        motor::scene::light_pass_render_visitor_t vis(
+                            demos::to_id( demos::msl_id::light_pass_id ), ++render_id, rd.fe,
+                            cam, &dl, &sd );
+
+                        motor::scene::node_t::traverser( _root ).apply( &vis );
+                    }
+                    rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+#endif
+
+                }
+
+                rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            }
+
+#else // old
+      // if previous render ids were used, set this
+      // value appropriately.
+            size_t render_id = size_t( 0 );
 
             // render sun first
             {
@@ -782,16 +899,13 @@ class scene_01 : public iscene
                 motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
 
                 motor::scene::light_pass_render_visitor_t vis(
-                    demos::to_id( demos::msl_id::shadow_light_pass_id ), ++render_id, rd.fe, cam, &dl, &sd );
+                    demos::to_id( demos::msl_id::shadow_light_pass_id ), ++render_id, rd.fe, cam,
+                    &dl, &sd );
 
                 motor::scene::node_t::traverser( _root ).apply( &vis );
             }
 
             rd.fe->push( light_so );
-
-            
-
-            
 
             // add all other lights
             {
@@ -800,35 +914,21 @@ class scene_01 : public iscene
 
                 motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
 
-                vis.for_each_light_component( [ & ]( size_t const, motor::scene::light_component_mtr_t light )
+                vis.for_each_light_component(
+                    [ & ]( size_t const, motor::scene::light_component_mtr_t light )
                 {
                     light->for_each_light( [ & ]( motor::gfx::light_mtr_t l )
                     {
                         motor::scene::light_pass_render_visitor_t vis_light(
-                            demos::to_id( demos::msl_id::light_pass_id ), ++render_id, rd.fe,
-                            cam, l );
+                            demos::to_id( demos::msl_id::light_pass_id ), ++render_id, rd.fe, cam,
+                            l );
                         motor::scene::node_t::traverser( _root ).apply( &vis_light );
-                        return true ;
+                        return true;
                     } );
                 } );
             }
 
             rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
-
-#else // old
-            {
-
-                motor::gfx::directional_light_t dl( _sun_cam->get_direction().negated() );
-                motor::gfx::single_shadow_data_t sd = { _sun_cam->get_proj_matrix(),
-                    _sun_cam->get_view_matrix(), "scene.01.shadow_depth_framebuffer.depth" };
-
-                motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
-
-                motor::scene::light_pass_render_visitor_t vis(
-                    demos::to_id( demos::msl_id::light_pass_id ), 1, rd.fe, cam, &dl, &sd );
-
-                motor::scene::node_t::traverser( _root ).apply( &vis );
-            }
 #endif
             rd.fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }
@@ -840,6 +940,7 @@ class scene_01 : public iscene
         // SECTION: cameras
         {
             auto cams = _cc.get_cameras();
+            cams.emplace_back( std::make_pair( "sun cam", _sun_cam ) );
 
             if( cams.size() > 0 )
             {
@@ -943,5 +1044,5 @@ class scene_01 : public iscene
         motor::release( motor::move( _own_mmgr ) );
     }
 };
-motor_typedef( scene_01 );
+motor_typedef( scene_01_planet );
 } // namespace demos

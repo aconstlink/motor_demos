@@ -266,7 +266,7 @@ class intro_scene : public iscene
 
         // load scene
         {
-            auto const loc = motor::io::location_t( "0_intro_scene.scene.gltf" );
+            auto const loc = motor::io::location_t( "00_intro_scene.scene.gltf" );
             // auto const loc = motor::io::location_t( "1_scene.scene.gltf" );
             this_t::init_scene_and_components( loc, oid.mmgr );
             _db->attach( loc, motor::share( _gltf_mon ) );
@@ -473,7 +473,7 @@ class intro_scene : public iscene
         // manager
         {
             _own_mmgr->add( "scene0.color_pass",
-                motor::io::location_t( "0_intro_scene.shaders.color_pass.msl" ) );
+                motor::io::location_t( "00_intro_scene.shaders.color_pass.msl" ) );
 
             _reg0 = mmgr->unregister_funk( _reg0 );
             _reg0 = mmgr->register_funk(

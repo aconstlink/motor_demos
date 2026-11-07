@@ -40,7 +40,7 @@ int main( int argc, char ** argv )
     #if 1
         {
             demos::scene_manager_t::add_scene_data asd;
-            asd.sptr = motor::shared( demos::scene_01( "scene_01" ) ); 
+            asd.sptr = motor::shared( demos::scene_01_planet( "scene_01_planet" ) ); 
 
             sm.add_scene( std::move( asd ) );
         }
