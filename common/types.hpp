@@ -35,13 +35,14 @@ enum class process_state
 // used in the msl_set_component
 enum class msl_id
 {
-    default_id = 0,
-    color_pass_id = 1,
-    light_pass_id = 2,
-    depth_pass_id = 3,
-    shadow_depth_id = 4,
-    shadow_accum_id = 5,
-    shadow_light_pass_id = 6,
+    default_id,
+    color_pass_id,
+    light_pass_id,
+    depth_pass_id,
+    normal_vis_pass_id,
+    shadow_depth_id,
+    shadow_accum_id,
+    shadow_light_pass_id,
     num_ids
 };
 

@@ -73,6 +73,7 @@ void_t scene_manager::on_init( this_t::init_data & idata ) noexcept
                 "scene0.shadow_accum_pass", motor::io::location_t( "shaders.shadow_accum_pass.msl" ) );
 #endif
         _mmgr->add( "depth_pass", motor::io::location_t( "shaders.depth_pass.msl" ) );
+        _mmgr->add( "normal_vis_pass", motor::io::location_t( "shaders.normal_vis_pass.msl" ) );
     }
 // remember for later!
 #if 0
@@ -131,6 +132,11 @@ void_t scene_manager::on_event( this_t::event_data_in_t ed ) noexcept
             {
                 s.s->on_resize( ed.wt, ed.window_dims.x(), ed.window_dims.y() );
             }
+        }
+
+        if( ed.wt == demos::window_type::production )
+        {
+            _pp_pipe->on_resize_window( ed.window_dims.x(), ed.window_dims.y() );
         }
     }
 }
@@ -454,6 +460,16 @@ void_t scene_manager::on_frame_done( void_t ) noexcept
 }
 
 //******************************************************************************************************
+void_t scene_manager::on_graphics( graphics_data_ref_t gd ) noexcept
+{
+    scene_id_t const cur = _cur_scene_idx;
+    scene_id_t const nxt = _nxt_scene_idx;
+
+    this_t::handle_state_graphics( cur, gd );
+    this_t::handle_state_graphics( nxt, gd );
+}
+
+//******************************************************************************************************
 void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
 {
     if( rd.wt == demos::window_type::invalid ) return;
@@ -480,8 +496,8 @@ void_t scene_manager::on_render( render_data_ref_t rd ) noexcept
     // except cur and next scenes must be raw state i.e.
     // not initialized.
     this_t::approach_raw_state_graphics( rd );
-    this_t::handle_state_graphics( cur, rd, rd.last_frame );
-    this_t::handle_state_graphics( nxt, rd, rd.last_frame );
+    this_t::handle_state_render( cur, rd, rd.last_frame );
+    this_t::handle_state_render( nxt, rd, rd.last_frame );
 
     if( rd.wt == demos::window_type::debug )
     {
@@ -681,7 +697,22 @@ void_t scene_manager::approach_raw_state_graphics( render_data_ref_t rd )
 }
 
 //******************************************************************************************************
-void_t scene_manager::handle_state_graphics(
+void_t scene_manager::handle_state_graphics( demos::scene_id_t const id, graphics_data_ref_t gd )
+{
+    if( demos::is_invalid( id ) ) return;
+
+    auto & scene = _scenes[ id ];
+
+    // we can only process graphics state if the scene is initialized
+    if( scene.ss != demos::process_state::init ) return;
+
+    demos::iscene::on_graphics_data ogd = { _cur_time, gd.dt_sec };
+
+    scene.s->on_graphics( ogd );
+}
+
+//******************************************************************************************************
+void_t scene_manager::handle_state_render(
     demos::scene_id_t const id, render_data_ref_t rd, bool_t const do_release )
 {
     if( demos::is_invalid( id ) ) return;

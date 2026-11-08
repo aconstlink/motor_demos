@@ -209,8 +209,12 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                 motor::application::window_info_t wi;
                 wi.x = 900;
                 wi.y = 720;
-                wi.w = 800;
+                wi.w = 800; 
                 wi.h = 600;
+
+                // keep ratio
+                wi.w = int_t( float_t(wi.w) * (1920.0f/1080.0f)*(float_t(wi.h)/float_t(wi.w)) );
+
                 if( f3_released )
                     wi.gen = motor::application::graphics_generation::gen4_auto;
                 else
@@ -278,7 +282,12 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
 }
 
 //******************************************************************************************************
-void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd ) noexcept {}
+void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd_) noexcept 
+{
+    demos::scene_manager_t::graphics_data gd ;
+    gd.dt_sec = gd_.sec_dt ;
+    _sm.on_graphics( gd ) ;
+}
 
 //******************************************************************************************************
 void_t the_app::on_frame_done( void_t ) noexcept

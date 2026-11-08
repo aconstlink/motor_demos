@@ -8,6 +8,7 @@
 #include <motor/application/app.h>
 #include <motor/gfx/postprocess/hdr_postprocess_pipeline.h>
 #include <motor/gfx/manager/msl_manager.h>
+#include <motor/gfx/primitive/primitive_render_3d.h>
 
 #include <motor/property/property_sheet.hpp>
 
@@ -56,15 +57,15 @@ class scene_manager
     motor::io::monitor_mtr_t _mon = nullptr;
     motor::io::database_mtr_t _db = nullptr;
 
-  private: // post processing
+  private: // post processing/gfx
 
-    motor::gfx::hdr_postprocess_pipeline_mtr_t _pp_pipe = nullptr ;
-    motor::property::property_sheet_t _pp_sheet ;
-    bool_t _show_temp_rt = false ;
+    motor::gfx::hdr_postprocess_pipeline_mtr_t _pp_pipe = nullptr;
+    motor::property::property_sheet_t _pp_sheet;
+    bool_t _show_temp_rt = false;
 
-    private: // manager
+  private: // manager
 
-    motor::gfx::msl_manager_mtr_t _mmgr = nullptr ;
+    motor::gfx::msl_manager_mtr_t _mmgr = nullptr;
 
   public:
 
@@ -101,6 +102,14 @@ class scene_manager
     // scene callbacks appropriately
     motor::math::time_ms_t on_scene_update( update_data_cref_t ) noexcept;
 
+    struct graphics_data
+    {
+        float_t dt_sec;
+    };
+    motor_typedef( graphics_data );
+
+    void_t on_graphics( graphics_data_ref_t ) noexcept;
+
     struct render_data
     {
         size_t wid;
@@ -114,7 +123,7 @@ class scene_manager
     motor_typedef( render_data );
 
     void_t on_render( render_data_ref_t ) noexcept;
-    void_t on_frame_done( void_t ) noexcept ;
+    void_t on_frame_done( void_t ) noexcept;
 
   public:
 
@@ -122,7 +131,7 @@ class scene_manager
     struct init_data
     {
         motor::math::vec4ui_t fb_dims;
-        motor::io::database_mtr_safe_t db;        
+        motor::io::database_mtr_safe_t db;
     };
     motor_typedef( init_data );
 
@@ -166,9 +175,11 @@ class scene_manager
     demos::scene_id_pair_t determine_scene_index( void_t ) noexcept;
     void_t commit_scene_index( demos::scene_id_pair_t const & ) noexcept;
 
-    void_t approach_raw_state_graphics(
-        render_data_ref_t );
-    void_t handle_state_graphics( demos::scene_id_t const, render_data_ref_t, bool_t const do_release );
+    void_t approach_raw_state_graphics( render_data_ref_t );
+    void_t handle_state_render(
+        demos::scene_id_t const, render_data_ref_t, bool_t const do_release );
+
+    void_t handle_state_graphics( demos::scene_id_t const, graphics_data_ref_t );
 
     // returns true if two scenes are transitioning and
     // if so, overlap is set. Otherwise false is returned.

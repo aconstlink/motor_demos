@@ -33,8 +33,6 @@ class iscene
     {
         size_t const cur_time;
         float_t const dt;
-        motor::gfx::primitive_render_3d_ptr_t pr;
-        motor::gfx::generic_camera_mtr_t dbg_cam;
     };
     motor_typedef( on_graphics_data );
 

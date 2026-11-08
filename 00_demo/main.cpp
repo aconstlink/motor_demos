@@ -28,7 +28,7 @@ int main( int argc, char ** argv )
     // init scenes
     {
         demos::scene_manager_t sm;
-#if 1
+#if 0
         {
             demos::scene_manager_t::add_scene_data asd;
             asd.sptr = motor::shared( demos::intro_scene( "intro" ) ); 
