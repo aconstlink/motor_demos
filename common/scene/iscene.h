@@ -7,6 +7,7 @@
 #include <motor/gfx/camera/generic_camera.h>
 #include <motor/gfx/manager/msl_manager.h>
 
+#include <motor/audio/util/onset_detector.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/io/database.h>
 #include <motor/concurrent/task/task.hpp>
@@ -76,6 +77,7 @@ class iscene
         float_t cont_dt_sec ;
 
         motor::gfx::msl_manager_mtr_t mmgr ;
+        motor::audio::onset_detector_ptr_t kicks ;
     };
     motor_typedef( update_data );
 

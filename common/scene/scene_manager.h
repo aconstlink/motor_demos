@@ -10,6 +10,7 @@
 #include <motor/gfx/manager/msl_manager.h>
 #include <motor/gfx/primitive/primitive_render_3d.h>
 
+#include <motor/audio/util/onset_detector.hpp>
 #include <motor/property/property_sheet.hpp>
 
 namespace demos
@@ -98,6 +99,8 @@ class scene_manager
 
         // continuous dt in seconds
         float_t cont_dt_sec ;
+
+        motor::audio::onset_detector_ptr_t kicks ;
     };
     motor_typedef( update_data );
 

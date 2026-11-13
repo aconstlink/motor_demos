@@ -209,11 +209,12 @@ void_t the_app::on_device( device_data_in_t dd ) noexcept
                 motor::application::window_info_t wi;
                 wi.x = 900;
                 wi.y = 720;
-                wi.w = 800; 
+                wi.w = 800;
                 wi.h = 600;
 
                 // keep ratio
-                wi.w = int_t( float_t(wi.w) * (1920.0f/1080.0f)*(float_t(wi.h)/float_t(wi.w)) );
+                wi.w = int_t( float_t( wi.w ) * ( 1920.0f / 1080.0f ) *
+                              ( float_t( wi.h ) / float_t( wi.w ) ) );
 
                 if( f3_released )
                     wi.gen = motor::application::graphics_generation::gen4_auto;
@@ -277,17 +278,18 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
         sud.demo_time = _cur_time;
         sud.cont_time = _cont_time;
         sud.db = _db;
-        sud.cont_dt_sec = ud.sec_dt ;
+        sud.cont_dt_sec = ud.sec_dt;
+        sud.kicks = &_kix_detector;
         _cur_time = _sm.on_scene_update( sud );
     }
 }
 
 //******************************************************************************************************
-void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd_) noexcept 
+void_t the_app::on_graphics( motor::application::app::graphics_data_in_t gd_ ) noexcept
 {
-    demos::scene_manager_t::graphics_data gd ;
-    gd.dt_sec = gd_.sec_dt ;
-    _sm.on_graphics( gd ) ;
+    demos::scene_manager_t::graphics_data gd;
+    gd.dt_sec = gd_.sec_dt;
+    _sm.on_graphics( gd );
 }
 
 //******************************************************************************************************
@@ -298,8 +300,8 @@ void_t the_app::on_frame_done( void_t ) noexcept
 
 //******************************************************************************************************
 void_t the_app::old_style_render( this_t::window_id_t const wid,
-    motor::graphics::gen4::frontend_ptr_t fe,
-    motor::application::app::render_data_in_t rd, bool_t const ff, bool_t const lf ) noexcept
+    motor::graphics::gen4::frontend_ptr_t fe, motor::application::app::render_data_in_t rd,
+    bool_t const ff, bool_t const lf ) noexcept
 {
     /////////////////////////////////////////////////////////////////////
     // handle render scene states
@@ -349,7 +351,7 @@ void_t the_app::on_first_frame( this_t::window_id_t const wid,
         pr.configure( fe );
         fe->configure< motor::graphics::state_object_t >( &_pr_rs );
     }
-    this_t::old_style_render( wid, fe, rd, true, false ) ;
+    this_t::old_style_render( wid, fe, rd, true, false );
 }
 
 //******************************************************************************************************
@@ -357,14 +359,14 @@ void_t the_app::on_last_frame( this_t::window_id_t const wid,
     motor::graphics::gen4::frontend_ptr_t fe,
     motor::application::app::render_data_in_t rd ) noexcept
 {
-    this_t::old_style_render( wid, fe, rd, false, true ) ;
+    this_t::old_style_render( wid, fe, rd, false, true );
 }
 
 //******************************************************************************************************
 void_t the_app::on_render( this_t::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
     motor::application::app::render_data_in_t rd ) noexcept
 {
-    this_t::old_style_render( wid, fe, rd, false, false ) ;
+    this_t::old_style_render( wid, fe, rd, false, false );
 }
 
 //******************************************************************************************************

@@ -383,8 +383,9 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
         sud.absolute = _cur_time;
         sud.relative = _cur_time - cur_scene.start;
         sud.relative_seconds = float_t( sud.relative ) / 1000.0f;
-        sud.cont_dt_sec = ud.cont_dt_sec ;
+        sud.cont_dt_sec = ud.cont_dt_sec;
         sud.mmgr = _mmgr;
+        sud.kicks = ud.kicks;
         if( cur_scene.ss == demos::process_state::init ) cur_scene.s->on_update( sud );
     }
 
@@ -406,7 +407,7 @@ motor::math::time_ms_t scene_manager::on_scene_update( update_data_cref_t ud ) n
             sud.absolute = _cur_time;
             sud.relative = _cur_time - nxt_scene.start;
             sud.relative_seconds = float_t( sud.relative ) / 1000.0f;
-            sud.cont_dt_sec = ud.cont_dt_sec ;
+            sud.cont_dt_sec = ud.cont_dt_sec;
             sud.mmgr = _mmgr;
             if( nxt_scene.ss == demos::process_state::init )
             {

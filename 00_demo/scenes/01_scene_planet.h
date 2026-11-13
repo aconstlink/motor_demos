@@ -36,9 +36,9 @@
 
 namespace demos::scene_01
 {
-class rotation_controller : public motor::scene::animation_controller
+class rotation_controller : public motor::wire::funk_node< motor::wire::unnamed_slot_sheet_policy >
 {
-    using base_t = motor::scene::animation_controller;
+    using base_t = motor::wire::funk_node< motor::wire::unnamed_slot_sheet_policy >;
     motor_this_typedefs( rotation_controller );
 
     using time_is_t = motor::wire::input_slot< float_t >;
@@ -48,31 +48,42 @@ class rotation_controller : public motor::scene::animation_controller
     time_is_t * _time_is = nullptr;
     rotation_os_t * _rotation_os = nullptr;
 
+    motor::math::vec3f_t _axis;
+    float_t _radians_per_second;
+
+    base_t::funk_t make_funk( void_t ) noexcept
+    {
+        return []( motor::wire::funk_node_ptr_t self_ )
+        {
+            this_ptr_t self = static_cast< this_ptr_t >( self_ );
+
+            motor::math::quat4f_t const identity( 1.0f, 0.0f, 0.0f, 0.0f );
+            float_t const angle = self->_time_is->get_value() * self->_radians_per_second;
+            self->_rotation_os->set_and_exchange( self->_axis.length2() > 0.0f
+                                                      ? motor::math::quat4f_t( angle, self->_axis )
+                                                      : identity );
+        };
+    }
+
   public:
 
     rotation_controller( motor::math::vec3f_t axis, float_t const radians_per_second ) noexcept
+        : base_t( "rotation_controller", this_t::make_funk() ), _axis( axis ),
+          _radians_per_second( radians_per_second )
     {
         motor::math::quat4f_t const identity( 1.0f, 0.0f, 0.0f, 0.0f );
         _time_is = motor::shared( time_is_t( 0.0f ) );
         _rotation_os = motor::shared( rotation_os_t( identity ) );
 
-        auto node = motor::wire::funk_node_t( "rotation_controller",
-            [ time = _time_is, rotation = _rotation_os, axis, radians_per_second, identity ](
-                motor::wire::funk_node_ptr_t )
-        {
-            float_t const angle = time->get_value() * radians_per_second;
-            rotation->set_and_exchange(
-                axis.length2() > 0.0f ? motor::math::quat4f_t( angle, axis ) : identity );
-        } );
-        node.inputs().add( motor::share_unsafe( _time_is ) );
-        node.outputs().add( motor::share_unsafe( _rotation_os ) );
-        base_t::set_node( motor::shared( std::move( node ) ) );
+        this_t::inputs().add( motor::share_unsafe( _time_is ) );
+        this_t::outputs().add( motor::share_unsafe( _rotation_os ) );
     }
 
     rotation_controller( this_cref_t ) = delete;
     rotation_controller( this_rref_t rhv ) noexcept
         : base_t( std::move( rhv ) ), _time_is( motor::move( rhv._time_is ) ),
-          _rotation_os( motor::move( rhv._rotation_os ) )
+          _rotation_os( motor::move( rhv._rotation_os ) ), _axis( std::move( rhv._axis ) ),
+          _radians_per_second( rhv._radians_per_second )
     {
     }
 
@@ -194,7 +205,7 @@ class scene_01_planet : public iscene
     };
     motor::vector< kick_controller_data > _kick_controllers;
 
-    motor::wire::trigger_filter_node_mtr_t _kk;
+    motor::wire::trigger_filter_node_mtr_t _kk = nullptr;
     size_t _kkid_rotation = size_t( -1 );
 
     // 0: can start parallel work
@@ -338,19 +349,19 @@ class scene_01_planet : public iscene
     }
 
     //**********************************************************************************************
-    void_t reinit_everything( motor::string_in_t prefix,
-        motor::io::location_cref_t loc, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
+    void_t reinit_everything( motor::string_in_t prefix, motor::io::location_cref_t loc,
+        motor::gfx::msl_manager_mtr_t mmgr ) noexcept
     {
         this_t::init_scene_from_file( prefix, loc, mmgr );
         this_t::init_components( prefix, mmgr );
-        this_t::create_shadow_camera_and_framebuffer( prefix ) ;
+        this_t::create_shadow_camera_and_framebuffer( prefix );
         this_t::init_msl_manager( prefix, mmgr );
         this_t::init_and_connect_nodes( prefix );
     }
 
     //**********************************************************************************************
-    void_t init_scene_from_file( motor::string_in_t prefix,
-        motor::io::location_cref_t loc, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
+    void_t init_scene_from_file( motor::string_in_t prefix, motor::io::location_cref_t loc,
+        motor::gfx::msl_manager_mtr_t mmgr ) noexcept
     {
 
         motor::scene::logic_group_t root;
@@ -503,7 +514,8 @@ class scene_01_planet : public iscene
     }
 
     //**************************************************************************************
-    void_t init_msl_manager( motor::string_in_t prefix, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
+    void_t init_msl_manager(
+        motor::string_in_t prefix, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
     {
         // manager
         {
@@ -628,14 +640,14 @@ class scene_01_planet : public iscene
         }
 
         // make node connections
-#if 1
         {
             auto kk = motor::shared( motor::wire::trigger_filter_node_t() );
-            kk->connect_time_is( motor::share( _time ) );
 
             auto const f0 =
                 kk->add_filter( [ & ]( motor::wire::trigger_filter_node_t::filter_data const & d )
-            { return 1.0f; } );
+            { return d.sig_abs; }, { .duration = 1.0f } );
+
+            kk->connect_time_is( motor::share( _time ) );
             kk->connect_signal_is( f0, motor::share( _time ) );
 
             _kk = motor::move( kk );
@@ -643,28 +655,12 @@ class scene_01_planet : public iscene
 
             _start_node->then( motor::share( _kk ) );
         }
-#else
-        {
-            auto pc = motor::shared( motor::wire::trigger_filter_node_t() );
-            _start_node->then( motor::share( pc ) )
-                ->then( motor::share( _test_value_node ) )
-                ->then( motor::share( _end_node ) );
 
-            pc->borrow_time_is()->connect( motor::share( _time ) );
-            pc->borrow_active_os()->connect(
-                motor::share( _test_value_node->inputs().borrow( 0 ) ) );
-            pc->set_duration( 2.0f );
-
-            _kick_controllers.emplace_back( motor::move( pc ) );
-        }
-#endif
         // attach controllers
         {
             demos::scene_01::rotation_controller_mtr_t ctr =
                 motor::shared( demos::scene_01::rotation_controller_t(
                     motor::math::vec3f_t( 1.0f, 1.0f, 1.0f ), 0.1f ) );
-
-            motor::wire::funk_node_mtr_t end = nullptr;
 
             motor::scene::for_each_node_visitor_t v(
                 [ & ]( motor::scene::for_each_node_visitor_t::for_each_data const & d )
@@ -675,17 +671,18 @@ class scene_01_planet : public iscene
                             d.node->borrow_component< motor::scene::trafo3d_component_t >();
                         comp )
                     {
-                        motor::wire::trafo3f_composer_t composer;
+                        auto composer = motor::shared( motor::wire::trafo3f_composer_t() );
 
-                        composer.ensure_and_borrow_rotation_is()->connect(
+                        composer->ensure_and_borrow_rotation_is()->connect(
                             motor::share( ctr->borrow_rotation_os() ) );
                         // override. currently only one composer can connect.
-                        comp->borrow_trafo_is()->connect( composer.ensure_and_get_os() );
+                        comp->borrow_trafo_is()->connect( composer->ensure_and_get_os() );
 
-                        auto comp_mtr = motor::shared( std::move( composer ) );
-                        comp->attach_composer( motor::share( comp_mtr ) );
+                        comp->attach_composer( motor::share( composer ) );
 
-                        end = motor::move( comp_mtr );
+                        _kk->then( motor::share( ctr ) )
+                            ->then( motor::move( composer ) )
+                            ->then( motor::share( _gltf_time_node ) );
                     }
                     return motor::scene::result::break_traversal;
                 }
@@ -693,16 +690,10 @@ class scene_01_planet : public iscene
             } );
             motor::scene::node_t::traverser( _root ).apply( &v );
 
-#if 1
             _kk->connect_signal_os( _kkid_rotation, motor::share( ctr->borrow_time_is() ) );
-#else
-            ctr->borrow_time_is()->connect( motor::share( _time ) );
-#endif
+            _node_dump.emplace_back( motor::move( ctr ) );
 
-            if( end )
-                _kk->then( ctr->get_node() )
-                    ->then( motor::move( end ) )
-                    ->then( motor::share( _gltf_time_node ) );
+            _start_node->then( motor::share( _kk ) );
         }
 
         {
@@ -754,6 +745,9 @@ class scene_01_planet : public iscene
     {
         if( _update_sync != 2 ) return;
         _update_sync = 0;
+
+        if( ud.kicks->onset_value() > 0.5f ) 
+            _kk->trigger() ;
     }
 
     //************************************************************************************
@@ -1259,6 +1253,10 @@ class scene_01_planet : public iscene
             motor::release( motor::move( ptr ) );
         }
         _node_dump.clear();
+
+        motor::wire::release( motor::move( _kk ) );
+        motor::wire::inode::disconnect( _start_node );
+        motor::wire::inode::disconnect( _end_node );
     }
 
     void_t release_all_objects( void_t ) noexcept
