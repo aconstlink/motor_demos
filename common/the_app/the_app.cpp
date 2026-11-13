@@ -277,6 +277,7 @@ void_t the_app::on_update( motor::application::app::update_data_in_t ud ) noexce
         sud.demo_time = _cur_time;
         sud.cont_time = _cont_time;
         sud.db = _db;
+        sud.cont_dt_sec = ud.sec_dt ;
         _cur_time = _sm.on_scene_update( sud );
     }
 }

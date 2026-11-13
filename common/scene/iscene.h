@@ -73,6 +73,7 @@ class iscene
         motor::math::time_ms_t relative;
 
         float_t relative_seconds;
+        float_t cont_dt_sec ;
 
         motor::gfx::msl_manager_mtr_t mmgr ;
     };

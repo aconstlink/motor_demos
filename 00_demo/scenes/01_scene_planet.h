@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include "../../common/scene/iscene.h"
 #include "../../common/camera_collector.hpp"
 
@@ -15,8 +17,11 @@
 #include <motor/scene/visitor/graphics/render_visitor.h>
 #include <motor/scene/visitor/graphics/light_pass_render_visitor.h>
 #include <motor/scene/visitor/variable_update_visitor.hpp>
+#include <motor/scene/visitor/camera_collector_visitor.hpp>
 #include <motor/scene/visitor/graphics/connect_msl_slot_visitor.hpp>
 #include <motor/scene/visitor/graphics/debug_graphics_visitor.hpp>
+
+#include <motor/wire/kit/trigger_filter_node.hpp>
 
 #include <motor/collide/3d/transform.hpp>
 #include <motor/graphics/state/render_states.h>
@@ -81,6 +86,70 @@ class rotation_controller : public motor::scene::animation_controller
     }
 };
 motor_typedef( rotation_controller );
+
+class time_controller : public motor::scene::animation_controller
+{
+    using base_t = motor::scene::animation_controller;
+    motor_this_typedefs( time_controller );
+
+    using time_is_t = motor::wire::input_slot< float_t >;
+    using time_os_t = motor::wire::output_slot< float_t >;
+
+    // Borrowed from the wire node's slot sheets.
+    time_is_t * _time_is = nullptr;
+    time_os_t * _time_os = nullptr;
+
+  public:
+
+    // All times are seconds. Zero repetitions loops indefinitely.
+    time_controller( float_t const scene_start, float_t const clip_start, float_t const clip_end,
+        size_t const repetitions = 0 ) noexcept
+    {
+        _time_is = motor::shared( time_is_t( 0.0f ) );
+        _time_os = motor::shared( time_os_t( clip_start ) );
+
+        auto node = motor::wire::funk_node_t( "time_controller",
+            [ time = _time_is, clip = _time_os, scene_start, clip_start, clip_end, repetitions ](
+                motor::wire::funk_node_ptr_t )
+        {
+            if( time->has_changed() )
+            {
+                float_t const elapsed = time->get_value() - scene_start;
+                float_t const duration = clip_end - clip_start;
+                float_t value = clip_start;
+                if( elapsed > 0.0 && duration > 0.0 )
+                {
+                    value = repetitions != 0 && elapsed >= duration * repetitions
+                                ? clip_end
+                                : float_t( clip_start + std::fmod( elapsed, duration ) );
+                }
+                clip->set_and_exchange( value );
+            }
+        } );
+
+        node.inputs().add( motor::share_unsafe( _time_is ) );
+        node.outputs().add( motor::share_unsafe( _time_os ) );
+        base_t::set_node( motor::shared( std::move( node ) ) );
+    }
+
+    time_controller( this_cref_t ) = delete;
+    time_controller( this_rref_t rhv ) noexcept
+        : base_t( std::move( rhv ) ), _time_is( motor::move( rhv._time_is ) ),
+          _time_os( motor::move( rhv._time_os ) )
+    {
+    }
+
+    time_is_t * borrow_time_is( void_t ) const noexcept
+    {
+        return _time_is;
+    }
+    time_os_t * borrow_time_os( void_t ) const noexcept
+    {
+        return _time_os;
+    }
+};
+motor_typedef( time_controller );
+
 } // namespace demos::scene_01
 
 namespace demos
@@ -95,15 +164,43 @@ class scene_01_planet : public iscene
     using os_trafo_t = motor::wire::output_slot< motor::math::m3d::trafof_t >;
 
     os_float_t * _time = nullptr;
+    os_float_t * _dt = nullptr;
     os_trafo_t * _scale_os = nullptr;
 
-    motor::wire::time_node_mtr_t _time_node = nullptr; // from the importer
-    motor::wire::inode_mtr_t _merger = nullptr;        // from the importer
+    motor::wire::time_node_mtr_t _gltf_time_node = nullptr; // from the importer
+    motor::wire::inode_mtr_t _merger = nullptr;             // from the importer
+
+    motor::wire::inode_mtr_t _start_node =
+        motor::shared( motor::wire::funk_node_t( "start", []( motor::wire::funk_node_mtr_t ) {} ) );
+
+    motor::wire::inode_mtr_t _end_node =
+        motor::shared( motor::wire::funk_node_t( "end", []( motor::wire::funk_node_mtr_t ) {} ) );
+
+    float_t _active_test = 0.0f;
+    motor::wire::funk_node_mtr_t _test_value_node = motor::shared(
+        motor::wire::funk_node_t( "test values", [ & ]( motor::wire::funk_node_mtr_t self )
+    {
+        if( auto * ptr = dynamic_cast< motor::wire::is_float_mtr_t >( self->inputs().borrow( 0 ) );
+            ptr )
+        {
+            _active_test = ptr->get_value();
+        }
+    } ) );
+
+    struct kick_controller_data
+    {
+        motor::wire::trigger_filter_node_mtr_t kk;
+        motor::hash_map< motor::string_t, size_t > name_to_function;
+    };
+    motor::vector< kick_controller_data > _kick_controllers;
+
+    motor::wire::trigger_filter_node_mtr_t _kk;
+    size_t _kkid_rotation = size_t( -1 );
 
     // 0: can start parallel work
     // 1: is in parallel work/has to wait for result
     // 2: can do serial work after parallel is done
-    size_t _update_sync = 0;
+    std::atomic< size_t > _update_sync = 0;
 
     // store all the wire nodes for easier destruction.
     motor::vector< motor::wire::inode_mtr_t > _node_dump;
@@ -192,7 +289,9 @@ class scene_01_planet : public iscene
     scene_01_planet( scene_01_planet const & ) = delete;
     scene_01_planet( scene_01_planet && rhv ) noexcept
         : iscene( std::move( rhv ) ), _gltf_mon( motor::move( rhv._gltf_mon ) ),
-          _pr( motor::move( rhv._pr ) )
+          _pr( motor::move( rhv._pr ) ), _start_node( motor::move( rhv._start_node ) ),
+          _end_node( motor::move( rhv._end_node ) ), _bias( motor::move( rhv._bias ) ),
+          _light_intensity( motor::move( rhv._light_intensity ) )
     {
         // @todo ...
     }
@@ -200,6 +299,12 @@ class scene_01_planet : public iscene
     {
         this_t::release_all_objects();
         motor::release( motor::move( _gltf_mon ) );
+
+        motor::wire::release( motor::move( _start_node ) );
+        motor::wire::release( motor::move( _end_node ) );
+
+        motor::release( motor::move( _bias ) );
+        motor::release( motor::move( _light_intensity ) );
     }
 
   public:
@@ -214,185 +319,16 @@ class scene_01_planet : public iscene
 
         {
             _time = motor::shared( os_float_t( 0.0f ) );
+            _dt = motor::shared( os_float_t( 0.0f ) );
             _scale_os = motor::shared( os_trafo_t() );
         }
 
-        {
-            motor::graphics::state_object_t so =
-                motor::graphics::state_object_t( "scene.01.final_render_states" );
-
-            {
-                motor::graphics::render_state_sets_t rss;
-#if 0
-                rss.depth_s.do_change = true;
-                rss.depth_s.ss.do_activate = true;
-                rss.depth_s.ss.do_depth_write = true;
-#endif
-                rss.polygon_s.do_change = true;
-                rss.polygon_s.ss.do_activate = true;
-                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
-                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
-                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-#if 0
-                rss.clear_s.do_change = true;
-                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f );
-                rss.clear_s.ss.do_activate = true;
-                rss.clear_s.ss.do_color_clear = true;
-                rss.clear_s.ss.do_depth_clear = true;
-#endif
-#if 0
-                rss.view_s.do_change = true;
-                rss.view_s.ss.do_activate = false;
-                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
-#endif
-#if 0
-                rss.blend_s.do_change = false ;
-                rss.blend_s.ss.do_activate = true ;
-                rss.blend_s.ss.blend_func = motor::graphics::blend_function::add ;
-                rss.blend_s.ss.src_blend_factor = motor::graphics::blend_factor::one ;
-                rss.blend_s.ss.dst_blend_factor = motor::graphics::blend_factor::one ;
-#endif
-
-                so.add_render_state_set( rss );
-            }
-
-            _final_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
-        }
-
-        {
-            motor::graphics::state_object_t so =
-                motor::graphics::state_object_t( "scene.01.root_render_states" );
-
-            {
-                motor::graphics::render_state_sets_t rss;
-                rss.depth_s.do_change = true;
-                rss.depth_s.ss.do_activate = true;
-                rss.depth_s.ss.do_depth_write = true;
-                rss.polygon_s.do_change = true;
-                rss.polygon_s.ss.do_activate = true;
-                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
-                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
-                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-                rss.clear_s.do_change = true;
-                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
-                rss.clear_s.ss.do_activate = true;
-                rss.clear_s.ss.do_color_clear = true;
-                rss.clear_s.ss.do_depth_clear = true;
-                rss.view_s.do_change = true;
-                rss.view_s.ss.do_activate = false;
-                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
-                so.add_render_state_set( rss );
-            }
-
-            _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
-        }
-
-        // light render states
-        {
-            motor::graphics::state_object_t so =
-                motor::graphics::state_object_t( "scene.01.light_render_states" );
-
-            {
-                motor::graphics::render_state_sets_t rss;
-                rss.depth_s.do_change = true;
-                rss.depth_s.ss.do_activate = true;
-                rss.depth_s.ss.do_depth_write = false;
-                rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less_equal;
-
-                rss.blend_s.do_change = true;
-                rss.blend_s.ss.do_activate = true;
-                rss.blend_s.ss.blend_func = motor::graphics::blend_function::add;
-                rss.blend_s.ss.dst_blend_factor = motor::graphics::blend_factor::one;
-                rss.blend_s.ss.src_blend_factor = motor::graphics::blend_factor::src_alpha;
-
-#if 0
-                // this is done in the frame restart of the
-                // rendering backends. Here we can not do it
-                // because we are using mutiple lights and therefore
-                // render the scene scene multiple times.
-                rss.clear_s.do_change = true;
-                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.9f, 0.5f, 1.0f );
-                rss.clear_s.ss.do_activate = true;
-                rss.clear_s.ss.do_color_clear = true;
-                rss.clear_s.ss.do_depth_clear = true;
-#endif
-
-#if 0
-                // do not need to set the viewport here. It is
-                // done through the backends.
-                rss.view_s.do_change = true;
-                rss.view_s.ss.do_activate = false;
-                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
-#endif
-
-                so.add_render_state_set( rss );
-            }
-
-            _light_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
-        }
-
-        {
-            motor::graphics::state_object_t so =
-                motor::graphics::state_object_t( "scene.01.shadow_render_states" );
-
-            {
-                motor::graphics::render_state_sets_t rss;
-                rss.depth_s.do_change = true;
-                rss.depth_s.ss.do_activate = true;
-                rss.depth_s.ss.do_depth_write = true;
-                rss.polygon_s.do_change = true;
-                rss.polygon_s.ss.do_activate = true;
-                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
-                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
-                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-
-                rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less;
-                rss.clear_s.do_change = true;
-                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
-                rss.clear_s.ss.do_activate = true;
-                rss.clear_s.ss.do_color_clear = true;
-                rss.clear_s.ss.do_depth_clear = true;
-                rss.view_s.do_change = true;
-                rss.view_s.ss.do_activate = true;
-                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1920 >> 1, 1080 >> 1 );
-                so.add_render_state_set( rss );
-            }
-
-            _shadow_depth_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
-        }
-
-        {
-            motor::graphics::state_object_t so =
-                motor::graphics::state_object_t( "scene.01.shadow_accum_render_states" );
-
-            {
-                motor::graphics::render_state_sets_t rss;
-                rss.depth_s.do_change = true;
-                rss.depth_s.ss.do_activate = true;
-                rss.depth_s.ss.do_depth_write = true;
-                rss.polygon_s.do_change = true;
-                rss.polygon_s.ss.do_activate = true;
-                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
-                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
-                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-                rss.clear_s.do_change = true;
-                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
-                rss.clear_s.ss.do_activate = true;
-                rss.clear_s.ss.do_color_clear = true;
-                rss.clear_s.ss.do_depth_clear = true;
-                rss.view_s.do_change = true;
-                rss.view_s.ss.do_activate = true;
-                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000, 1000 );
-                so.add_render_state_set( rss );
-            }
-
-            _shadow_accum_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
-        }
+        this_t::init_render_states();
 
         // load scene
         {
             auto const loc = motor::io::location_t( "01_scene_planet.scene.gltf" );
-            this_t::init_scene_and_components( loc, oid.mmgr );
+            this_t::reinit_everything( this_t::name(), loc, oid.mmgr );
             _db->attach( loc, motor::share( _gltf_mon ) );
         }
         {
@@ -401,20 +337,30 @@ class scene_01_planet : public iscene
         }
     }
 
-    //**************************************************************************************
-    void_t init_scene_and_components(
+    //**********************************************************************************************
+    void_t reinit_everything( motor::string_in_t prefix,
         motor::io::location_cref_t loc, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
     {
-        // init scene tree
+        this_t::init_scene_from_file( prefix, loc, mmgr );
+        this_t::init_components( prefix, mmgr );
+        this_t::create_shadow_camera_and_framebuffer( prefix ) ;
+        this_t::init_msl_manager( prefix, mmgr );
+        this_t::init_and_connect_nodes( prefix );
+    }
+
+    //**********************************************************************************************
+    void_t init_scene_from_file( motor::string_in_t prefix,
+        motor::io::location_cref_t loc, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
+    {
+
+        motor::scene::logic_group_t root;
+        root.add_component( motor::shared( motor::scene::name_component_t( prefix ) ) );
+
+        // add imported scene
         {
-            motor::scene::logic_group_t root;
-            root.add_component( motor::shared( motor::scene::name_component_t( "scene.01" ) ) );
+            motor::scene::node_mtr_t imported_node = nullptr;
 
-            // add imported scene
-            {
-                motor::scene::node_mtr_t imported_node = nullptr;
-
-                auto rs = motor::shared( motor::scene::logic_group_t() );
+            auto rs = motor::shared( motor::scene::logic_group_t() );
 
 // for now, no render states in the scene graph.
 // the base render states are set before the particular
@@ -431,142 +377,101 @@ class scene_01_planet : public iscene
                 }
 #endif
 
-                // make importer ready
+            // make importer ready
+            {
+                motor::format::module_registry_mtr_t mod_reg =
+                    motor::format::global::register_default_modules(
+                        motor::shared( motor::format::module_registry_t(), "mod registry" ) );
+
+                // import the gltf asset.
                 {
-                    motor::format::module_registry_mtr_t mod_reg =
-                        motor::format::global::register_default_modules(
-                            motor::shared( motor::format::module_registry_t(), "mod registry" ) );
+                    motor::property::property_sheet_t ps;
+                    ps.add_property< motor::string_t >( "base_name", prefix );
 
-                    // import the gltf asset.
+                    auto item = mod_reg->import_from( loc, _db, motor::shared( std::move( ps ) ) );
+
+                    auto * ret_item = item.get();
+
+                    if( auto * scene_item =
+                            dynamic_cast< motor::format::scene_item_ptr_t >( ret_item );
+                        scene_item != nullptr )
                     {
-                        motor::property::property_sheet_t ps;
-                        ps.add_property< motor::string_t >( "base_name", this_t::name() );
+                        imported_node = motor::move( scene_item->root );
 
-                        auto item =
-                            mod_reg->import_from( loc, _db, motor::shared( std::move( ps ) ) );
+                        motor::wire::release( motor::move( _gltf_time_node ) );
+                        motor::wire::release( motor::move( _merger ) );
 
-                        auto * ret_item = item.get();
+                        _gltf_time_node = motor::move( scene_item->start_node );
+                        _merger = motor::move( scene_item->merger_node );
 
-                        if( auto * scene_item =
-                                dynamic_cast< motor::format::scene_item_ptr_t >( ret_item );
-                            scene_item != nullptr )
+                        _start_node->then( motor::share( _gltf_time_node ) );
+                        _merger->then( motor::share( _end_node ) );
+
+                        _gltf_time_node->borrow_time_is()->connect( motor::share( _time ) );
+
+                        // camera sequence
                         {
-                            imported_node = motor::move( scene_item->root );
+                            for( auto & csi : _cs )
+                                motor::release( motor::move( csi.cam ) );
 
-                            motor::wire::release( motor::move( _time_node ) );
-                            motor::wire::release( motor::move( _merger ) );
+                            _cs.clear();
 
-                            _time_node = motor::move( scene_item->start_node );
-                            _merger = motor::move( scene_item->merger_node );
-
-                            _time_node->borrow_time_is()->connect( motor::share( _time ) );
-
-                            // camera sequence
+                            for( auto & i : scene_item->camera_sequence )
                             {
-                                for( auto & csi : _cs )
-                                    motor::release( motor::move( csi.cam ) );
-
-                                _cs.clear();
-
-                                for( auto & i : scene_item->camera_sequence )
-                                {
-                                    this_t::camera_sequence_item csi;
-                                    csi.cam = motor::move( i.cam );
-                                    csi.start = i.start;
-                                    csi.end = i.end;
-                                    _cs.emplace_back( csi );
-                                }
+                                this_t::camera_sequence_item csi;
+                                csi.cam = motor::move( i.cam );
+                                csi.start = i.start;
+                                csi.end = i.end;
+                                _cs.emplace_back( csi );
                             }
                         }
-                        else
-                        {
-                            motor::log::global_t::critical( "Failed to load gltf file." );
-                            std::exit( 1 );
-                        }
-
-                        ret_item->release();
-                        motor::release( motor::move( ret_item ) );
                     }
-
-                    motor::release( motor::move( mod_reg ) );
-                }
-
-                // test and scale whole imported tree with
-                // only one trafo component.
-                {
-                    motor::math::m3d::trafof_t t;
-                    t.set_scale( motor::math::vec3f_t( 1.0f ) );
-
-                    motor::scene::trafo3d_component_t comp;
-                    comp.set_trafo( t );
-
+                    else
                     {
-                        motor::wire::inputs_t inputs;
-                        comp.inputs( inputs );
-                        inputs.connect( "trafo", motor::share( _scale_os ) );
+                        motor::log::global_t::critical( "Failed to load gltf file." );
+                        std::exit( 1 );
                     }
 
-                    imported_node->add_component( motor::shared( std::move( comp ) ) );
+                    ret_item->release();
+                    motor::release( motor::move( ret_item ) );
                 }
-                rs->add_child( motor::move( imported_node ) );
-                root.add_child( motor::move( rs ) );
-            }
 
-            motor::release( motor::move( _root ) );
-            _root = motor::shared( std::move( root ) );
+                motor::release( motor::move( mod_reg ) );
+            }
+            rs->add_child( motor::move( imported_node ) );
+            root.add_child( motor::move( rs ) );
         }
 
+        motor::release( motor::move( _root ) );
+        _root = motor::shared( std::move( root ) );
+    }
+
+    //**************************************************************************************
+    void_t init_components( motor::string_in_t prefix, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
+    {
         // reload cameras
         {
             this_t::release_cameras();
 
-            motor::scene::node_t::traverser( _root ).apply( &_cc );
-            auto cams = _cc.get_cameras();
-
-            if( cams.size() > 0 )
+            motor::scene::camera_collector_visitor_t v(
+                [ & ]( motor::string_t node_name, motor::gfx::generic_camera_mtr_t borrowed )
             {
-                size_t i = 0;
-                _cameras.resize( cams.size() );
-                for( auto & c : cams )
-                {
-                    _cameras[ i ].first = c.first;
-                    _cameras[ i++ ].second = motor::share( c.second );
-                }
-                _cam_id = 0;
-            }
-            else
-            {
-                motor::log::global_t::error( "gltf file has no cameras." );
-            }
-        }
-
-        // reconnect nodes
-        {
-            this_t::release_node_dump();
-
-            auto t = motor::shared( motor::wire::funk_node_t( "end_node",
-                [ = ]( motor::wire::funk_node_ptr_t ) { this->_update_sync = 2; } ) );
-
-            _node_dump.emplace_back( motor::share( t ) );
-            _merger->then( motor::move( t ) );
-        }
-        motor::release( motor::move( _selected_node ) );
-
-        // collect msl_components just added and add variable
-        {
-            demos::msl_component_collector_t v( demos::to_id( demos::msl_id::color_pass_id ) );
+                _cameras.emplace_back( std::make_pair( node_name, motor::share( borrowed ) ) );
+                return false; // do not collect
+            } );
             motor::scene::node_t::traverser( _root ).apply( &v );
 
-            v.for_each( [ & ]( motor::scene::msl_component_mtr_t mslc )
-            {
-                auto & inputs = mslc->borrow_shader_inputs();
-
-                auto is = motor::wire::input_slot< motor::math::vec4f_t >(
-                    motor::math::vec4f_t( 1.0f, 0.1f, 0.1f, 1.0f ) );
-                inputs.add( "color", motor::shared( std::move( is ) ) );
-            } );
+            if( !_cameras.empty() )
+                _cam_id = 0;
+            else
+                motor::log::global_t::error( "scene has no cameras." );
         }
 
+        motor::release( motor::move( _selected_node ) );
+    }
+
+    void_t create_shadow_camera_and_framebuffer( motor::string_in_t prefix ) noexcept
+    {
         // create sun camera and create shadow framebuffer
         {
             motor::gfx::generic_camera_t gcam;
@@ -577,7 +482,7 @@ class scene_01_planet : public iscene
             float_t const w = _sun_cam->get_dims().x();
             float_t const h = _sun_cam->get_dims().y();
 
-            auto fb = motor::graphics::framebuffer_object_t( "scene.01.shadow_depth_framebuffer" );
+            auto fb = motor::graphics::framebuffer_object_t( prefix + ".shadow_depth_framebuffer" );
             fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( 1920 >> 1 ), size_t( 1080 >> 1 ) );
@@ -587,7 +492,7 @@ class scene_01_planet : public iscene
         }
 
         {
-            auto fb = motor::graphics::framebuffer_object_t( "scene.01.shadow_accum_framebuffer" );
+            auto fb = motor::graphics::framebuffer_object_t( prefix + ".shadow_accum_framebuffer" );
             fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( 1000 ), size_t( 1000 ) );
@@ -595,10 +500,14 @@ class scene_01_planet : public iscene
             motor::release( motor::move( _shadow_accum_fb ) );
             _shadow_accum_fb = motor::shared( std::move( fb ) );
         }
+    }
 
+    //**************************************************************************************
+    void_t init_msl_manager( motor::string_in_t prefix, motor::gfx::msl_manager_mtr_t mmgr ) noexcept
+    {
         // manager
         {
-            _own_mmgr->add( "scene1.color_pass",
+            _own_mmgr->add( prefix + ".color_pass",
                 motor::io::location_t( "01_scene_planet.shaders.color_pass.msl" ) );
 
             _reg0 = mmgr->unregister_funk( _reg0 );
@@ -688,9 +597,9 @@ class scene_01_planet : public iscene
 
             _reg1 = _own_mmgr->unregister_funk( _reg1 );
             _reg1 = _own_mmgr->register_funk(
-                [ this ]( motor::string_in_t name, motor::graphics::msl_object_mtr_t msl )
+                [ this, prefix ]( motor::string_in_t name, motor::graphics::msl_object_mtr_t msl )
             {
-                if( name == "scene1.color_pass" )
+                if( name == prefix + ".color_pass" )
                 {
                     motor::scene::add_msl_to_set_visitor_t v(
                         demos::to_id( demos::msl_id::color_pass_id ), motor::share( msl ) );
@@ -698,7 +607,57 @@ class scene_01_planet : public iscene
                 }
             } );
         }
+    }
 
+    //**************************************************************************************
+    void_t init_and_connect_nodes( motor::string_in_t prefix ) noexcept
+    {
+        // reconnect nodes
+        {
+            this_t::release_node_dump();
+
+            auto t = motor::shared( motor::wire::funk_node_t( "update sync",
+                [ = ]( motor::wire::funk_node_ptr_t ) { this->_update_sync = 2; } ) );
+
+            _node_dump.emplace_back( motor::share( t ) );
+            _merger->then( motor::move( t ) );
+        }
+
+        {
+            _test_value_node->inputs().add( motor::shared( motor::wire::is_float_t( 0.0f ) ) );
+        }
+
+        // make node connections
+#if 1
+        {
+            auto kk = motor::shared( motor::wire::trigger_filter_node_t() );
+            kk->connect_time_is( motor::share( _time ) );
+
+            auto const f0 =
+                kk->add_filter( [ & ]( motor::wire::trigger_filter_node_t::filter_data const & d )
+            { return 1.0f; } );
+            kk->connect_signal_is( f0, motor::share( _time ) );
+
+            _kk = motor::move( kk );
+            _kkid_rotation = f0;
+
+            _start_node->then( motor::share( _kk ) );
+        }
+#else
+        {
+            auto pc = motor::shared( motor::wire::trigger_filter_node_t() );
+            _start_node->then( motor::share( pc ) )
+                ->then( motor::share( _test_value_node ) )
+                ->then( motor::share( _end_node ) );
+
+            pc->borrow_time_is()->connect( motor::share( _time ) );
+            pc->borrow_active_os()->connect(
+                motor::share( _test_value_node->inputs().borrow( 0 ) ) );
+            pc->set_duration( 2.0f );
+
+            _kick_controllers.emplace_back( motor::move( pc ) );
+        }
+#endif
         // attach controllers
         {
             demos::scene_01::rotation_controller_mtr_t ctr =
@@ -706,8 +665,6 @@ class scene_01_planet : public iscene
                     motor::math::vec3f_t( 1.0f, 1.0f, 1.0f ), 0.1f ) );
 
             motor::wire::funk_node_mtr_t end = nullptr;
-
-            ctr->borrow_time_is()->connect( motor::share( _time ) );
 
             motor::scene::for_each_node_visitor_t v(
                 [ & ]( motor::scene::for_each_node_visitor_t::for_each_data const & d )
@@ -719,15 +676,16 @@ class scene_01_planet : public iscene
                         comp )
                     {
                         motor::wire::trafo3f_composer_t composer;
+
                         composer.ensure_and_borrow_rotation_is()->connect(
                             motor::share( ctr->borrow_rotation_os() ) );
+                        // override. currently only one composer can connect.
+                        comp->borrow_trafo_is()->connect( composer.ensure_and_get_os() );
 
                         auto comp_mtr = motor::shared( std::move( composer ) );
-                        end = motor::share( comp_mtr );
+                        comp->attach_composer( motor::share( comp_mtr ) );
 
-                        // override. currently only one composer can connect.
-                        comp->borrow_trafo_is()->connect( comp_mtr->ensure_and_get_os() );
-                        comp->attach_composer( motor::move( comp_mtr ) );
+                        end = motor::move( comp_mtr );
                     }
                     return motor::scene::result::break_traversal;
                 }
@@ -735,14 +693,20 @@ class scene_01_planet : public iscene
             } );
             motor::scene::node_t::traverser( _root ).apply( &v );
 
+#if 1
+            _kk->connect_signal_os( _kkid_rotation, motor::share( ctr->borrow_time_is() ) );
+#else
+            ctr->borrow_time_is()->connect( motor::share( _time ) );
+#endif
+
             if( end )
-                _time_node->then( ctr->get_node() )
+                _kk->then( ctr->get_node() )
                     ->then( motor::move( end ) )
-                    ->then( motor::share( _merger ) );
+                    ->then( motor::share( _gltf_time_node ) );
         }
 
         {
-            _imn_wire.build( _time_node );
+            _imn_wire.build( _start_node );
         }
     }
 
@@ -760,9 +724,10 @@ class scene_01_planet : public iscene
     // start parallel work
     void_t on_update_stage1( demos::iscene::update_data_cref_t ud ) noexcept
     {
+
         _gltf_mon->for_each_and_swap(
             [ & ]( motor::io::location_cref_t loc, motor::io::monitor_t::notify const n )
-        { this_t::init_scene_and_components( loc, ud.mmgr ); } );
+        { this_t::reinit_everything( this_t::name(), loc, ud.mmgr ); } );
 
         if( _update_sync != 0 ) return;
         _update_sync = 1;
@@ -774,11 +739,12 @@ class scene_01_planet : public iscene
             // t = 1.0f - t ;
 
             _time->set_and_exchange( t );
+            _dt->set_and_exchange( ud.cont_dt_sec );
         }
 
         {
             motor::concurrent::global_t::schedule(
-                _time_node->get_task(), motor::concurrent::schedule_type::pool );
+                _start_node->get_task(), motor::concurrent::schedule_type::pool );
         }
     }
 
@@ -1232,6 +1198,20 @@ class scene_01_planet : public iscene
             ImGui::End();
         }
 
+        {
+            if( ImGui::Begin( "Playground ##scene.01" ) )
+            {
+                ImGui::SliderFloat( "Active Test##scene.01", &_active_test, 0.0f, 1.0f );
+                if( ImGui::Button( "Trigger" ) )
+                {
+                    for( auto & pc : _kick_controllers )
+                    {
+                        pc.kk->trigger();
+                    }
+                }
+            }
+            ImGui::End();
+        }
         // #1 : nodes graph window
         if( ImGui::Begin( "node graph visualization" ) )
         {
@@ -1287,8 +1267,20 @@ class scene_01_planet : public iscene
 
         motor::wire::release( motor::move( _time ) );
         motor::wire::release( motor::move( _scale_os ) );
-        motor::wire::release( motor::move( _time_node ) );
+        motor::wire::release( motor::move( _gltf_time_node ) );
         motor::wire::release( motor::move( _merger ) );
+
+        for( auto * n : _node_dump )
+        {
+            motor::release( motor::move( n ) );
+        }
+        _node_dump.clear();
+
+        for( auto & n : _kick_controllers )
+        {
+            motor::release( motor::move( n.kk ) );
+        }
+        _kick_controllers.clear();
 
         motor::release( motor::move( _root_so ) );
         motor::release( motor::move( _final_so ) );
@@ -1313,14 +1305,186 @@ class scene_01_planet : public iscene
 
         motor::release( motor::move( _pr ) );
 
-        motor::release( motor::move( _bias ) );
-        motor::release( motor::move( _light_intensity ) );
-
         for( auto * ctr : _controllers )
         {
             motor::release( motor::move( ctr ) );
         }
         _controllers.clear();
+    }
+
+    void_t init_render_states( void_t ) noexcept
+    {
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.01.final_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+#if 0
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+#endif
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+#if 0
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+#endif
+#if 0
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+#endif
+#if 0
+                rss.blend_s.do_change = false ;
+                rss.blend_s.ss.do_activate = true ;
+                rss.blend_s.ss.blend_func = motor::graphics::blend_function::add ;
+                rss.blend_s.ss.src_blend_factor = motor::graphics::blend_factor::one ;
+                rss.blend_s.ss.dst_blend_factor = motor::graphics::blend_factor::one ;
+#endif
+
+                so.add_render_state_set( rss );
+            }
+
+            _final_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.01.root_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+                so.add_render_state_set( rss );
+            }
+
+            _root_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        // light render states
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.01.light_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = false;
+                rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less_equal;
+
+                rss.blend_s.do_change = true;
+                rss.blend_s.ss.do_activate = true;
+                rss.blend_s.ss.blend_func = motor::graphics::blend_function::add;
+                rss.blend_s.ss.dst_blend_factor = motor::graphics::blend_factor::one;
+                rss.blend_s.ss.src_blend_factor = motor::graphics::blend_factor::src_alpha;
+
+#if 0
+                // this is done in the frame restart of the
+                // rendering backends. Here we can not do it
+                // because we are using mutiple lights and therefore
+                // render the scene scene multiple times.
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.9f, 0.5f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+#endif
+
+#if 0
+                // do not need to set the viewport here. It is
+                // done through the backends.
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = false;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+#endif
+
+                so.add_render_state_set( rss );
+            }
+
+            _light_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.01.shadow_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+
+                rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = true;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1920 >> 1, 1080 >> 1 );
+                so.add_render_state_set( rss );
+            }
+
+            _shadow_depth_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
+
+        {
+            motor::graphics::state_object_t so =
+                motor::graphics::state_object_t( "scene.01.shadow_accum_render_states" );
+
+            {
+                motor::graphics::render_state_sets_t rss;
+                rss.depth_s.do_change = true;
+                rss.depth_s.ss.do_activate = true;
+                rss.depth_s.ss.do_depth_write = true;
+                rss.polygon_s.do_change = true;
+                rss.polygon_s.ss.do_activate = true;
+                rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
+                rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
+                rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+                rss.clear_s.do_change = true;
+                rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
+                rss.clear_s.ss.do_activate = true;
+                rss.clear_s.ss.do_color_clear = true;
+                rss.clear_s.ss.do_depth_clear = true;
+                rss.view_s.do_change = true;
+                rss.view_s.ss.do_activate = true;
+                rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000, 1000 );
+                so.add_render_state_set( rss );
+            }
+
+            _shadow_accum_so = motor::shared( motor::graphics::state_object_t( std::move( so ) ) );
+        }
     }
 };
 motor_typedef( scene_01_planet );

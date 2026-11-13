@@ -95,6 +95,9 @@ class scene_manager
         // some running time to keep animations
         // running that needs it
         motor::math::time_ms_t cont_time;
+
+        // continuous dt in seconds
+        float_t cont_dt_sec ;
     };
     motor_typedef( update_data );
 
