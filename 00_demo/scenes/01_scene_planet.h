@@ -26,8 +26,9 @@
 #include <motor/collide/3d/transform.hpp>
 #include <motor/graphics/state/render_states.h>
 
-#include <motor/tool/imgui/node_kit/imgui_node_visitor.h>
-#include <motor/tool/imgui/imnodes_wire.h>
+#include <motor/tool/imgui/canvas_2d.h>
+#include <motor/tool/imgui/graph_viewer.h>
+#include <motor/tool/imgui/graph_view_wire.h>
 
 #include <motor/format/global.h>
 #include <motor/log/global.h>
@@ -207,6 +208,8 @@ class scene_01_planet : public iscene
 
     motor::wire::trigger_filter_node_mtr_t _kk = nullptr;
     size_t _kkid_rotation = size_t( -1 );
+    size_t _f1_pingpong = size_t( -1 );
+    motor::vector< motor::format::scene_item::animation_data > _animations;
 
     // 0: can start parallel work
     // 1: is in parallel work/has to wait for result
@@ -269,7 +272,9 @@ class scene_01_planet : public iscene
 
     bool_t _draw_debug = false;
 
-    motor::tool::imnodes_wire_t _imn_wire;
+    motor::tool::imgui::canvas_2d_t _can;
+    motor::tool::imgui::graph_viewer_t _gv;
+    motor::tool::imgui::graph_view_wire_t _gvw;
 
   private: // io
 
@@ -296,7 +301,7 @@ class scene_01_planet : public iscene
 
   public:
 
-    scene_01_planet( motor::string_cref_t name ) noexcept : iscene( name, { 10000, 2000 } ) {}
+    scene_01_planet( motor::string_cref_t name ) noexcept : iscene( name, { 50000, 2000 } ) {}
     scene_01_planet( scene_01_planet const & ) = delete;
     scene_01_planet( scene_01_planet && rhv ) noexcept
         : iscene( std::move( rhv ) ), _gltf_mon( motor::move( rhv._gltf_mon ) ),
@@ -436,6 +441,8 @@ class scene_01_planet : public iscene
                                 _cs.emplace_back( csi );
                             }
                         }
+
+                        _animations = std::move( scene_item->animations );
                     }
                     else
                     {
@@ -643,16 +650,74 @@ class scene_01_planet : public iscene
         {
             auto kk = motor::shared( motor::wire::trigger_filter_node_t() );
 
-            auto const f0 =
-                kk->add_filter( [ & ]( motor::wire::trigger_filter_node_t::filter_data const & d )
-            { return d.sig_abs; }, { .duration = 1.0f } );
+            {
+                auto const f0 = kk->add_filter(
+                    [ & ]( motor::wire::trigger_filter_node_t::filter_data const & d )
+                { return d.sig_abs; }, { .duration = 1.0f } );
 
-            kk->connect_time_is( motor::share( _time ) );
-            kk->connect_signal_is( f0, motor::share( _time ) );
+                kk->connect_time_is( motor::share( _time ) );
+                kk->connect_signal_is( f0, motor::share( _time ) );
+                _kkid_rotation = f0;
+            }
+
+            {
+                auto iter = std::find_if( _animations.begin(), _animations.end(),
+                    [ & ]( auto const & item ) { return item.name == "ring.animation.base"; } );
+
+                if( iter != _animations.end() )
+                {
+                    auto const [ begin_ms, end_ms ] = iter->node->get_time_range();
+
+                    if( end_ms > begin_ms )
+                    {
+                        double const begin_s = double( begin_ms ) / 1000.0;
+                        double const length_s = double( end_ms - begin_ms ) / 1000.0;
+
+                        auto const id =
+                            kk->add_filter( [ begin_s, length_s ]( auto const & d ) -> float {
+                            return float( begin_s + std::fmod( double( d.time_rel ), length_s ) );
+                        }, { .duration = -1.0f } );
+
+                        iter->node->connect_time_is( kk->get_signal_os( id ).second );
+
+                        kk->connect_time_is( motor::share( _time ) );
+                        kk->connect_signal_is( id, motor::share( _time ) );
+
+                        _f1_pingpong = id;
+                    }
+                }
+            }
+
+            {
+                auto iter = std::find_if( _animations.begin(), _animations.end(),
+                    [ & ]( auto const & item ) { return item.name == "sphere.rotate"; } );
+
+                if( iter != _animations.end() )
+                {
+                    auto const [ begin_ms, end_ms ] = iter->node->get_time_range();
+
+                    if( end_ms > begin_ms )
+                    {
+                        double const begin_s = double( begin_ms ) / 1000.0;
+                        double const length_s = double( end_ms - begin_ms ) / 1000.0;
+
+                        auto const id =
+                            kk->add_filter( [ begin_s, length_s ]( auto const & d ) -> float {
+                            return float( begin_s + std::fmod( double( d.time_rel ), length_s ) );
+                        }, { .duration = -1.0f } );
+
+                        iter->node->connect_time_is( kk->get_signal_os( id ).second );
+
+                        kk->connect_time_is( motor::share( _time ) );
+                        kk->connect_signal_is( id, motor::share( _time ) );
+
+                        // save the id?
+                        //_f1_pingpong = id;
+                    }
+                }
+            }
 
             _kk = motor::move( kk );
-            _kkid_rotation = f0;
-
             _start_node->then( motor::share( _kk ) );
         }
 
@@ -662,10 +727,13 @@ class scene_01_planet : public iscene
                 motor::shared( demos::scene_01::rotation_controller_t(
                     motor::math::vec3f_t( 1.0f, 1.0f, 1.0f ), 0.1f ) );
 
+#if 1
+            _kk->then( motor::share( ctr ) )->then( motor::share( _gltf_time_node ) );
+#else
             motor::scene::for_each_node_visitor_t v(
                 [ & ]( motor::scene::for_each_node_visitor_t::for_each_data const & d )
             {
-                if( d.name == "outer_ring" )
+                if( d.name == "outer.ring" )
                 {
                     if( auto * comp =
                             d.node->borrow_component< motor::scene::trafo3d_component_t >();
@@ -689,7 +757,7 @@ class scene_01_planet : public iscene
                 return motor::scene::result::ok;
             } );
             motor::scene::node_t::traverser( _root ).apply( &v );
-
+#endif
             _kk->connect_signal_os( _kkid_rotation, motor::share( ctr->borrow_time_is() ) );
             _node_dump.emplace_back( motor::move( ctr ) );
 
@@ -697,7 +765,7 @@ class scene_01_planet : public iscene
         }
 
         {
-            _imn_wire.build( _start_node );
+            _gvw.build( _gv, _start_node );
         }
     }
 
@@ -725,7 +793,7 @@ class scene_01_planet : public iscene
 
         {
             float_t t = ud.relative_seconds;
-            t = motor::math::fn< float_t >::mod( t, 9.0 );
+            //t = motor::math::fn< float_t >::mod( t, 9.0 );
             // t = motor::math::fn<float_t>::abs( t ) ;
             // t = 1.0f - t ;
 
@@ -746,8 +814,7 @@ class scene_01_planet : public iscene
         if( _update_sync != 2 ) return;
         _update_sync = 0;
 
-        if( ud.kicks->onset_value() > 0.5f ) 
-            _kk->trigger() ;
+        if( ud.kicks->onset_value() > 0.5f ) _kk->trigger();
     }
 
     //************************************************************************************
@@ -1053,7 +1120,7 @@ class scene_01_planet : public iscene
                         motor::gfx::directional_light_t dl( _sun_cam->get_direction().negated() );
                         motor::gfx::single_shadow_data_t sd = { _sun_cam->get_proj_matrix(),
                             _sun_cam->get_view_matrix(),
-                            "scene.01.shadow_depth_framebuffer.depth" };
+                            this_t::name() + ".shadow_depth_framebuffer.depth" };
 
                         motor::gfx::generic_camera_mtr_t cam = _cameras[ _cam_id ].second;
 
@@ -1209,9 +1276,13 @@ class scene_01_planet : public iscene
         // #1 : nodes graph window
         if( ImGui::Begin( "node graph visualization" ) )
         {
-            _imn_wire.begin();
-            _imn_wire.visualize( 0 );
-            _imn_wire.end( true );
+            if( _can.begin( "canvas", {} ) )
+            {
+                _gv.begin( &_can );
+                _gvw.visualize( _gv );
+                _gv.end();
+                _can.end();
+            }
         }
         ImGui::End();
 
