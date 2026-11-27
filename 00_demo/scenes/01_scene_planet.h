@@ -35,6 +35,8 @@
 #include <motor/memory/global.h>
 #include <motor/concurrent/global.h>
 
+#include <numbers>
+
 namespace demos::scene_01
 {
 class rotation_controller : public motor::wire::funk_node< motor::wire::unnamed_slot_sheet_policy >
@@ -206,9 +208,13 @@ class scene_01_planet : public iscene
     };
     motor::vector< kick_controller_data > _kick_controllers;
 
-    motor::wire::trigger_filter_node_mtr_t _kk = nullptr;
-    size_t _kkid_rotation = size_t( -1 );
+    motor::wire::trigger_filter_node_mtr_t _time_trigger = nullptr;
+    size_t _fid_rotation = size_t( -1 );
     size_t _f1_pingpong = size_t( -1 );
+
+    motor::wire::trigger_filter_node_mtr_t _kick_trigger = nullptr;
+    size_t _kid_short_kick = size_t( -1 );
+
     motor::vector< motor::format::scene_item::animation_data > _animations;
 
     // 0: can start parallel work
@@ -657,7 +663,7 @@ class scene_01_planet : public iscene
 
                 kk->connect_time_is( motor::share( _time ) );
                 kk->connect_signal_is( f0, motor::share( _time ) );
-                _kkid_rotation = f0;
+                _fid_rotation = f0;
             }
 
             {
@@ -670,12 +676,12 @@ class scene_01_planet : public iscene
 
                     if( end_ms > begin_ms )
                     {
-                        double const begin_s = double( begin_ms ) / 1000.0;
-                        double const length_s = double( end_ms - begin_ms ) / 1000.0;
+                        double_t const begin_s = double_t( begin_ms ) / 1000.0;
+                        double_t const length_s = double_t( end_ms - begin_ms ) / 1000.0;
 
                         auto const id =
                             kk->add_filter( [ begin_s, length_s ]( auto const & d ) -> float {
-                            return float( begin_s + std::fmod( double( d.time_rel ), length_s ) );
+                            return float( begin_s + std::fmod( double_t( d.time_rel ), length_s ) );
                         }, { .duration = -1.0f } );
 
                         iter->node->connect_time_is( kk->get_signal_os( id ).second );
@@ -698,12 +704,12 @@ class scene_01_planet : public iscene
 
                     if( end_ms > begin_ms )
                     {
-                        double const begin_s = double( begin_ms ) / 1000.0;
-                        double const length_s = double( end_ms - begin_ms ) / 1000.0;
+                        double_t const begin_s = double_t( begin_ms ) / 1000.0;
+                        double_t const length_s = double_t( end_ms - begin_ms ) / 1000.0;
 
                         auto const id =
                             kk->add_filter( [ begin_s, length_s ]( auto const & d ) -> float {
-                            return float( begin_s + std::fmod( double( d.time_rel ), length_s ) );
+                            return float( begin_s + std::fmod( double_t( d.time_rel ), length_s ) );
                         }, { .duration = -1.0f } );
 
                         iter->node->connect_time_is( kk->get_signal_os( id ).second );
@@ -717,8 +723,60 @@ class scene_01_planet : public iscene
                 }
             }
 
-            _kk = motor::move( kk );
-            _start_node->then( motor::share( _kk ) );
+            _time_trigger = motor::move( kk );
+            _start_node->then( motor::share( _time_trigger ) );
+        }
+
+        // make node connections
+        {
+            auto tfn = motor::shared( motor::wire::trigger_filter_node_t() );
+
+            {
+                auto iter = std::find_if( _animations.begin(), _animations.end(),
+                    [ & ]( auto const & item ) { return item.name == "outer.ring.kick"; } );
+
+                if( iter != _animations.end() )
+                {
+                    auto const [ begin_ms, end_ms ] = iter->node->get_time_range();
+
+                    if( end_ms > begin_ms )
+                    {
+                        // time
+                        {
+                            double_t const begin_s = double_t( begin_ms ) / 1000.0;
+                            double_t const length_s = double_t( end_ms - begin_ms ) / 1000.0;
+
+                            auto const id =
+                                tfn->add_filter( [ begin_s, length_s ]( auto const & d ) -> float {
+                                return float(
+                                    begin_s + std::fmod( double_t( d.time_rel ), length_s ) );
+                            }, { .duration = -1.0f } );
+                            iter->node->connect_time_is( tfn->get_signal_os( id ).second );
+                            tfn->connect_signal_is( id, motor::share( _time ) );
+                            _kid_short_kick = id;
+                        }
+
+                        // weight
+                        {
+                            auto const id = tfn->add_filter( []( auto const & d ) -> float
+                            {
+                                auto const zo = d.time_rel / d.duration;
+
+                                //return motor::math::fn< float_t >::pulse( zo, 0.2f, 0.8f );
+                                return std::sin( zo * float_t( std::numbers::pi) ) ;
+                            }, { .duration = 0.5f } );
+                            iter->node->borrow_weight_is()->set_value( 0.0f );
+                            iter->node->borrow_weight_is()->connect(
+                                tfn->get_signal_os( id ).second );
+                        }
+
+                        tfn->connect_time_is( motor::share( _time ) );
+                    }
+                }
+            }
+
+            _kick_trigger = motor::move( tfn );
+            _start_node->then( motor::share( _kick_trigger ) );
         }
 
         // attach controllers
@@ -727,41 +785,8 @@ class scene_01_planet : public iscene
                 motor::shared( demos::scene_01::rotation_controller_t(
                     motor::math::vec3f_t( 1.0f, 1.0f, 1.0f ), 0.1f ) );
 
-#if 1
-            _kk->then( motor::share( ctr ) )->then( motor::share( _gltf_time_node ) );
-#else
-            motor::scene::for_each_node_visitor_t v(
-                [ & ]( motor::scene::for_each_node_visitor_t::for_each_data const & d )
-            {
-                if( d.name == "outer.ring" )
-                {
-                    if( auto * comp =
-                            d.node->borrow_component< motor::scene::trafo3d_component_t >();
-                        comp )
-                    {
-                        auto composer = motor::shared( motor::wire::trafo3f_composer_t() );
-
-                        composer->ensure_and_borrow_rotation_is()->connect(
-                            motor::share( ctr->borrow_rotation_os() ) );
-                        // override. currently only one composer can connect.
-                        comp->borrow_trafo_is()->connect( composer->ensure_and_get_os() );
-
-                        comp->attach_composer( motor::share( composer ) );
-
-                        _kk->then( motor::share( ctr ) )
-                            ->then( motor::move( composer ) )
-                            ->then( motor::share( _gltf_time_node ) );
-                    }
-                    return motor::scene::result::break_traversal;
-                }
-                return motor::scene::result::ok;
-            } );
-            motor::scene::node_t::traverser( _root ).apply( &v );
-#endif
-            _kk->connect_signal_os( _kkid_rotation, motor::share( ctr->borrow_time_is() ) );
-            _node_dump.emplace_back( motor::move( ctr ) );
-
-            _start_node->then( motor::share( _kk ) );
+            _time_trigger->then( motor::share( ctr ) )->then( motor::share( _gltf_time_node ) );
+            _kick_trigger->then( motor::share( ctr ) )->then( motor::share( _gltf_time_node ) );
         }
 
         {
@@ -793,9 +818,9 @@ class scene_01_planet : public iscene
 
         {
             float_t t = ud.relative_seconds;
-            //t = motor::math::fn< float_t >::mod( t, 9.0 );
-            // t = motor::math::fn<float_t>::abs( t ) ;
-            // t = 1.0f - t ;
+            // t = motor::math::fn< float_t >::mod( t, 9.0 );
+            //  t = motor::math::fn<float_t>::abs( t ) ;
+            //  t = 1.0f - t ;
 
             _time->set_and_exchange( t );
             _dt->set_and_exchange( ud.cont_dt_sec );
@@ -814,7 +839,9 @@ class scene_01_planet : public iscene
         if( _update_sync != 2 ) return;
         _update_sync = 0;
 
-        if( ud.kicks->onset_value() > 0.5f ) _kk->trigger();
+        _time_trigger->trigger();
+
+        if( ud.kicks->onset_value() > 0.5f ) _kick_trigger->trigger();
     }
 
     //************************************************************************************
@@ -1325,7 +1352,7 @@ class scene_01_planet : public iscene
         }
         _node_dump.clear();
 
-        motor::wire::release( motor::move( _kk ) );
+        motor::wire::release( motor::move( _time_trigger ) );
         motor::wire::inode::disconnect( _start_node );
         motor::wire::inode::disconnect( _end_node );
     }
